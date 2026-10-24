@@ -4,8 +4,9 @@ import { promisify } from 'node:util';
 import type { DiscoveryRecipe, User } from '@tandra/types';
 import { MongoClient } from 'mongodb';
 import { resolveMongoUri } from './mongo-uri';
+import { currentStack, type Stack } from './stack';
 
-const DB_NAME = 'tandra_e2e';
+const DB_NAME = currentStack.dbName;
 
 /** Canonical sorted pair — mirrors the API's canonicalPair. */
 const sortPair = (a: User, b: User): { userIds: [string, string]; users: [User, User] } =>
@@ -44,39 +45,45 @@ const REPO_ROOT = path.resolve(__dirname, '..');
  */
 export const E2E_OPENSEARCH_URL = process.env.E2E_OPENSEARCH_URL;
 
-/** Rebuilds the OpenSearch discovery index from the e2e Mongo library, through the API's own reindex command. */
-async function reindexDiscovery(): Promise<void> {
+/** Rebuilds a stack's OpenSearch discovery index from its e2e Mongo library, through the API's own reindex command. */
+async function reindexDiscovery(stack: Stack): Promise<void> {
     await run('bun', ['packages/api/scripts/reindex-discovery.ts'], {
         cwd: REPO_ROOT,
         env: {
             ...process.env,
             PORT: '0',
             CONNECTION_URI: resolveMongoUri(),
-            DATABASE_NAME: DB_NAME,
+            DATABASE_NAME: stack.dbName,
             OPENSEARCH_URL: E2E_OPENSEARCH_URL,
+            OPENSEARCH_INDEX: stack.discoveryIndex,
             BUCKET_ENDPOINT: 'localhost:9000',
             BUCKET_NAME: 'tandra',
             BUCKET_ACCESS_KEY: 'rustfsadmin',
             BUCKET_SECRET_KEY: 'rustfsadmin',
             // The API config requires these even though reindexing never touches auth.
             BETTER_AUTH_SECRET: 'e2e-better-auth-secret-not-for-prod-32+',
-            BETTER_AUTH_URL: 'http://localhost:4000',
+            BETTER_AUTH_URL: stack.webOrigin,
         },
     });
 }
 
-/** Replaces the e2e discovery library (Mongo, then the index) with exactly `recipes`. */
-export async function seedDiscoveryLibrary(recipes: DiscoveryRecipe[]): Promise<void> {
+/** Replaces the e2e discovery library (Mongo, then the index) of each of `stacks` with exactly `recipes`. */
+export async function seedDiscoveryLibrary(
+    recipes: DiscoveryRecipe[],
+    stacks: Stack[] = [currentStack]
+): Promise<void> {
     const client = new MongoClient(resolveMongoUri());
     await client.connect();
     try {
-        const collection = client.db(DB_NAME).collection('discoveryRecipes');
-        await collection.deleteMany({});
-        if (recipes.length > 0) await collection.insertMany(recipes.map((recipe) => ({ ...recipe })));
+        for (const stack of stacks) {
+            const collection = client.db(stack.dbName).collection('discoveryRecipes');
+            await collection.deleteMany({});
+            if (recipes.length > 0) await collection.insertMany(recipes.map((recipe) => ({ ...recipe })));
+        }
     } finally {
         await client.close();
     }
-    await reindexDiscovery();
+    await Promise.all(stacks.map(reindexDiscovery));
 }
 
 /** Sets image keys on a recipe directly; the API only writes these after a real object-store upload or AI generation. */

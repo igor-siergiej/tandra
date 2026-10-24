@@ -88,7 +88,9 @@ bun run reindex:discovery      # reads .env; needs CONNECTION_URI and OPENSEARCH
 
 Builds a fresh `discovery-recipes-<timestamp>` from Mongo in batches of 500, refreshes it, swaps the alias in one atomic
 `_aliases` call, then deletes the old index. Readers see the old index or the new one, never neither. If the Mongo read
-or a bulk item fails, the half-built index is deleted and the live one is untouched.
+or a bulk item fails, the half-built index is deleted and the live one is untouched. `OPENSEARCH_INDEX` replaces the
+`discovery-recipes` alias (and the index names derived from it), so several APIs can share one engine; the e2e suite
+gives each Playwright worker its own.
 
 ## Running it locally
 

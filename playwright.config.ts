@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 import { config } from 'dotenv';
 import { resolveMongoUri } from './e2e/mongo-uri';
+import { allStacks, E2E_WORKERS } from './e2e/stack';
 
 config();
 
@@ -15,8 +16,11 @@ const BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:4000';
 export default defineConfig({
     testDir: './e2e/tests',
     tsconfig: './e2e/tsconfig.json',
-    fullyParallel: false,
-    workers: 1,
+    // Safe because every test sets up its own state and each worker has its own stack (e2e/stack.ts); it also lets
+    // --shard split by test rather than by file. Tests that must share a worker and run in order can opt in with
+    // test.describe.configure({ mode: 'serial' }).
+    fullyParallel: true,
+    workers: E2E_WORKERS,
     timeout: 8000,
     forbidOnly: !!process.env.CI,
     retries: process.env.CI ? 2 : 0,
@@ -66,37 +70,42 @@ export default defineConfig({
             },
         },
     ],
-    webServer: [
+    // Servers start in order, each waiting for the previous one to be ready, so slot 0 builds the bundle once and
+    // later slots only serve it.
+    webServer: allStacks().flatMap((stack, slot) => [
         {
             // A prebuilt bundle, not the Vite dev server: every test opens a fresh browser context, and the dev
             // server makes each one fetch and transform the whole unbundled module graph again. A running dev
             // server is still reused locally.
-            command: 'bun run --filter @tandra/web start:e2e',
-            url: 'http://localhost:4000',
+            command: `${slot === 0 ? 'bun run build:e2e && ' : ''}bunx vite preview --port ${stack.webPort} --strictPort --outDir build-e2e`,
+            cwd: 'packages/web',
+            url: stack.webOrigin,
             reuseExistingServer: !process.env.CI,
             timeout: 120_000,
+            env: { E2E_API_PROXY_TARGET: stack.apiBase },
         },
         {
             command: 'bun run --filter @tandra/api start:e2e',
-            url: 'http://localhost:4001/api/health',
+            url: `${stack.apiBase}/api/health`,
             reuseExistingServer: false,
             env: {
-                PORT: '4001',
+                PORT: String(stack.apiPort),
                 // Fixed test values, never a developer's .env: e2e signs in through these.
                 BETTER_AUTH_SECRET: 'e2e-better-auth-secret-not-for-prod-32+',
-                BETTER_AUTH_URL: 'http://localhost:4000',
+                BETTER_AUTH_URL: stack.webOrigin,
                 CONNECTION_URI: E2E_MONGO_URI,
-                DATABASE_NAME: 'tandra_e2e',
+                DATABASE_NAME: stack.dbName,
                 BUCKET_ENDPOINT: 'localhost:9000',
                 BUCKET_NAME: 'tandra',
                 BUCKET_ACCESS_KEY: 'rustfsadmin',
                 BUCKET_SECRET_KEY: 'rustfsadmin',
                 // Only the dedicated e2e search engine, never a developer's OPENSEARCH_URL from .env. Empty = discovery off.
                 OPENSEARCH_URL: process.env.E2E_OPENSEARCH_URL ?? '',
+                OPENSEARCH_INDEX: stack.discoveryIndex,
                 // The public read endpoint echoes the allow-listed origin in Access-Control-Allow-Origin.
                 // Without an allow-list the middleware falls back to "*"; the test asserts the echo path.
                 PUBLIC_DISCOVER_ORIGINS: 'https://tandra.uk',
             },
         },
-    ],
+    ]),
 });

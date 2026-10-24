@@ -6,11 +6,20 @@ See [COVERAGE.md](COVERAGE.md) for which feature is covered by which spec, and t
 
 ## What the suite runs against (and why it is fast)
 
-- **A prebuilt web bundle, not the Vite dev server.** Playwright starts `bun run --filter @tandra/web start:e2e`:
-  `vite build --mode development` into `packages/web/build-e2e`, served by `vite preview` on :4000 (same `/api` proxy,
-  same nginx-mirror middleware as the dev server). Every test opens a fresh browser context, and the dev server made
-  each one fetch and transform the whole unbundled module graph. `--mode development` keeps the `vlocalhost` badge the
-  visual baselines expect. Locally, an already-running dev server on :4000 is reused instead.
+- **Several workers, each with its own app stack.** `E2E_WORKERS` (default 1; CI uses 3) sets the Playwright worker
+  count, and `e2e/stack.ts` gives every worker its own api process, web server, Mongo database and OpenSearch alias:
+  slot 0 is :4000/:4001, `tandra_e2e`, `discovery-recipes`, and slot N adds `10·N` to the ports and suffixes the
+  names. Each test still wipes its database before it starts, but now only its own worker's. `fullyParallel` is on,
+  so tests from one file can land on different workers; give a group that has to run in order on one worker
+  `test.describe.configure({ mode: 'serial' })`. `E2E_PORT_BASE` (default 4000) moves every port, so a second
+  checkout can run its suite at the same time. Specs use `API_BASE` (`e2e/auth.ts`) and relative `goto` URLs, never a
+  hardcoded port.
+- **A prebuilt web bundle, not the Vite dev server.** Slot 0 runs `bun run build:e2e` (`vite build --mode development`
+  into `packages/web/build-e2e`) and every slot serves it with `vite preview`, proxying `/api` to its own api
+  (`E2E_API_PROXY_TARGET`) with the same nginx-mirror middleware as the dev server. Every test opens a fresh browser
+  context, and the dev server made each one fetch and transform the whole unbundled module graph. `--mode development`
+  keeps the `vlocalhost` badge the visual baselines expect. Locally, an already-running server on a slot's web port
+  is reused instead.
 - **Playwright polls every 100ms, not 500ms.** `patches/playwright-core@<version>.patch` (applied by `bun install` via
   `patchedDependencies`) caps the retry back-off of assertions and actions at 100ms. Upstream re-checks after 0, 20,
   50, 100, 100ms and then only every 500ms, so a page that rendered at ~650ms was seen at ~1000ms; most first

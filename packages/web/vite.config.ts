@@ -123,7 +123,8 @@ export default defineConfig(({ mode }) => {
             },
             proxy: {
                 '/api': {
-                    target: 'http://localhost:4001',
+                    // e2e runs one api per Playwright worker and points each web server at its own.
+                    target: process.env.E2E_API_PROXY_TARGET ?? 'http://localhost:4001',
                     changeOrigin: false,
                     secure: false,
                     ws: true,

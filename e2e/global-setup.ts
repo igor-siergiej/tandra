@@ -3,13 +3,14 @@ import { E2E_OPENSEARCH_URL, seedDiscoveryLibrary } from './db-helpers';
 import { DISCOVERY_FIXTURES } from './discovery-fixtures';
 import { MOCK_USER, MOCK_USER_2, PASSWORDS } from './mocks/data/users';
 import { resolveMongoUri } from './mongo-uri';
+import { allStacks } from './stack';
 
-const DB_NAME = 'tandra_e2e';
+const STACKS = allStacks();
 
 // Writes the two fixture accounts in the shape Better Auth's Mongo adapter stores (user + credential
 // account), with fixed ids so specs can name them. Upserts, so a run that died before teardown is harmless.
-const seedUsers = async (client: MongoClient) => {
-    const db = client.db(DB_NAME);
+const seedUsers = async (client: MongoClient, dbName: string) => {
+    const db = client.db(dbName);
     const now = new Date();
     for (const user of [MOCK_USER, MOCK_USER_2]) {
         const _id = new ObjectId(user.id);
@@ -45,22 +46,23 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     const client = new MongoClient(resolveMongoUri());
     try {
         await client.connect();
-        await seedUsers(client);
+        for (const stack of STACKS) await seedUsers(client, stack.dbName);
     } finally {
         await client.close();
     }
 
-    // The library is read-only shared data (no test writes to it), so it is seeded once rather than per test.
-    if (E2E_OPENSEARCH_URL) await seedDiscoveryLibrary(DISCOVERY_FIXTURES);
+    // Discover specs only read the library (discover-publish puts it back after each test), so it is seeded once per
+    // stack rather than per test.
+    if (E2E_OPENSEARCH_URL) await seedDiscoveryLibrary(DISCOVERY_FIXTURES, STACKS);
 
     return async () => {
         // Empty the library before the database is dropped so the index is not left holding fixtures.
-        if (E2E_OPENSEARCH_URL) await seedDiscoveryLibrary([]);
+        if (E2E_OPENSEARCH_URL) await seedDiscoveryLibrary([], STACKS);
 
         const teardown = new MongoClient(resolveMongoUri());
         try {
             await teardown.connect();
-            await teardown.db(DB_NAME).dropDatabase();
+            for (const stack of STACKS) await teardown.db(stack.dbName).dropDatabase();
         } finally {
             await teardown.close();
         }

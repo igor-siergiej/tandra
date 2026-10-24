@@ -9,9 +9,10 @@ import { LoginPage } from '../page-objects/LoginPage';
 import { RecipeDetailPage } from '../page-objects/RecipeDetailPage';
 import { RecipesPage } from '../page-objects/RecipesPage';
 import { RegisterPage } from '../page-objects/RegisterPage';
+import { currentStack } from '../stack';
 
 const MONGO_URI = resolveMongoUri();
-const DB_NAME = 'tandra_e2e';
+const DB_NAME = currentStack.dbName;
 
 interface Fixtures {
     authenticatedPage: Page;
@@ -31,6 +32,11 @@ interface Options {
 
 export const test = base.extend<Fixtures & Options>({
     trackAnalytics: [false, { option: true }],
+
+    // Each worker drives its own web server (see e2e/stack.ts); a live smoke run's E2E_BASE_URL still wins.
+    baseURL: async ({ baseURL }, use) => {
+        await use(process.env.E2E_BASE_URL ? baseURL : currentStack.webOrigin);
+    },
 
     // Umami's tracker checks this flag before every send. Set on each document load, so a spec's localStorage.clear() can't undo it.
     context: async ({ context, trackAnalytics }, use) => {
