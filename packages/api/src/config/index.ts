@@ -25,6 +25,8 @@ const schema = {
     wikibooksUserAgent: { parser: parsers.string, from: 'WIKIBOOKS_USER_AGENT', optional: true },
     discoveryAdminUserIds: { parser: parsers.string, from: 'DISCOVERY_ADMIN_USER_IDS', optional: true },
     opensearchUrl: { parser: parsers.string, from: 'OPENSEARCH_URL', optional: true },
+    // Alias the discovery index lives under (default `discovery-recipes`); lets several API instances share one engine.
+    opensearchIndex: { parser: parsers.string, from: 'OPENSEARCH_INDEX', optional: true },
     // Comma-separated list of origins allowed to call the public read-only
     // /api/public/discover/* endpoints. The marketing site is the primary
     // consumer; localhost is included so the selfhost compose works out of

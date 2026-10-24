@@ -11,7 +11,7 @@ import type {
 
 import type { DiscoveryIndex, NormalizedDiscoveryQuery } from '../../domain/DiscoveryService/types';
 import { toIndexDocument, toSummary } from './document';
-import { INDEX_ALIAS, INITIAL_INDEX, indexBody } from './mapping';
+import { DEFAULT_INDEX_ALIAS, indexBody } from './mapping';
 import { buildSearchBody, buildSimilarBody, TIME_RANGES } from './query';
 
 type Reply<T = unknown> = Promise<{ body: T }>;
@@ -79,7 +79,9 @@ export class OpenSearchDiscoveryIndex implements DiscoveryIndex {
     /** `null` when OPENSEARCH_URL is not configured: every call then fails with a 503 and nothing else is affected. */
     constructor(
         private readonly client: OpenSearchApi | null,
-        private readonly logger?: Logger
+        private readonly logger?: Logger,
+        /** Read/write alias; several API instances (e.g. e2e workers) can share one engine under different aliases. */
+        private readonly alias: string = DEFAULT_INDEX_ALIAS
     ) {}
 
     /** Runs `fn` once the index exists, turning "engine unreachable" into a 503 instead of a 500. */
@@ -114,14 +116,15 @@ export class OpenSearchDiscoveryIndex implements DiscoveryIndex {
     // Check, create, and tolerate losing the creation race: one sequence.
     // fallow-ignore-next-line complexity
     private async createIfMissing(client: OpenSearchApi): Promise<void> {
-        const { body: exists } = await client.indices.existsAlias({ name: INDEX_ALIAS });
+        const { body: exists } = await client.indices.existsAlias({ name: this.alias });
         if (exists) return;
+        const initial = `${this.alias}-000001`;
         try {
             await client.indices.create({
-                index: INITIAL_INDEX,
-                body: { ...indexBody, aliases: { [INDEX_ALIAS]: {} } },
+                index: initial,
+                body: { ...indexBody, aliases: { [this.alias]: {} } },
             });
-            this.logger?.info('Created discovery index', { index: INITIAL_INDEX });
+            this.logger?.info('Created discovery index', { index: initial });
         } catch (error) {
             // Another API instance won the race to create it; that is the outcome we wanted.
             if (
@@ -138,17 +141,17 @@ export class OpenSearchDiscoveryIndex implements DiscoveryIndex {
 
     async index(recipe: DiscoveryRecipe): Promise<void> {
         await this.guarded((client) =>
-            client.index({ index: INDEX_ALIAS, id: recipe.id, body: toIndexDocument(recipe) })
+            client.index({ index: this.alias, id: recipe.id, body: toIndexDocument(recipe) })
         );
     }
 
     async remove(id: string): Promise<void> {
-        await this.guarded((client) => client.delete({ index: INDEX_ALIAS, id }, { ignore: [404] }));
+        await this.guarded((client) => client.delete({ index: this.alias, id }, { ignore: [404] }));
     }
 
     async search(query: NormalizedDiscoveryQuery): Promise<DiscoverySearchResult> {
         const { body } = await this.guarded((client) =>
-            client.search<SearchResponse>({ index: INDEX_ALIAS, body: buildSearchBody(query) })
+            client.search<SearchResponse>({ index: this.alias, body: buildSearchBody(query) })
         );
         return {
             hits: body.hits.hits.map((hit) => toSummary(hit._source)),
@@ -161,14 +164,14 @@ export class OpenSearchDiscoveryIndex implements DiscoveryIndex {
 
     async similar(id: string, limit: number): Promise<DiscoveryRecipeSummary[]> {
         const { body } = await this.guarded((client) =>
-            client.search<SearchResponse>({ index: INDEX_ALIAS, body: buildSimilarBody(id, limit) })
+            client.search<SearchResponse>({ index: this.alias, body: buildSimilarBody(this.alias, id, limit) })
         );
         return body.hits.hits.map((hit) => toSummary(hit._source));
     }
 
     async rebuild(batches: AsyncIterable<DiscoveryRecipe[]>): Promise<number> {
         return this.guarded(async (client) => {
-            const next = `${INDEX_ALIAS}-${Date.now()}`;
+            const next = `${this.alias}-${Date.now()}`;
             await client.indices.create({ index: next, body: indexBody });
             try {
                 const count = await this.load(client, next, batches);
@@ -205,13 +208,13 @@ export class OpenSearchDiscoveryIndex implements DiscoveryIndex {
 
     /** One atomic alias update: readers see the old index or the new one, never neither. */
     private async swapAlias(client: OpenSearchApi, next: string): Promise<void> {
-        const { body: current } = await client.indices.getAlias({ name: INDEX_ALIAS }, { ignore: [404] });
+        const { body: current } = await client.indices.getAlias({ name: this.alias }, { ignore: [404] });
         const previous = Object.keys(current && !('error' in current) ? current : {});
         await client.indices.updateAliases({
             body: {
                 actions: [
-                    ...previous.map((index) => ({ remove: { index, alias: INDEX_ALIAS } })),
-                    { add: { index: next, alias: INDEX_ALIAS } },
+                    ...previous.map((index) => ({ remove: { index, alias: this.alias } })),
+                    { add: { index: next, alias: this.alias } },
                 ],
             },
         });
