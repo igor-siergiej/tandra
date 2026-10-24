@@ -6,9 +6,15 @@ export type FakeSpeechScript =
     | { kind: 'error'; error: 'not-allowed' | 'no-speech' | 'audio-capture' | 'network' }
     | { kind: 'unsupported' };
 
+export interface FakeSpeechOptions {
+    /** Leave the one-time voice notice unacknowledged so it shows before the mic opens (default: already seen). */
+    showNotice?: boolean;
+}
+
 /** Replaces the Web Speech API before the page loads; Chromium cannot drive a real microphone. */
-export const installFakeSpeech = (page: Page, script: FakeSpeechScript) =>
-    page.addInitScript((s: FakeSpeechScript) => {
+export const installFakeSpeech = async (page: Page, script: FakeSpeechScript, options: FakeSpeechOptions = {}) => {
+    if (!options.showNotice) await page.addInitScript(() => localStorage.setItem('tandra.voiceAck', 'true'));
+    await page.addInitScript((s: FakeSpeechScript) => {
         const w = window as unknown as Record<string, unknown>;
         if (s.kind === 'unsupported') {
             delete w.SpeechRecognition;
@@ -23,12 +29,12 @@ export const installFakeSpeech = (page: Page, script: FakeSpeechScript) =>
             onerror: ((event: { error: string }) => void) | null = null;
             onend: (() => void) | null = null;
             start() {
+                const w2 = window as unknown as { __speechStarts?: number };
+                const n = w2.__speechStarts ?? 0;
+                w2.__speechStarts = n + 1;
                 if (s.kind === 'sessions') {
                     // Each start() is one browser session: it hears the next phrase, and the browser ends it on a
                     // pause unless this is the last scripted phrase and recognition is continuous.
-                    const w2 = window as unknown as { __speechStarts?: number };
-                    const n = w2.__speechStarts ?? 0;
-                    w2.__speechStarts = n + 1;
                     const phrase = s.transcripts[Math.min(n, s.transcripts.length - 1)];
                     setTimeout(() => {
                         this.onresult?.({ resultIndex: 0, results: [{ isFinal: true, 0: { transcript: phrase } }] });
@@ -57,3 +63,4 @@ export const installFakeSpeech = (page: Page, script: FakeSpeechScript) =>
         w.SpeechRecognition = FakeRecognition;
         w.webkitSpeechRecognition = FakeRecognition;
     }, script);
+};

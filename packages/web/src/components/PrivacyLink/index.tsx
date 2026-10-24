@@ -1,4 +1,4 @@
-const PRIVACY_NOTICE_URL = 'https://tandra.uk/privacy';
+export const PRIVACY_NOTICE_URL = 'https://tandra.uk/privacy';
 
 /** Link to the privacy notice on the public site; it opens in a new tab so the app keeps its state. */
 export const PrivacyLink = () => (

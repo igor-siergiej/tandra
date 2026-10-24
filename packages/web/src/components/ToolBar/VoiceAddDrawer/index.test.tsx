@@ -32,6 +32,7 @@ const renderDrawer = (onAddMany = vi.fn().mockResolvedValue(undefined), onOpenCh
 describe('VoiceAddDrawer', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        localStorage.setItem('tandra.voiceAck', 'true');
         Object.assign(speech, { listening: false, transcript: '', error: null });
         parse.mockResolvedValue([
             { name: 'bread', quantity: 2, unit: 'loaf' },
@@ -46,6 +47,39 @@ describe('VoiceAddDrawer', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Start listening' }));
 
         expect(speech.start).toHaveBeenCalled();
+    });
+
+    it('explains where speech goes before the mic first opens, then listens once acknowledged', () => {
+        localStorage.clear();
+        renderDrawer();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Start listening' }));
+
+        expect(speech.start).not.toHaveBeenCalled();
+        expect(screen.getByText(/browser's speech service/)).toBeInTheDocument();
+        expect(screen.getByText(/sent to fal\.ai/)).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Read the privacy policy' })).toHaveAttribute(
+            'href',
+            'https://tandra.uk/privacy'
+        );
+
+        fireEvent.click(screen.getByRole('button', { name: 'Got it' }));
+
+        expect(speech.start).toHaveBeenCalledTimes(1);
+        expect(localStorage.getItem('tandra.voiceAck')).toBe('true');
+        expect(screen.queryByRole('button', { name: 'Got it' })).not.toBeInTheDocument();
+    });
+
+    it('cancelling the notice leaves the mic closed and unacknowledged', () => {
+        localStorage.clear();
+        const { onOpenChange } = renderDrawer();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Start listening' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+        expect(onOpenChange).toHaveBeenCalledWith(false);
+        expect(speech.start).not.toHaveBeenCalled();
+        expect(localStorage.getItem('tandra.voiceAck')).toBeNull();
     });
 
     it('parses the finished transcript and lists every item for confirmation, adding nothing yet', async () => {
