@@ -73,11 +73,10 @@ jobs:
       - name: Check coverage threshold (90% lines and functions)
         run: bun scripts/check-coverage.js packages/api/coverage/lcov.info 90
 
-  # The suite is ~15 min serial (one worker: every authenticated test wipes the
-  # shared e2e database), so it is split across runners instead. Each shard gets
-  # its own Mongo/OpenSearch services and api/web servers, so the isolation the
-  # tests rely on is unchanged. Playwright shards at file granularity here
-  # (fullyParallel is off), balanced by test count.
+  # The suite is split across runners, and each runner runs several Playwright
+  # workers. Every worker gets its own api/web servers, Mongo database and
+  # OpenSearch alias (e2e/stack.ts), so tests never see each other's data.
+  # fullyParallel is on, so --shard and the workers split by test, not by file.
   e2e-shard:
     name: e2e (shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
@@ -89,30 +88,21 @@ jobs:
     permissions:
       contents: read
       packages: read
-    services:
-      mongodb:
-        image: mongo:7
-        ports:
-          - 27017:27017
-        env:
-          MONGO_INITDB_ROOT_USERNAME: devuser
-          MONGO_INITDB_ROOT_PASSWORD: devpassword
-      # The Discover specs search a small fixed library that global-setup seeds into this OpenSearch.
-      opensearch:
-        image: opensearchproject/opensearch:2.19.1
-        ports:
-          - 9200:9200
-        env:
-          discovery.type: single-node
-          DISABLE_SECURITY_PLUGIN: 'true'
-          DISABLE_INSTALL_DEMO_CONFIG: 'true'
-          OPENSEARCH_JAVA_OPTS: -Xms512m -Xmx512m
-        options: >-
-          --health-cmd "curl -sf http://localhost:9200/_cluster/health"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 20
     steps:
+      # Not `services:`: those block the job until both are pulled and healthy
+      # (~55s). Started in the background here, they come up while bun, the
+      # browser and the web bundle install; "Wait for" below gates the tests.
+      # The Discover specs search a small fixed library that global-setup seeds
+      # into this OpenSearch.
+      - name: Start Mongo and OpenSearch in the background
+        run: |
+          nohup docker run -d --name mongodb -p 27017:27017 \
+            -e MONGO_INITDB_ROOT_USERNAME=devuser -e MONGO_INITDB_ROOT_PASSWORD=devpassword \
+            mongo:7 > /tmp/mongodb.log 2>&1 &
+          nohup docker run -d --name opensearch -p 9200:9200 \
+            -e discovery.type=single-node -e DISABLE_SECURITY_PLUGIN=true \
+            -e DISABLE_INSTALL_DEMO_CONFIG=true -e OPENSEARCH_JAVA_OPTS="-Xms512m -Xmx512m" \
+            opensearchproject/opensearch:2.19.1 > /tmp/opensearch.log 2>&1 &
       - uses: actions/checkout@v6
       - uses: oven-sh/setup-bun@v2
         with:
@@ -122,6 +112,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.GH_TOKEN }}
       - id: playwright
         run: echo "version=$(bun -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      # Saved on main by cd.yml's warm-playwright-cache; keep the key in sync.
       - id: playwright-cache
         uses: actions/cache@v4
         with:
@@ -131,10 +122,22 @@ jobs:
         run: bunx playwright install --with-deps chromium
       - if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: bunx playwright install-deps chromium
+      - name: Wait for Mongo and OpenSearch
+        timeout-minutes: 3
+        run: |
+          until docker exec mongodb mongosh --quiet --eval 'db.runCommand({ ping: 1 })' >/dev/null 2>&1; do sleep 2; done
+          until curl -sf http://localhost:9200/_cluster/health >/dev/null; do sleep 2; done
+      - name: Container logs
+        if: failure()
+        run: |
+          cat /tmp/mongodb.log /tmp/opensearch.log
+          docker logs mongodb || true
+          docker logs opensearch || true
       - run: bun run test:e2e --shard=${{ matrix.shard }}/4 --reporter=blob
         env:
           CONNECTION_URI: mongodb://devuser:devpassword@localhost:27017/tandra_e2e?authSource=admin
           E2E_OPENSEARCH_URL: http://localhost:9200
+          E2E_WORKERS: 3
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -159,11 +162,16 @@ jobs:
   # as the `playwright-report` artifact, see e2e/README.md), publishes it to
   # GitHub Pages under pr-<number>/, then links it from a sticky PR comment.
   # keep_files preserves other PRs' report subdirectories on each deploy —
-  # without it, actions-gh-pages wipes the branch on every push.
+  # without it, actions-gh-pages wipes the branch on every push. Every PR
+  # pushes to the same gh-pages branch, so deploys queue on one concurrency
+  # group; two PRs finishing together otherwise reject one push.
   report:
     runs-on: ubuntu-latest
     needs: e2e-shard
     if: always() && needs.e2e-shard.result != 'skipped'
+    concurrency:
+      group: gh-pages
+      cancel-in-progress: false
     permissions:
       contents: write
       packages: read

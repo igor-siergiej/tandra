@@ -1,6 +1,5 @@
 import type { NormalizedDiscoveryQuery } from '../../domain/DiscoveryService/types';
 import { SUMMARY_FIELDS } from './document';
-import { INDEX_ALIAS } from './mapping';
 
 // Title is what a person types; an ingredient hit is a weaker signal; a tag is weaker still.
 const TEXT_FIELDS = ['title^3', 'ingredientNames^2', 'tags.text^1'];
@@ -64,13 +63,13 @@ export const buildSearchBody = (query: NormalizedDiscoveryQuery) => ({
     },
 });
 
-export const buildSimilarBody = (id: string, limit: number) => ({
+export const buildSimilarBody = (alias: string, id: string, limit: number) => ({
     size: limit,
     _source: [...SUMMARY_FIELDS],
     query: {
         more_like_this: {
             fields: ['title', 'tags.text', 'ingredientNames'],
-            like: [{ _index: INDEX_ALIAS, _id: id }],
+            like: [{ _index: alias, _id: id }],
             // A library of a few thousand short documents: the defaults (2 / 5) would discard nearly every term.
             min_term_freq: 1,
             min_doc_freq: 1,
