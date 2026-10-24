@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { useGuest } from '../../guest/GuestContext';
 import { useLoginForm } from '../../hooks/useLoginForm';
 import { GoogleButton } from '../GoogleButton';
+import { PrivacyLink } from '../PrivacyLink';
 import { LoginFormFields } from './LoginFormFields';
 
 // Password form, Google, guest entry and the OAuth callback error in one card.
@@ -65,6 +66,9 @@ export const LoginForm: React.FC = () => {
                             <a href="/register" className="underline underline-offset-4">
                                 Sign up
                             </a>
+                        </div>
+                        <div className="mt-2 text-center">
+                            <PrivacyLink />
                         </div>
                     </form>
                 </CardContent>

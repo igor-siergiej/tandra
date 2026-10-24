@@ -47,4 +47,13 @@ describe('WhatsNewDrawer', () => {
 
         expect(screen.queryByText('Recipes get a use-it-up page')).not.toBeInTheDocument();
     });
+
+    it('links to the privacy notice in a new tab', () => {
+        render(<WhatsNewDrawer open onOpenChange={vi.fn()} highlightSince={null} />);
+
+        const link = screen.getByRole('link', { name: 'Privacy' });
+        expect(link).toHaveAttribute('href', 'https://tandra.uk/privacy');
+        expect(link).toHaveAttribute('target', '_blank');
+        expect(link).toHaveAttribute('rel', 'noopener');
+    });
 });
