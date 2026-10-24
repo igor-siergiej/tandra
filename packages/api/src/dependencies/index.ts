@@ -424,7 +424,8 @@ export const registerDepdendencies = () => {
         const client = url ? new Client({ node: url, requestTimeout: 5000, maxRetries: 1 }) : null;
         return new OpenSearchDiscoveryIndex(
             client as unknown as OpenSearchApi | null,
-            dependencyContainer.resolve(DependencyToken.Logger)
+            dependencyContainer.resolve(DependencyToken.Logger),
+            config.get('opensearchIndex') || undefined
         );
     });
 

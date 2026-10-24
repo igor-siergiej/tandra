@@ -12,7 +12,7 @@ import type { DiscoveryRecipe } from '@tandra/types';
 
 import { DiscoveryService } from '../../domain/DiscoveryService';
 import { type OpenSearchApi, OpenSearchDiscoveryIndex } from './index';
-import { INDEX_ALIAS } from './mapping';
+import { DEFAULT_INDEX_ALIAS as INDEX_ALIAS } from './mapping';
 
 const url = process.env.OPENSEARCH_TEST_URL;
 
@@ -74,6 +74,28 @@ describe.skipIf(!url)('OpenSearchDiscoveryIndex (real OpenSearch)', () => {
         const attempt = (async () =>
             client.index({ index: INDEX_ALIAS, id: 'x', body: { title: 'x', surprise: 'field' } }))();
         await expect(attempt).rejects.toThrow(/strict_dynamic_mapping_exception/);
+    });
+
+    it('keeps instances on different aliases apart, including across a rebuild', async () => {
+        // Inside the `discovery-recipes*` pattern so `wipe` cleans it up too.
+        const otherAlias = 'discovery-recipes-other';
+        const other = new OpenSearchDiscoveryIndex(client as unknown as OpenSearchApi, undefined, otherAlias);
+        const otherSearch = (q: Parameters<DiscoveryService['search']>[0]) =>
+            new DiscoveryService({} as never, other).search(q);
+
+        await load(recipe('mine'));
+        await other.index(recipe('theirs'));
+        await client.indices.refresh({ index: otherAlias });
+        expect(ids(await search({}))).toEqual(['mine']);
+        expect(ids(await otherSearch({}))).toEqual(['theirs']);
+
+        await other.rebuild(
+            (async function* () {
+                yield [recipe('rebuilt')];
+            })()
+        );
+        expect(ids(await otherSearch({}))).toEqual(['rebuilt']);
+        expect(ids(await search({}))).toEqual(['mine']);
     });
 
     describe('analysis', () => {

@@ -1,6 +1,5 @@
-/** Read/write alias; the concrete index behind it is swapped atomically by a reindex. */
-export const INDEX_ALIAS = 'discovery-recipes';
-export const INITIAL_INDEX = `${INDEX_ALIAS}-000001`;
+/** Default read/write alias; the concrete index behind it is swapped atomically by a reindex. */
+export const DEFAULT_INDEX_ALIAS = 'discovery-recipes';
 
 /**
  * Equivalent-ingredient groups, applied at query time only (see `recipe_search`). Index-time stays literal, so editing
