@@ -1,3 +1,10 @@
+# [2.7.0](https://github.com/igor-siergiej/tandra/compare/v2.6.3...v2.7.0) (2026-10-24)
+
+
+### Features
+
+* **web:** link the privacy notice from sign-in, register, Settings and What's new ([#304](https://github.com/igor-siergiej/tandra/issues/304)) ([9d3cce5](https://github.com/igor-siergiej/tandra/commit/9d3cce5ffeb80478d19b91ef27b9fdb16a1ed367))
+
 ## [2.6.3](https://github.com/igor-siergiej/tandra/compare/v2.6.2...v2.6.3) (2026-10-24)
 
 

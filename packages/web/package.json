@@ -1,7 +1,7 @@
 {
   "name": "@tandra/web",
   "private": true,
-  "version": "2.6.3",
+  "version": "2.7.0",
   "scripts": {
     "start": "vite --port 4000",
     "build": "tsc && vite build --emptyOutDir",
