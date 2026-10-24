@@ -112,6 +112,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.GH_TOKEN }}
       - id: playwright
         run: echo "version=$(bun -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      # Saved on main by cd.yml's warm-playwright-cache; keep the key in sync.
       - id: playwright-cache
         uses: actions/cache@v4
         with:
