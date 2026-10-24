@@ -60,5 +60,8 @@
   "packageManager": "bun@1.4.2",
   "lint-staged": {
     "*.{ts,tsx,json}": "biome check --fix --unsafe"
+  },
+  "patchedDependencies": {
+    "playwright-core@1.60.0": "patches/playwright-core@1.60.0.patch"
   }
 }

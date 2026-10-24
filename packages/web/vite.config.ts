@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import react from '@vitejs/plugin-react';
-import { type Connect, defineConfig, type Plugin, type ViteDevServer } from 'vite';
+import { type Connect, defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 // Build configuration reads best as one function.
@@ -28,13 +28,13 @@ export default defineConfig(({ mode }) => {
         plugins: [
             react(),
             // Mirror the nginx `location = /sitemap.xml { return 404; }` rule
-            // (and its siblings) for the dev server, so an e2e request to
-            // /sitemap.xml sees the same 404 the production container serves.
-            // Without this, Vite's SPA history fallback returns 200 + index.html
-            // and the test only "passes" against the live build.
-            spaNotFoundDevMirror(['/sitemap.xml', '/favicon.ico', '/apple-touch-icon.png']),
+            // (and its siblings) for the dev and preview servers, so an e2e
+            // request to /sitemap.xml sees the same 404 the production container
+            // serves. Without this, Vite's SPA history fallback returns 200 +
+            // index.html and the test only "passes" against the live build.
+            spaNotFoundMirror(['/sitemap.xml', '/favicon.ico', '/apple-touch-icon.png']),
             // Set text/plain on /robots.txt the same way nginx does in prod.
-            robotsTxtDevMirror(),
+            robotsTxtMirror(),
             VitePWA({
                 strategies: 'injectManifest',
                 srcDir: 'src',
@@ -136,47 +136,53 @@ export default defineConfig(({ mode }) => {
 // Paths the production nginx config explicitly 404s instead of letting
 // fall through to the SPA shell. The production `try_files $uri /index.html;`
 // + `error_page 404 /index.html;` would otherwise return index.html with a
-// 200; the dev server does the same by default. Both return the same result
-// (the SPA renders) — which is wrong for these paths — so the dev mirror
-// sits *before* Vite's SPA fallback middleware and short-circuits them.
-function spaNotFoundDevMirror(paths: string[]): Plugin {
+// 200; the dev and preview servers do the same by default. Both return the
+// same result (the SPA renders) — which is wrong for these paths — so the
+// mirror sits *before* Vite's SPA fallback middleware and short-circuits them.
+function spaNotFoundMirror(paths: string[]): Plugin {
     const exact = new Set(paths);
+    const middleware: Connect.NextHandleFunction = (req, res, next) => {
+        const url = req.url ? req.url.split('?')[0] : '';
+        if (exact.has(url) || url.startsWith('/.well-known/')) {
+            res.statusCode = 404;
+            res.setHeader('content-type', 'text/plain');
+            res.end('Not Found');
+            return;
+        }
+        next();
+    };
     return {
-        name: 'spa-not-found-dev-mirror',
-        configureServer(server: ViteDevServer) {
-            const middleware: Connect.NextHandleFunction = (req, res, next) => {
-                const url = req.url ? req.url.split('?')[0] : '';
-                if (exact.has(url) || url.startsWith('/.well-known/')) {
-                    res.statusCode = 404;
-                    res.setHeader('content-type', 'text/plain');
-                    res.end('Not Found');
-                    return;
-                }
-                next();
-            };
-            // Run before Vite's built-in SPA fallback.
+        name: 'spa-not-found-mirror',
+        // Run before Vite's built-in SPA fallback.
+        configureServer: (server) => {
+            server.middlewares.use(middleware);
+        },
+        configurePreviewServer: (server) => {
             server.middlewares.use(middleware);
         },
     };
 }
 
-function robotsTxtDevMirror(): Plugin {
+// Run before Vite serves /robots.txt itself so the content-type and exact
+// bytes match the production container (which is what crawlers and the e2e
+// parse). The dev server would otherwise serve the copied public/robots.txt
+// as text/html.
+function robotsTxtMirror(): Plugin {
+    const middleware: Connect.NextHandleFunction = (req, res, next) => {
+        if (req.url && req.url.split('?')[0] === '/robots.txt') {
+            res.statusCode = 200;
+            res.setHeader('content-type', 'text/plain');
+            res.end('User-agent: *\nDisallow: /\n');
+            return;
+        }
+        next();
+    };
     return {
-        name: 'robots-txt-dev-mirror',
-        configureServer(server: ViteDevServer) {
-            const middleware: Connect.NextHandleFunction = (req, res, next) => {
-                if (req.url && req.url.split('?')[0] === '/robots.txt') {
-                    res.statusCode = 200;
-                    res.setHeader('content-type', 'text/plain');
-                    res.end('User-agent: *\nDisallow: /\n');
-                    return;
-                }
-                next();
-            };
-            // Run before Vite serves /robots.txt itself so the content-type
-            // and exact bytes match the production container (which is what
-            // crawlers and the e2e parse). Vite would otherwise serve the
-            // copied public/robots.txt as text/html.
+        name: 'robots-txt-mirror',
+        configureServer: (server) => {
+            server.middlewares.use(middleware);
+        },
+        configurePreviewServer: (server) => {
             server.middlewares.use(middleware);
         },
     };

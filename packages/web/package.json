@@ -5,6 +5,7 @@
   "scripts": {
     "start": "vite --port 4000",
     "build": "tsc && vite build --emptyOutDir",
+    "start:e2e": "vite build --mode development --outDir build-e2e --emptyOutDir && vite preview --port 4000 --strictPort --outDir build-e2e",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage"

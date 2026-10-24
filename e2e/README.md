@@ -4,6 +4,23 @@ Playwright suite in this directory. Run via `bun run test:e2e` (all projects) fr
 
 See [COVERAGE.md](COVERAGE.md) for which feature is covered by which spec, and the known gaps.
 
+## What the suite runs against (and why it is fast)
+
+- **A prebuilt web bundle, not the Vite dev server.** Playwright starts `bun run --filter @tandra/web start:e2e`:
+  `vite build --mode development` into `packages/web/build-e2e`, served by `vite preview` on :4000 (same `/api` proxy,
+  same nginx-mirror middleware as the dev server). Every test opens a fresh browser context, and the dev server made
+  each one fetch and transform the whole unbundled module graph. `--mode development` keeps the `vlocalhost` badge the
+  visual baselines expect. Locally, an already-running dev server on :4000 is reused instead.
+- **Playwright polls every 100ms, not 500ms.** `patches/playwright-core@<version>.patch` (applied by `bun install` via
+  `patchedDependencies`) caps the retry back-off of assertions and actions at 100ms. Upstream re-checks after 0, 20,
+  50, 100, 100ms and then only every 500ms, so a page that rendered at ~650ms was seen at ~1000ms; most first
+  actions after a `goto` and most clicks in a freshly opened drawer paid that slack. Polling is not configurable
+  ([microsoft/playwright#26837](https://github.com/microsoft/playwright/issues/26837)). When upgrading
+  `@playwright/test`, regenerate it: `bun patch playwright-core@<new>`, change the two arrays (`const waitTime =` in
+  `_retryAction`, `const backoffScale =` in `retryWithProgressAndBackoff`) to end in `100`, `bun patch --commit
+  node_modules/playwright-core`, and delete the old patch. A stale patch is skipped silently by `bun install`: the
+  suite still passes, just slower.
+
 ## Projects
 
 - `chromium` — desktop functional tests (`e2e/tests/*.spec.ts`, excluding `*.visual.spec.ts`).

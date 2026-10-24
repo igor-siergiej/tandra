@@ -1,0 +1,22 @@
+diff --git a/lib/coreBundle.js b/lib/coreBundle.js
+index bc601fcf741792e3fc76884a28a3c43f80c6472f..2f26b5494d6257f6e32f5534111fecf7eb94e91f 100644
+--- a/lib/coreBundle.js
++++ b/lib/coreBundle.js
+@@ -16200,7 +16200,7 @@ var init_dom = __esm({
+       }
+       async _retryAction(progress2, actionName, action, options2) {
+         let retry2 = 0;
+-        const waitTime = [0, 20, 100, 100, 500];
++        const waitTime = [0, 20, 100, 100, 100];
+         const noAutoWaiting = options2.__testHookNoAutoWaiting ?? options2.noAutoWaiting;
+         while (true) {
+           if (retry2) {
+@@ -17977,7 +17977,7 @@ var init_frames = __esm({
+         return result2;
+       }
+       async retryWithProgressAndBackoff(progress2, action) {
+-        const backoffScale = [20, 50, 100, 100, 500];
++        const backoffScale = [20, 50, 100, 100, 100];
+         if (progress2.timeout) {
+           while (backoffScale.length && backoffScale[backoffScale.length - 1] > progress2.timeout / 5)
+             backoffScale.pop();
