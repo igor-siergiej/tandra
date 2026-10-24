@@ -68,9 +68,13 @@ export default defineConfig({
     ],
     webServer: [
         {
-            command: 'bun run start:web',
+            // A prebuilt bundle, not the Vite dev server: every test opens a fresh browser context, and the dev
+            // server makes each one fetch and transform the whole unbundled module graph again. A running dev
+            // server is still reused locally.
+            command: 'bun run --filter @tandra/web start:e2e',
             url: 'http://localhost:4000',
             reuseExistingServer: !process.env.CI,
+            timeout: 120_000,
         },
         {
             command: 'bun run --filter @tandra/api start:e2e',

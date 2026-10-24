@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { AnimatePresence, motion } from 'motion/react';
+import { motion } from 'motion/react';
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -71,24 +71,20 @@ const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
         };
     }, [refreshSession, navigate]);
 
+    // No AnimatePresence exit here: waiting for the spinner to fade out held every cold load ~300ms before the page
+    // even started fetching its chunk. The spinner goes at once; the content still fades in.
+    if (isUpdating) return <LoadingPage />;
+    if (isLoading) return <LoadingPage timeoutReached={timeoutReached} />;
+
     return (
-        <AnimatePresence mode="wait">
-            {isUpdating ? (
-                <LoadingPage key="updating" />
-            ) : isLoading ? (
-                <LoadingPage key="loading" timeoutReached={timeoutReached} />
-            ) : (
-                <motion.div
-                    key="content"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.3 }}
-                    style={{ height: '100%' }}
-                >
-                    {children}
-                </motion.div>
-            )}
-        </AnimatePresence>
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            style={{ height: '100%' }}
+        >
+            {children}
+        </motion.div>
     );
 };
 
