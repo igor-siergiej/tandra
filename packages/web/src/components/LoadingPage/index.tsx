@@ -23,7 +23,6 @@ const LoadingPage: React.FC<LoadingPageProps> = ({ timeoutReached }) => (
         className="flex flex-col items-center justify-center h-screen gap-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
         transition={{ duration: 0.3 }}
     >
         <div className="loader" />
