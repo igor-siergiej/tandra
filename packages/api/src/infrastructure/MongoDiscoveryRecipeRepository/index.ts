@@ -3,7 +3,8 @@ import type { DiscoveryRecipe, DiscoverySource } from '@tandra/types';
 import { ObjectId } from 'mongodb';
 
 import { CollectionNames, type Collections } from '../../dependencies/types';
-import type { DiscoveryRecipeRepository } from '../../domain/DiscoveryRecipeRepository';
+import type { DiscoveryRecipeRepository, WikibooksSlugBackfill } from '../../domain/DiscoveryRecipeRepository';
+import { WIKIBOOKS_RECIPE_ID } from '../../domain/WikibooksIngest/mapping';
 
 // `_id` is Mongo bookkeeping, not part of the library contract.
 const NO_OBJECT_ID = { projection: { _id: 0 } } as const;
@@ -22,10 +23,25 @@ export class MongoDiscoveryRecipeRepository implements DiscoveryRecipeRepository
     async ensureIndexes(): Promise<void> {
         await this.collection().createIndex({ id: 1 }, { unique: true });
         await this.collection().createIndex({ coverImageKey: 1 }, { sparse: true });
-        // Sparse because the existing ~3.7k Wikibooks recipes do not have a slug
-        // (the public-discovery-api card explicitly deferred backfill). New
-        // user-published recipes get a unique slug on save; ingestion does not.
+        // Sparse because a slug is optional (a publish that cannot allocate one goes out without). Must exist before
+        // `assignWikibooksSlugs` runs, so a clash fails that update instead of storing a duplicate.
         await this.collection().createIndex({ slug: 1 }, { unique: true, sparse: true });
+    }
+
+    async assignWikibooksSlugs(): Promise<WikibooksSlugBackfill> {
+        // Publishing reserves the `wikibooks-<n>` shape now, but a recipe published before that could own one. Its
+        // Wikibooks twin is left out instead of failing the whole update on the unique index.
+        const claimed = await this.collection().distinct('slug', {
+            source: { $ne: 'wikibooks' },
+            slug: { $regex: WIKIBOOKS_RECIPE_ID },
+        });
+        const slugless = { source: 'wikibooks' as const, slug: { $exists: false } };
+        const { modifiedCount } = await this.collection().updateMany({ ...slugless, id: { $nin: claimed } }, [
+            { $set: { slug: '$id' } },
+        ]);
+        const blocked =
+            claimed.length === 0 ? [] : await this.collection().distinct('id', { ...slugless, id: { $in: claimed } });
+        return { assigned: modifiedCount, blocked };
     }
 
     async getById(id: string): Promise<DiscoveryRecipe | null> {

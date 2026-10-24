@@ -173,6 +173,13 @@ describe('DiscoveryPublishService.publish', () => {
         expect(library.get(ref.libraryId)?.slug).toBe('grandma-soup-2');
     });
 
+    it('never takes a Wikibooks-shaped slug, even for a page not in the library yet', async () => {
+        // Wikibooks recipes use their id as slug; handing this one out would block that page from ever being saved.
+        const { publish, library } = setup([personal({ title: 'Wikibooks 4241' })]);
+        const ref = await publish.publish(RECIPE_ID, owner, agree);
+        expect(library.get(ref.libraryId)?.slug).toBe('wikibooks-4241-2');
+    });
+
     it("exposes nothing of the private recipe: not its users, owner, ids or the author's name", async () => {
         const { publish, library, indexed } = setup();
 

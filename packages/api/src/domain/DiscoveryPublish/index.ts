@@ -7,6 +7,7 @@ import type { IdGenerator } from '../IdGenerator';
 import type { ImageStore } from '../ImageService/types';
 import type { RecipeService } from '../RecipeService';
 import { slugify, uniqueSlug } from '../slug';
+import { WIKIBOOKS_RECIPE_ID } from '../WikibooksIngest/mapping';
 import { copyImage } from './copyImage';
 
 const USER_LICENCE = 'CC-BY-SA-4.0';
@@ -154,13 +155,15 @@ export class DiscoveryPublishService {
     /**
      * Resolve a unique slug for a freshly-published recipe. Tries the base
      * slug first, then `${base}-2`, ... up to a sane bound. Wikibooks recipes
-     * stay slugless for now (the public-discovery-api card explicitly deferred
-     * the backfill); this only runs for user-published recipes.
+     * use their id (`wikibooks-<pageId>`) as slug, so that shape is never handed
+     * out here, even for a page not ingested yet: its recipe would then fail to save.
      */
     private async slugFor(title: string): Promise<string | undefined> {
         const base = slugify(title);
+        const isTaken = async (candidate: string) =>
+            WIKIBOOKS_RECIPE_ID.test(candidate) || (await this.discovery.hasSlug(candidate));
         try {
-            return await uniqueSlug(base, (candidate) => this.discovery.hasSlug(candidate));
+            return await uniqueSlug(base, isTaken);
         } catch (error) {
             this.logger?.warn('Could not allocate a unique slug for published recipe; publishing without one', {
                 title,

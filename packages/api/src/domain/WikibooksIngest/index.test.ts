@@ -149,6 +149,18 @@ describe('WikibooksIngestService', () => {
         expect(store.get('wikibooks-1')?.createdAt).toEqual(created as Date);
     });
 
+    it('gives every recipe it creates or updates its id as public slug', async () => {
+        const { service, store, wiki } = setup();
+        wiki.set(1, page(1, 100));
+        await service.run();
+        expect(store.get('wikibooks-1')?.slug).toBe('wikibooks-1');
+
+        // An edit rebuilds the recipe from scratch; the slug must come back with it.
+        wiki.set(1, page(1, 101, '\n* 1 tsp salt'));
+        await service.run();
+        expect(store.get('wikibooks-1')?.slug).toBe('wikibooks-1');
+    });
+
     it('removes a recipe whose page was deleted, and one that stopped being a recipe', async () => {
         const { service, store, wiki } = setup();
         for (let id = 1; id <= 10; id += 1) wiki.set(id, page(id, 100 + id));
@@ -384,9 +396,10 @@ describe('WikibooksIngestService', () => {
             const { service, store, wiki, tagger, source } = setup();
             wiki.set(1, page(1, 100));
             await service.run();
-            // Roll the stored recipe back to how an older ingest left it: same revision, never looked at for a picture.
+            // Roll the stored recipe back to how an older ingest left it: same revision, never looked at for a
+            // picture, and no slug.
             const old = store.get('wikibooks-1') as DiscoveryRecipe;
-            const { imageRevision: _dropped, ...legacy } = old;
+            const { imageRevision: _dropped, slug: _noSlug, ...legacy } = old;
             store.set('wikibooks-1', { ...legacy, tags: ['hand-edited tag'] } as DiscoveryRecipe);
             wiki.set(1, withImage(page(1, 100)));
             tagger.generateTags.mockClear();
@@ -398,6 +411,7 @@ describe('WikibooksIngestService', () => {
             expect(store.get('wikibooks-1')).toMatchObject({
                 coverImageKey: 'discovery-image/wikibooks-1/1.jpg',
                 imageRevision: 100,
+                slug: 'wikibooks-1',
                 tags: ['hand-edited tag'],
                 updatedAt: old.updatedAt,
             });

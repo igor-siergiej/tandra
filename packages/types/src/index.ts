@@ -174,11 +174,11 @@ export interface DiscoveryRecipe {
     /** The cover picture's own file page, for the credit to link to. */
     coverImageSourceUrl?: string;
     /**
-     * Stable URL slug for the public, unauthenticated discover API. Set on
-     * user-published recipes; ingestion does not yet backfill the existing
-     * ~3.7k Wikibooks recipes (see tandra-public-discovery-api card body).
-     * Sparse: recipes without a slug are still served by id from the
-     * authenticated /api/discover routes.
+     * Stable URL slug for the public, unauthenticated discover API. A
+     * Wikibooks recipe's slug is its id (`wikibooks-<pageId>`, set by ingest
+     * and backfilled at API start); a user-published recipe gets a unique one
+     * from its title. Sparse: a recipe without a slug is still served by id
+     * from the authenticated /api/discover routes.
      */
     slug?: string;
     createdAt: Date;

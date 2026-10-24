@@ -167,3 +167,106 @@ describe('MongoDiscoveryRecipeRepository', () => {
         expect(await repo.hasSlug('pancakes')).toBe(false);
     });
 });
+
+type Doc = Record<string, unknown>;
+type Condition = { $ne?: unknown; $exists?: boolean; $in?: unknown[]; $nin?: unknown[]; $regex?: RegExp };
+
+// Just the query operators the slug backfill uses, with Mongo's meaning.
+const matchesCondition = (value: unknown, condition: unknown): boolean => {
+    if (typeof condition !== 'object' || condition === null) return value === condition;
+    const c = condition as Condition;
+    return (
+        (c.$ne === undefined || value !== c.$ne) &&
+        (c.$exists === undefined || (value !== undefined) === c.$exists) &&
+        (c.$in === undefined || c.$in.includes(value)) &&
+        (c.$nin === undefined || !c.$nin.includes(value)) &&
+        (c.$regex === undefined || (typeof value === 'string' && c.$regex.test(value)))
+    );
+};
+
+const matches = (doc: Doc, filter: Doc): boolean =>
+    Object.entries(filter).every(([field, condition]) => matchesCondition(doc[field], condition));
+
+/**
+ * In-memory `discoveryRecipes` with the unique sparse slug index: like Mongo, a multi-document update that hits a
+ * duplicate slug throws and stops there.
+ */
+const libraryCollection = (docs: Doc[]) => ({
+    distinct: vi.fn(async (field: string, filter: Doc) => [
+        ...new Set(docs.filter((doc) => matches(doc, filter)).map((doc) => doc[field])),
+    ]),
+    updateMany: vi.fn(async (filter: Doc, pipeline: Array<{ $set: Record<string, string> }>) => {
+        let modifiedCount = 0;
+        for (const doc of docs.filter((candidate) => matches(candidate, filter))) {
+            const next = { ...doc };
+            for (const stage of pipeline) {
+                for (const [field, path] of Object.entries(stage.$set)) next[field] = doc[path.replace(/^\$/, '')];
+            }
+            if (docs.some((other) => other !== doc && other.slug !== undefined && other.slug === next.slug)) {
+                throw Object.assign(new Error('E11000 duplicate key error collection: discoveryRecipes'), {
+                    code: 11000,
+                });
+            }
+            Object.assign(doc, next);
+            modifiedCount += 1;
+        }
+        return { modifiedCount };
+    }),
+});
+
+describe('MongoDiscoveryRecipeRepository.assignWikibooksSlugs', () => {
+    const doc = (id: string, source: string, slug?: string): Doc => ({ id, source, ...(slug && { slug }) });
+    const setupLibrary = (docs: Doc[]) => {
+        const collection = libraryCollection(docs);
+        const repo = new MongoDiscoveryRecipeRepository({ getCollection: () => collection } as never);
+        return { repo, collection, slugs: () => Object.fromEntries(docs.map((d) => [d.id, d.slug])) };
+    };
+
+    it('gives slugless Wikibooks recipes their id as slug and leaves every existing slug alone', async () => {
+        const { repo, slugs } = setupLibrary([
+            doc('wikibooks-1', 'wikibooks'),
+            doc('wikibooks-2', 'wikibooks', 'hand-picked'),
+            doc('user-1', 'user', 'soup'),
+            doc('user-2', 'user'),
+        ]);
+
+        expect(await repo.assignWikibooksSlugs()).toEqual({ assigned: 1, blocked: [] });
+        expect(slugs()).toEqual({
+            'wikibooks-1': 'wikibooks-1',
+            'wikibooks-2': 'hand-picked',
+            'user-1': 'soup',
+            'user-2': undefined,
+        });
+    });
+
+    it('is idempotent: a second run assigns nothing and changes nothing', async () => {
+        const { repo, slugs } = setupLibrary([doc('wikibooks-1', 'wikibooks'), doc('wikibooks-2', 'wikibooks')]);
+        await repo.assignWikibooksSlugs();
+        const after = slugs();
+
+        expect(await repo.assignWikibooksSlugs()).toEqual({ assigned: 0, blocked: [] });
+        expect(slugs()).toEqual(after);
+    });
+
+    it('skips a Wikibooks recipe whose id another recipe already uses as slug, and still does the rest', async () => {
+        const { repo, slugs, collection } = setupLibrary([
+            doc('user-1', 'user', 'wikibooks-3'),
+            doc('wikibooks-3', 'wikibooks'),
+            doc('wikibooks-4', 'wikibooks'),
+        ]);
+
+        expect(await repo.assignWikibooksSlugs()).toEqual({ assigned: 1, blocked: ['wikibooks-3'] });
+        expect(slugs()).toEqual({ 'user-1': 'wikibooks-3', 'wikibooks-3': undefined, 'wikibooks-4': 'wikibooks-4' });
+        expect(collection.updateMany).toHaveBeenCalledWith(
+            { source: 'wikibooks', slug: { $exists: false }, id: { $nin: ['wikibooks-3'] } },
+            [{ $set: { slug: '$id' } }]
+        );
+    });
+
+    it('only treats Wikibooks-shaped slugs from other sources as claimed', async () => {
+        const { repo, collection } = setupLibrary([doc('user-1', 'user', 'wikibooks-soup')]);
+        await repo.assignWikibooksSlugs();
+        expect(collection.distinct).toHaveBeenCalledTimes(1);
+        expect(collection.updateMany.mock.calls[0]?.[0]).toMatchObject({ id: { $nin: [] } });
+    });
+});

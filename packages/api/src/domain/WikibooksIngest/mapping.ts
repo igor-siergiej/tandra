@@ -115,4 +115,8 @@ export const pageUrl = (pageTitle: string): string =>
 export const attributionFor = (pageTitle: string): string =>
     `"${recipeTitle(pageTitle)}" from Wikibooks Cookbook, CC BY-SA 4.0 (${pageUrl(pageTitle)})`;
 
+/** A Wikibooks recipe's library id; it doubles as its public URL slug. */
 export const recipeIdFor = (pageId: number): string => `wikibooks-${pageId}`;
+
+/** The shape of every Wikibooks recipe id, and so of its slug, whether or not that page has been ingested yet. */
+export const WIKIBOOKS_RECIPE_ID = /^wikibooks-\d+$/;

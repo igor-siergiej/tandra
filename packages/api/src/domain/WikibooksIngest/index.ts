@@ -231,9 +231,11 @@ export class WikibooksIngestService {
                     parsedPage.image ? imageInfo.get(parsedPage.image) : undefined
                 );
                 this.tally(summary, cover);
-                // Only the cover fields and the stamp change; `updatedAt` stays so browsing order is not shuffled.
+                // Only the cover fields, the stamp and the slug change; `updatedAt` stays so browsing order is not
+                // shuffled. The slug is the id, so a recipe stored before slugs existed picks it up here too.
                 await this.discovery.save({
                     ...existing,
+                    slug: id,
                     ...cover.fields,
                     ...(cover.decided && { imageRevision: page.revisionId }),
                 });
@@ -312,8 +314,11 @@ export class WikibooksIngestService {
         difficulty = difficulty ?? take('difficulty', estimate.difficulty);
 
         const now = new Date();
+        const id = recipeIdFor(page.pageId);
         return {
-            id: recipeIdFor(page.pageId),
+            id,
+            // The id is already unique, stable and URL-safe, so it is also the public slug (`/recipe/wikibooks-123`).
+            slug: id,
             title,
             ingredients,
             instructions: parsed.instructions,
