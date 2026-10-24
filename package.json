@@ -21,7 +21,7 @@
     "check:release-notes": "bun scripts/check-release-notes.js",
     "verify": "bun scripts/verify.js",
     "verify:fast": "bun scripts/verify.js --fast",
-    "test": "bun test",
+    "test": "bun test --parallel",
     "test:scripts": "bun test ./scripts ./packages/api/scripts",
     "test:e2e": "bun --env-file=.env --bun playwright test",
     "test:e2e:ui": "dotenv -e .env -- playwright test --ui",

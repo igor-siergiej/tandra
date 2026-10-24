@@ -5,9 +5,9 @@
     "start": "bun --watch src/index.ts",
     "start:e2e": "bun src/index.ts",
     "build": "rm -rf build && mkdir -p build && cp -R src/. build/ && find build -name '*.test.ts' -delete && rm -f build/test-setup.ts",
-    "test": "bun test --isolate",
-    "test:coverage": "bun test --isolate --coverage",
-    "test:run": "bun test --isolate",
+    "test": "bun test --parallel",
+    "test:coverage": "bun test --parallel --coverage",
+    "test:run": "bun test --parallel",
     "reindex": "bun scripts/reindex-discovery.ts",
     "ingest": "bun scripts/ingest-wikibooks.ts",
     "validate-library": "bun scripts/validate-discovery-library.ts"
