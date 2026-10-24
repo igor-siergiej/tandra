@@ -2,6 +2,7 @@ import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { useRegisterForm } from '../../hooks/useRegisterForm';
 import { GoogleButton } from '../GoogleButton';
+import { PrivacyLink } from '../PrivacyLink';
 import { RegisterFormFields } from './RegisterFormFields';
 
 export function RegisterForm({ className, ...props }: React.ComponentProps<'div'>) {
@@ -38,6 +39,9 @@ export function RegisterForm({ className, ...props }: React.ComponentProps<'div'
                             <a href="/login" className="underline underline-offset-4">
                                 Sign in
                             </a>
+                        </div>
+                        <div className="mt-2 text-center">
+                            <PrivacyLink />
                         </div>
                     </form>
                 </CardContent>

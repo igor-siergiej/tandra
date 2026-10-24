@@ -1,6 +1,7 @@
 import { format, parseISO } from 'date-fns';
 import releaseNotes from '../../data/release-notes.json';
 import { compareVersions } from '../../hooks/useLastSeenVersion';
+import { PrivacyLink } from '../PrivacyLink';
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '../ui/drawer';
 
 type ReleaseNoteType = 'feature' | 'fix' | 'improvement';
@@ -47,6 +48,7 @@ const WhatsNewDrawer = ({ open, onOpenChange, highlightSince }: WhatsNewDrawerPr
                 <DrawerHeader className="flex-shrink-0">
                     <DrawerTitle>What's new</DrawerTitle>
                     <DrawerDescription>Everything that has shipped in Tandra</DrawerDescription>
+                    <PrivacyLink />
                 </DrawerHeader>
                 <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-5">
                     {releases.length === 0 && (

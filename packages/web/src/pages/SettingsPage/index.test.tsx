@@ -51,4 +51,13 @@ describe('SettingsPage', () => {
         expect(toggle).toBeChecked();
         expect(localStorage.getItem('tandra.voiceKeepListening')).toBe('true');
     });
+
+    it('links to the privacy notice in a new tab', () => {
+        renderPage();
+
+        const link = screen.getByRole('link', { name: 'Privacy' });
+        expect(link).toHaveAttribute('href', 'https://tandra.uk/privacy');
+        expect(link).toHaveAttribute('target', '_blank');
+        expect(link).toHaveAttribute('rel', 'noopener');
+    });
 });

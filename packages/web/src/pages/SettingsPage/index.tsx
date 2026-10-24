@@ -1,4 +1,5 @@
 import { ArrowLeft } from 'lucide-react';
+import { PrivacyLink } from '../../components/PrivacyLink';
 import { useUnitSystem } from '../../contexts/UnitSystemContext';
 import { useGoBack } from '../../hooks/useGoBack';
 import { useKeepListening } from '../../hooks/useKeepListening';
@@ -85,6 +86,13 @@ const SettingsPage = () => {
             </section>
 
             <AccountSection />
+
+            <section className="space-y-3">
+                <h2 className="text-sm font-semibold text-foreground">About</h2>
+                <div className="rounded-xl border border-border px-4 py-3">
+                    <PrivacyLink />
+                </div>
+            </section>
         </div>
     );
 };
