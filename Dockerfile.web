@@ -8,6 +8,8 @@ WORKDIR /app
 ARG NODE_AUTH_TOKEN
 
 COPY package.json bun.lock .bunfig.toml ./
+# bun install applies package.json's patchedDependencies from here and fails without it.
+COPY patches patches/
 COPY packages packages/
 
 RUN NODE_AUTH_TOKEN=${NODE_AUTH_TOKEN} bun install --frozen-lockfile
