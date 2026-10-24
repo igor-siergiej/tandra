@@ -1,6 +1,6 @@
 {
   "name": "@tandra/api",
-  "version": "2.6.1",
+  "version": "2.6.2",
   "scripts": {
     "start": "bun --watch src/index.ts",
     "start:e2e": "bun src/index.ts",

@@ -1,5 +1,15 @@
 [
   {
+    "version": "2.6.2",
+    "date": "2026-10-24",
+    "notes": [
+      {
+        "type": "fix",
+        "text": "Wikibooks library recipes can now be shown on tandra.uk's public recipe pages."
+      }
+    ]
+  },
+  {
     "version": "2.6.1",
     "date": "2026-10-24",
     "notes": [

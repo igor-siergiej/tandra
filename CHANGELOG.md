@@ -1,3 +1,10 @@
+## [2.6.2](https://github.com/igor-siergiej/tandra/compare/v2.6.1...v2.6.2) (2026-10-24)
+
+
+### Bug Fixes
+
+* **api:** give Wikibooks recipes their id as public slug ([#302](https://github.com/igor-siergiej/tandra/issues/302)) ([712f93f](https://github.com/igor-siergiej/tandra/commit/712f93fd3f8ed7f9aa8ae9004b397e5e68e61c5a))
+
 ## [2.6.1](https://github.com/igor-siergiej/tandra/compare/v2.6.0...v2.6.1) (2026-10-24)
 
 
