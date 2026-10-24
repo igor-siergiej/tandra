@@ -14,6 +14,7 @@ import 'dotenv/config';
 import { config } from '../src/config';
 import { dependencyContainer, registerDepdendencies } from '../src/dependencies';
 import { DependencyToken } from '../src/dependencies/types';
+import { backfillWikibooksSlugs } from '../src/migrations/wikibooksSlugs';
 
 registerDepdendencies();
 
@@ -41,7 +42,10 @@ await dependencyContainer.resolve(DependencyToken.Bucket).connect?.({
     secretKey: config.get('bucketSecretKey'),
     bucketName: config.get('bucketName'),
 });
-await dependencyContainer.resolve(DependencyToken.DiscoveryRecipeRepository).ensureIndexes();
+const discoveryRecipes = dependencyContainer.resolve(DependencyToken.DiscoveryRecipeRepository);
+await discoveryRecipes.ensureIndexes();
+// Unchanged pages are not rewritten below, so ones stored before slugs existed get theirs here.
+await backfillWikibooksSlugs(discoveryRecipes, dependencyContainer.resolve(DependencyToken.Logger));
 await dependencyContainer.resolve(DependencyToken.DiscoveryService).ensureIndex();
 
 const summary = await dependencyContainer.resolve(DependencyToken.WikibooksIngestService).run({ limit });

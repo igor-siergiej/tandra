@@ -1,10 +1,23 @@
 import type { DiscoveryRecipe, DiscoverySource } from '@tandra/types';
 
+/** Outcome of giving slugless Wikibooks recipes their id as slug. */
+export interface WikibooksSlugBackfill {
+    /** Recipes that got a slug in this run; 0 once the library is done. */
+    assigned: number;
+    /** Ids left slugless because a recipe from another source already owns that slug. */
+    blocked: string[];
+}
+
 /** System of record for the shared recipe library (`discoveryRecipes`). Personal recipes never pass through here. */
 export interface DiscoveryRecipeRepository {
     ensureIndexes(): Promise<void>;
+    /**
+     * Sets `slug = id` on every Wikibooks recipe without a slug (stored before ingest set one), skipping any whose id
+     * is already another recipe's slug. Idempotent; needs `ensureIndexes` first.
+     */
+    assignWikibooksSlugs(): Promise<WikibooksSlugBackfill>;
     getById(id: string): Promise<DiscoveryRecipe | null>;
-    /** Library recipe that has the given URL slug, or null. Slugs are sparse: most legacy recipes have none. */
+    /** Library recipe that has the given URL slug, or null. A Wikibooks recipe's slug is its id. */
     getBySlug(slug: string): Promise<DiscoveryRecipe | null>;
     /** The library recipes with these ids in one query; ids that no longer exist are simply absent. */
     getByIds(ids: string[]): Promise<DiscoveryRecipe[]>;

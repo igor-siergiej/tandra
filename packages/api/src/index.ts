@@ -13,6 +13,7 @@ import {
     startDefaultMetrics,
 } from './infrastructure/metrics';
 import { csrfForFormPosts } from './middleware/csrf';
+import { backfillWikibooksSlugs } from './migrations/wikibooksSlugs';
 import { createRoutes } from './routes';
 
 const port = config.get('port');
@@ -78,7 +79,10 @@ export const onStartup = async () => {
         await dependencyContainer.resolve(DependencyToken.LabelRepository).ensureIndexes();
         await dependencyContainer.resolve(DependencyToken.FriendRepository).ensureIndexes();
         await dependencyContainer.resolve(DependencyToken.PushSubscriptionRepository).ensureIndexes();
-        await dependencyContainer.resolve(DependencyToken.DiscoveryRecipeRepository).ensureIndexes();
+        const discoveryRecipes = dependencyContainer.resolve(DependencyToken.DiscoveryRecipeRepository);
+        await discoveryRecipes.ensureIndexes();
+        // Library recipes stored before ingest set slugs; a no-op once done, and never fatal.
+        await backfillWikibooksSlugs(discoveryRecipes, logger);
         await dependencyContainer.resolve(DependencyToken.DiscoveryPublicationRepository).ensureIndexes();
         await dependencyContainer.resolve(DependencyToken.DiscoveryReportRepository).ensureIndexes();
         await dependencyContainer.resolve(DependencyToken.ListInviteRepository).ensureIndexes();
