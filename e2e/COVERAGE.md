@@ -26,7 +26,7 @@ Mocks for AI, speech and push live in `e2e/mocks` (see `e2e/README.md`).
 | List title validation, duplicate name message | `lists-validation.spec.ts` | |
 | Items: add, edit, select, clear, swipe delete | `items.spec.ts`, `swipe-actions*.spec.ts` | `items.visual.spec.ts` |
 | Items: validation, aisles, images, server errors | `items-edge-cases.spec.ts` | |
-| Add by voice (happy path, mic errors, confirm, keep-listening, parse failures) | `voice-add.spec.ts`, `voice-add-edge-cases.spec.ts` | |
+| Add by voice (happy path, mic errors, confirm, keep-listening, parse failures, one-time notice) | `voice-add.spec.ts`, `voice-add-edge-cases.spec.ts`, `voice-notice.spec.ts` | |
 | Offline queue for items | `offline-sync.spec.ts` | |
 | Real-time shared lists | `realtime-sync.spec.ts` | |
 | Drawers: add list, add item, edit item, voice, manage users, add from recipe | covered functionally above | `more-screens.visual.spec.ts` |

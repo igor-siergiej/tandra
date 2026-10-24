@@ -3,8 +3,10 @@ import { useEffect, useRef, useState } from 'react';
 import { parseSpokenItems, type SpokenItem } from '../../../api';
 import { useKeepListening } from '../../../hooks/useKeepListening';
 import { useSpeechRecognition } from '../../../hooks/useSpeechRecognition';
+import { useVoiceAck } from '../../../hooks/useVoiceAck';
 import { Button } from '../../ui/button';
 import { Drawer, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle } from '../../ui/drawer';
+import { VoiceNotice } from './VoiceNotice';
 
 export interface VoiceAddDrawerProps {
     open: boolean;
@@ -19,6 +21,8 @@ const describe = (item: SpokenItem) => [item.quantity, item.unit].filter((part) 
 export const VoiceAddDrawer = ({ open, onOpenChange, onAddMany }: VoiceAddDrawerProps) => {
     const [keepListening] = useKeepListening();
     const speech = useSpeechRecognition({ keepListening });
+    const [acknowledged, acknowledge] = useVoiceAck();
+    const [showNotice, setShowNotice] = useState(false);
     const [parsed, setParsed] = useState<Array<SpokenItem> | null>(null);
     const [kept, setKept] = useState<Set<number>>(new Set());
     const [busy, setBusy] = useState(false);
@@ -35,6 +39,7 @@ export const VoiceAddDrawer = ({ open, onOpenChange, onAddMany }: VoiceAddDrawer
         setKept(new Set());
         setFailure(null);
         setBusy(false);
+        setShowNotice(false);
     }, [open, speech.reset]);
 
     // Once recognition ends with something heard, turn it into items to confirm.
@@ -64,11 +69,23 @@ export const VoiceAddDrawer = ({ open, onOpenChange, onAddMany }: VoiceAddDrawer
             return next;
         });
 
-    const retry = () => {
+    const listen = () => {
         parsedTranscript.current = '';
         setParsed(null);
         setFailure(null);
         speech.start();
+    };
+
+    // The mic stays closed until the user has seen where their speech goes (the privacy notice promises this).
+    const retry = () => {
+        if (acknowledged) return listen();
+        setShowNotice(true);
+    };
+
+    const acknowledgeAndListen = () => {
+        acknowledge();
+        setShowNotice(false);
+        listen();
     };
 
     const confirm = async () => {
@@ -92,10 +109,11 @@ export const VoiceAddDrawer = ({ open, onOpenChange, onAddMany }: VoiceAddDrawer
             <DrawerContent>
                 <div className="w-full sm:mx-auto sm:max-w-[400px]">
                     <DrawerHeader>
-                        <DrawerTitle>Add by voice</DrawerTitle>
+                        <DrawerTitle>{showNotice ? 'Before you speak' : 'Add by voice'}</DrawerTitle>
                     </DrawerHeader>
                     <div className="space-y-4 p-4 pb-0">
-                        {!showResults && (
+                        {showNotice && <VoiceNotice onAcknowledge={acknowledgeAndListen} />}
+                        {!showNotice && !showResults && (
                             <div className="flex flex-col items-center gap-3 py-4">
                                 <Button
                                     type="button"
