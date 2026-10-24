@@ -162,11 +162,16 @@ jobs:
   # as the `playwright-report` artifact, see e2e/README.md), publishes it to
   # GitHub Pages under pr-<number>/, then links it from a sticky PR comment.
   # keep_files preserves other PRs' report subdirectories on each deploy —
-  # without it, actions-gh-pages wipes the branch on every push.
+  # without it, actions-gh-pages wipes the branch on every push. Every PR
+  # pushes to the same gh-pages branch, so deploys queue on one concurrency
+  # group; two PRs finishing together otherwise reject one push.
   report:
     runs-on: ubuntu-latest
     needs: e2e-shard
     if: always() && needs.e2e-shard.result != 'skipped'
+    concurrency:
+      group: gh-pages
+      cancel-in-progress: false
     permissions:
       contents: write
       packages: read
