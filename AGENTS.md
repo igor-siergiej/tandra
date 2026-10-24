@@ -52,7 +52,7 @@ Run these from the root directory:
 - `bun run --filter @tandra/web test` - Run web component tests (Vitest). No coverage gate: the web package has no coverage provider installed and the e2e suite is the main safety net for UI; add `@vitest/coverage-v8` and a threshold if that changes
 - `bun run test:scripts` - Run the script tests (`scripts/` and `packages/api/scripts/`)
 - `bun run load:local` - On-demand k6 API capacity test against a throwaway local API/DB with a mock auth verifier (not in CI; see `scripts/load/README.md`)
-- API and script tests use Bun's native runner: import from `bun:test`. The API `test` scripts pass `--isolate`, so `mock.module`/`vi.mock` and spies on shared singletons (e.g. `config`) can't leak into other files; script tests (`bun run test:scripts`) aren't isolated, so prefer injecting dependencies there. Web tests use Vitest (`vitest`).
+- API and script tests use Bun's native runner: import from `bun:test`. The API `test` scripts (and the root `bun run test`) pass `--parallel`, which runs files across one worker per CPU core and implies `--isolate`, so `mock.module`/`vi.mock` and spies on shared singletons (e.g. `config`) can't leak into other files, and files must not share mutable external state; script tests (`bun run test:scripts`) aren't isolated, so prefer injecting dependencies there. Web tests use Vitest (`vitest`).
 - The root `bunfig.toml` scopes Bun's test collection to the API package, so a bare `bun test` at the root does not try to run the Playwright specs in `e2e/` or the Vitest specs in `packages/web/` under the wrong runner.
 
 ## Environment Setup

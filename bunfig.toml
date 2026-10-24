@@ -9,6 +9,8 @@
 # test setup, which the package's own `bunfig.toml` would otherwise provide. The
 # scripts under `scripts/` and `packages/api/scripts` are run by path
 # (`bun run test:scripts`), which resolves relative to the working directory.
+# `pathIgnorePatterns` mirrors the API package's: skip the gitignored build/ copy of src.
 [test]
 root = "./packages/api"
 preload = ["./packages/api/src/test-setup.ts"]
+pathIgnorePatterns = ["packages/api/build/**"]

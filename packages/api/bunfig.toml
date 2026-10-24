@@ -1,3 +1,5 @@
 [test]
 # Sets the env vars config/index.ts requires at import time, before any test file loads.
 preload = ["./src/test-setup.ts"]
+# `bun run build` copies src into the gitignored build/; without this, a stale build's test copies run too.
+pathIgnorePatterns = ["build/**"]
