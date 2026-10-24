@@ -1,0 +1,103 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: auth.visual.spec.ts >> Auth pages visual regression >> register default state
+- Location: e2e/tests/auth.visual.spec.ts:12:4
+
+# Error details
+
+```
+Error: expect(page).toHaveScreenshot(expected) failed
+
+  19306 pixels (ratio 0.06 of all image pixels) are different.
+
+  Snapshot: register-default.png
+
+Call log:
+  - Expect screenshot with timeout 5000ms
+    - verifying given screenshot expectation
+  - taking page screenshot
+    - disabled all CSS animations
+  - waiting for fonts to load...
+  - fonts loaded
+  - 19306 pixels (ratio 0.06 of all image pixels) are different.
+  - waiting 100ms before taking screenshot
+  - taking page screenshot
+    - disabled all CSS animations
+  - waiting for fonts to load...
+  - fonts loaded
+  - captured a stable screenshot
+  - 19306 pixels (ratio 0.06 of all image pixels) are different.
+
+```
+
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e6]:
+      - img "Tandra" [ref=e7]
+      - generic [ref=e8]:
+        - generic [ref=e9]: Tandra
+        - button "What's new in Tandra (version localhost)" [ref=e10]: vlocalhost
+  - main [ref=e11]:
+    - generic [ref=e14]:
+      - generic [ref=e15]:
+        - generic [ref=e16]: Create your account
+        - generic [ref=e17]: Enter your details below to create your account
+      - generic [ref=e19]:
+        - generic [ref=e20]:
+          - generic [ref=e21]:
+            - generic [ref=e22]:
+              - generic [ref=e23]: Username
+              - textbox "Username" [ref=e24]:
+                - /placeholder: Enter your username
+            - generic [ref=e25]:
+              - generic [ref=e26]: Password
+              - textbox "Password" [ref=e27]:
+                - /placeholder: Enter your password
+              - paragraph [ref=e28]: At least 8 characters, letters and digits only, must include both letters and a number.
+            - generic [ref=e29]:
+              - generic [ref=e30]: Repeat Password
+              - textbox "Repeat Password" [ref=e31]:
+                - /placeholder: Repeat your password
+          - button "Create Account" [ref=e33]
+        - generic [ref=e34]:
+          - text: Already have an account?
+          - link "Sign in" [ref=e35] [cursor=pointer]:
+            - /url: /login
+        - link "Privacy" [ref=e37] [cursor=pointer]:
+          - /url: https://tandra.uk/privacy
+  - region "Notifications alt+T"
+```
+
+# Test source
+
+```ts
+  1  | import { expect, test } from '../fixtures';
+  2  | import { settle } from './visual-helpers';
+  3  | 
+  4  | test.describe('Auth pages visual regression', () => {
+  5  |     test('login default state', async ({ page, loginPage }) => {
+  6  |         await loginPage.goto();
+  7  |         await expect(loginPage.heading).toBeVisible();
+  8  |         await settle(page);
+  9  |         await expect(page).toHaveScreenshot('login-default.png');
+  10 |     });
+  11 | 
+  12 |     test('register default state', async ({ page, registerPage }) => {
+  13 |         await registerPage.goto();
+  14 |         await expect(registerPage.heading).toBeVisible();
+  15 |         await settle(page);
+> 16 |         await expect(page).toHaveScreenshot('register-default.png');
+     |                           ^ Error: expect(page).toHaveScreenshot(expected) failed
+  17 |     });
+  18 | });
+  19 | 
+```

@@ -1,0 +1,102 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: auth.visual.spec.ts >> Auth pages visual regression >> login default state
+- Location: e2e/tests/auth.visual.spec.ts:5:4
+
+# Error details
+
+```
+Error: expect(page).toHaveScreenshot(expected) failed
+
+  17141 pixels (ratio 0.05 of all image pixels) are different.
+
+  Snapshot: login-default.png
+
+Call log:
+  - Expect screenshot with timeout 5000ms
+    - verifying given screenshot expectation
+  - taking page screenshot
+    - disabled all CSS animations
+  - waiting for fonts to load...
+  - fonts loaded
+  - 17141 pixels (ratio 0.05 of all image pixels) are different.
+  - waiting 100ms before taking screenshot
+  - taking page screenshot
+    - disabled all CSS animations
+  - waiting for fonts to load...
+  - fonts loaded
+  - captured a stable screenshot
+  - 17141 pixels (ratio 0.05 of all image pixels) are different.
+
+```
+
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e6]:
+      - img "Tandra" [ref=e7]
+      - generic [ref=e8]:
+        - generic [ref=e9]: Tandra
+        - button "What's new in Tandra (version localhost)" [ref=e10]: vlocalhost
+  - main [ref=e11]:
+    - generic [ref=e14]:
+      - generic [ref=e15]:
+        - generic [ref=e16]: Login to your account
+        - generic [ref=e17]: Enter your username below to login to your account
+      - generic [ref=e19]:
+        - generic [ref=e20]:
+          - generic [ref=e21]:
+            - generic [ref=e22]:
+              - generic [ref=e23]: Username
+              - textbox "Username" [ref=e24]:
+                - /placeholder: Enter your username
+            - generic [ref=e25]:
+              - generic [ref=e27]: Password
+              - textbox "Password" [ref=e28]:
+                - /placeholder: Enter your password
+          - generic [ref=e29]:
+            - button "Login" [ref=e30]
+            - button "Try it without an account" [ref=e31]:
+              - img
+              - text: Try it without an account
+        - generic [ref=e32]:
+          - text: Don't have an account?
+          - link "Sign up" [ref=e33] [cursor=pointer]:
+            - /url: /register
+        - link "Privacy" [ref=e35] [cursor=pointer]:
+          - /url: https://tandra.uk/privacy
+  - region "Notifications alt+T"
+```
+
+# Test source
+
+```ts
+  1  | import { expect, test } from '../fixtures';
+  2  | import { settle } from './visual-helpers';
+  3  | 
+  4  | test.describe('Auth pages visual regression', () => {
+  5  |     test('login default state', async ({ page, loginPage }) => {
+  6  |         await loginPage.goto();
+  7  |         await expect(loginPage.heading).toBeVisible();
+  8  |         await settle(page);
+> 9  |         await expect(page).toHaveScreenshot('login-default.png');
+     |                           ^ Error: expect(page).toHaveScreenshot(expected) failed
+  10 |     });
+  11 | 
+  12 |     test('register default state', async ({ page, registerPage }) => {
+  13 |         await registerPage.goto();
+  14 |         await expect(registerPage.heading).toBeVisible();
+  15 |         await settle(page);
+  16 |         await expect(page).toHaveScreenshot('register-default.png');
+  17 |     });
+  18 | });
+  19 | 
+```
