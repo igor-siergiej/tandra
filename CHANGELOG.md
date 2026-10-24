@@ -1,3 +1,10 @@
+# [2.8.0](https://github.com/igor-siergiej/tandra/compare/v2.7.0...v2.8.0) (2026-10-24)
+
+
+### Features
+
+* **web:** one-time notice before the voice-input mic first opens ([#306](https://github.com/igor-siergiej/tandra/issues/306)) ([5fef423](https://github.com/igor-siergiej/tandra/commit/5fef4236c1d7b18b64376b40df119e81f56aed99))
+
 # [2.7.0](https://github.com/igor-siergiej/tandra/compare/v2.6.3...v2.7.0) (2026-10-24)
 
 

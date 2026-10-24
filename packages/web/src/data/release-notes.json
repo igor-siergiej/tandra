@@ -1,5 +1,15 @@
 [
   {
+    "version": "2.8.0",
+    "date": "2026-10-24",
+    "notes": [
+      {
+        "type": "feature",
+        "text": "Before voice input listens for the first time, Tandra now explains where your speech goes and links to the privacy policy."
+      }
+    ]
+  },
+  {
     "version": "2.7.0",
     "date": "2026-10-24",
     "notes": [
