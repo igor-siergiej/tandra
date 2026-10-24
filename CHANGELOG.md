@@ -1,3 +1,10 @@
+## [2.6.3](https://github.com/igor-siergiej/tandra/compare/v2.6.2...v2.6.3) (2026-10-24)
+
+
+### Performance Improvements
+
+* faster e2e suite (prebuilt bundle, 100ms polling, no spinner exit wait) ([#300](https://github.com/igor-siergiej/tandra/issues/300)) ([d1241e1](https://github.com/igor-siergiej/tandra/commit/d1241e134f28c83368271d2b8ccc4986df0b1c41)), closes [microsoft/playwright#26837](https://github.com/microsoft/playwright/issues/26837)
+
 ## [2.6.2](https://github.com/igor-siergiej/tandra/compare/v2.6.1...v2.6.2) (2026-10-24)
 
 

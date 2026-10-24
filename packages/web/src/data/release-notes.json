@@ -1,5 +1,15 @@
 [
   {
+    "version": "2.6.3",
+    "date": "2026-10-24",
+    "notes": [
+      {
+        "type": "improvement",
+        "text": "The app opens a little faster: your lists appear as soon as you're signed in instead of waiting for the loading spinner to fade."
+      }
+    ]
+  },
+  {
     "version": "2.6.2",
     "date": "2026-10-24",
     "notes": [
