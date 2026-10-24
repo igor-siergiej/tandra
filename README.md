@@ -109,6 +109,7 @@ required value).
 | `RECIPE_IMPORT_LLM_ENABLED`, `RECIPE_IMPORT_LLM_FIRST`, `RECIPE_IMPORT_LLM_API_KEY`, `RECIPE_IMPORT_LLM_MODEL` | no | recipe-import LLM tier; the key falls back to `FAL_KEY` |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | no | Web Push |
 | `OPENSEARCH_URL` | no | Discover search index; unset = Discover off |
+| `OPENSEARCH_INDEX` | no | alias the Discover index lives under (default `discovery-recipes`), so several APIs can share one engine |
 | `PUBLIC_DISCOVER_ORIGINS` | no | CORS allow-list for `/api/public/discover/*` |
 | `DISCOVERY_ADMIN_USER_IDS` | no | tandra (Better Auth) user ids allowed to moderate Discover |
 | `WIKIBOOKS_USER_AGENT` | no | User-Agent for `discover:ingest` |
@@ -118,8 +119,8 @@ Web: runtime `packages/web/public/config.json` (optional `analytics`; cached in
 `APP_VERSION` (version badge), `VITE_WEBMCP_OT_TOKEN` (WebMCP origin trial).
 Installing dependencies needs `NODE_AUTH_TOKEN` for the `@imapps/*` registry
 (`.bunfig.toml`); the Dockerfiles take it as a build arg. Tests add
-`OPENSEARCH_TEST_URL` (api integration tests), `E2E_OPENSEARCH_URL` and
-`E2E_BASE_URL` (Playwright).
+`OPENSEARCH_TEST_URL` (api integration tests), `E2E_OPENSEARCH_URL`,
+`E2E_BASE_URL`, `E2E_WORKERS` and `E2E_PORT_BASE` (Playwright).
 
 ## Running it
 
@@ -212,7 +213,9 @@ label picks out small, contained starting points.
   `test` (`tsc --noEmit`, api tests with coverage against a real OpenSearch
   service, web tests, script tests, 90 % gate), `e2e`, `fallow-deadcode` and
   `semgrep`. Playwright runs as four `e2e-shard` jobs (`--shard=N/4`), each
-  with its own Mongo 7 + OpenSearch services; the `e2e` job passes only if
+  starting Mongo 7 + OpenSearch in the background and running three workers,
+  each with its own api, web server, database and search alias
+  (`e2e/stack.ts`); the `e2e` job passes only if
   every shard passed, and `report` merges the shards' blob reports into one
   HTML report (artifact `playwright-report`, published to GitHub Pages and
   linked from a sticky PR comment). `.kanban-cli.json` treats `lint`,

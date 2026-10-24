@@ -2,9 +2,10 @@ import type { Browser, Page } from '@playwright/test';
 import type { User } from '@tandra/types';
 
 import { MOCK_USER, MOCK_USER_2, PASSWORDS } from './mocks/data/users';
+import { currentStack } from './stack';
 
-export const API_BASE = 'http://localhost:4001';
-const WEB_ORIGIN = 'http://localhost:4000';
+export const API_BASE = currentStack.apiBase;
+const WEB_ORIGIN = currentStack.webOrigin;
 
 // Better Auth rate-limits sign-in/sign-up per client IP (read from X-Forwarded-For). Every request in a
 // test run comes from the same machine, so give each its own address or the suite trips the limit.
