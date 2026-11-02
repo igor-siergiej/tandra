@@ -20,7 +20,6 @@ export const RootLayout = ({ children, showLayout = true }: RootLayoutProps) => 
     const content = children || <Outlet />;
     useWebMcpTools();
 
-    // biome-ignore lint/correctness/useExhaustiveDependencies: location.key drives re-firing on route change, not read in the body.
     useEffect(() => {
         recordInAppNavigation();
     }, [location.key]);

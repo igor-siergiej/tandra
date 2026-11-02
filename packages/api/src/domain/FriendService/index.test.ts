@@ -59,7 +59,6 @@ describe('FriendService.generateCode', () => {
         const before = Date.now();
         const { code, expiresAt } = await svcWith(repo).generateCode('u1', 'alice');
         expect(code).toMatch(/^[A-Z2-9]{6}$/); // readable charset, no 0/O/1/I
-        // biome-ignore lint/style/noNonNullAssertion: lookup is known to be set by generateCode
         const stored = repo.codes.get(code)!;
         expect(stored.creatorId).toBe('u1');
         expect(expiresAt.getTime()).toBeGreaterThanOrEqual(before + 15 * 60 * 1000 - 1000);

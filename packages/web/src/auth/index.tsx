@@ -36,7 +36,6 @@ const markReturningUser = () => {
     returningUserMarked = true;
     const cookie = returningUserCookie(window.location.hostname);
 
-    // biome-ignore lint/suspicious/noDocumentCookie: the Cookie Store API is missing from Firefox.
     if (cookie) document.cookie = cookie;
 };
 
