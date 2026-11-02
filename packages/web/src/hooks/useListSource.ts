@@ -6,7 +6,7 @@ import { useGuest } from '../guest/GuestContext';
 import { GUEST_USER, guestListSource } from '../guest/guestListSource';
 import { drainOutbox } from '../offline/drainer';
 import type { ListItemsData } from '../offline/foldPending';
-import type { ItemOp } from '../offline/outboxStore';
+import type { ItemOp, OutboxPayload } from '../offline/outboxStore';
 import { outboxStore } from '../offline/outboxStore';
 
 // Where the lists and items pages read and write. Signed-in users go through the API and the offline outbox;
@@ -39,7 +39,7 @@ const enqueue = async (
     op: ItemOp | 'list.create',
     scope: string,
     targetId: string,
-    payload: Record<string, unknown>
+    payload: OutboxPayload
 ) => {
     await outboxStore.enqueue({
         id: crypto.randomUUID(),

@@ -1,6 +1,7 @@
 import type { ListType, User } from '@tandra/types';
 
 import { addItem, addList, updateItem } from '../api';
+import { caughtErrorSchema } from '../utils/caughtError';
 import { logger } from '../utils/logger';
 import { type GuestItem, guestStore } from './guestStore';
 
@@ -12,15 +13,15 @@ import { type GuestItem, guestStore } from './guestStore';
 // failed, ready for the next sign-in to retry.
 
 export interface MigrateAdapter {
-    addList: (title: string, listType: ListType) => Promise<unknown>;
+    addList: (title: string, listType: ListType) => Promise<void>;
     addItem: (input: {
         listTitle: string;
         id: string;
         name: string;
         quantity?: number;
         unit?: string;
-    }) => Promise<unknown>;
-    selectItem: (input: { listTitle: string; id: string }) => Promise<unknown>;
+    }) => Promise<void>;
+    selectItem: (input: { listTitle: string; id: string }) => Promise<void>;
 }
 
 export interface MigrationFailure {
@@ -39,13 +40,10 @@ export interface MigrationResult {
 
 const MAX_RENAME_ATTEMPTS = 100;
 
-const statusOf = (err: unknown): number | undefined => {
-    const status = err instanceof Error && 'status' in err ? err.status : undefined;
+const statusOf = (cause: unknown): number | undefined =>
+    cause instanceof Error ? caughtErrorSchema.parse(cause).status : undefined;
 
-    return typeof status === 'number' ? status : undefined;
-};
-
-const messageOf = (err: unknown): string => (err instanceof Error ? err.message : String(err));
+const messageOf = (cause: unknown): string => (cause instanceof Error ? cause.message : String(cause));
 
 const createLiveMigrateAdapter = (user: User): MigrateAdapter => ({
     async addList(title, listType) {

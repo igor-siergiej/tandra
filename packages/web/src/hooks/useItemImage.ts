@@ -52,7 +52,7 @@ export function useItemImage(itemName: string | null): UseItemImageReturn {
                 currentBlobUrl = await handleImageResponse(response, isMounted, setImageBlobUrl, () =>
                     setHasImageError(true)
                 );
-            } catch (_error) {
+            } catch {
                 if (isMounted) {
                     setHasImageError(true);
                 }

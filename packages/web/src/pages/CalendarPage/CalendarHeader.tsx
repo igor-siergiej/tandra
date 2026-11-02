@@ -25,6 +25,7 @@ export interface CalendarHeaderProps {
     onToggleLabel: (labelId: string) => void;
 }
 
+// SAFETY: the Select only offers the CalendarView values rendered below.
 export const CalendarHeader = ({
     view,
     onViewChange,

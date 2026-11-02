@@ -42,6 +42,7 @@ const fetchFeatures = async (): Promise<ServerFeatures> => {
                 return DEFAULT_FEATURES;
             }
 
+            // SAFETY: /api/features answers with a subset of ServerFeatures; missing keys fall back to DEFAULT_FEATURES in the merge below.
             const data = (await res.json()) as Partial<ServerFeatures>;
             const merged: ServerFeatures = { ...DEFAULT_FEATURES, ...data };
             cached = { value: merged };

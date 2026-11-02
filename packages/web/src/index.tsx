@@ -30,7 +30,7 @@ applyManifestForTheme();
 
 installWebMcpOriginTrialToken(import.meta.env.VITE_WEBMCP_OT_TOKEN, __IS_PROD__);
 
-const lazyLoadPage = (importFn: () => Promise<unknown>, fallbackName: string) =>
+const lazyLoadPage = (importFn: () => Promise<{ default: React.ComponentType }>, fallbackName: string) =>
     React.lazy(() =>
         importFn().catch(() => ({
             default: () => (
@@ -306,6 +306,7 @@ const App: React.FC = () => {
     );
 };
 
+// SAFETY: index.html always contains #root; a missing node would fail createRoot immediately.
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 
 root.render(<App />);

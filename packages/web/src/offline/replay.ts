@@ -1,5 +1,3 @@
-import type { ItemCategory } from '@tandra/types';
-
 import {
     addItem,
     addList,
@@ -22,18 +20,16 @@ import {
 import type { OutboxIntent } from './outboxStore';
 
 // fallow-ignore-next-line complexity
+// An intent the server would have answered 400 to: the drainer treats a 4xx as final and drops it.
+const malformed = (op: OutboxIntent['op'], field: string) =>
+    Object.assign(new Error(`${op} intent has no ${field}`), { status: 400 });
+
 export const replayIntent = async (intent: OutboxIntent): Promise<void> => {
     const p = intent.payload;
 
     switch (intent.op) {
         case 'item.add':
-            await addItem(
-                String(p.name),
-                intent.scope,
-                p.quantity as number | undefined,
-                p.unit as string | undefined,
-                intent.targetId
-            );
+            await addItem(String(p.name), intent.scope, p.quantity, p.unit, intent.targetId);
 
             return;
         case 'item.delete':
@@ -41,7 +37,7 @@ export const replayIntent = async (intent: OutboxIntent): Promise<void> => {
 
             return;
         case 'item.toggle':
-            await updateItem(intent.targetId, Boolean(p.isSelected), intent.scope);
+            await updateItem(intent.targetId, p.isSelected === true, intent.scope);
 
             return;
         case 'item.rename':
@@ -49,34 +45,25 @@ export const replayIntent = async (intent: OutboxIntent): Promise<void> => {
 
             return;
         case 'item.quantity':
-            await updateItemQuantity(
-                intent.scope,
-                intent.targetId,
-                p.quantity as number | undefined,
-                p.unit as string | undefined
-            );
+            await updateItemQuantity(intent.scope, intent.targetId, p.quantity, p.unit);
 
             return;
         case 'item.category':
-            await updateItemCategory(intent.scope, intent.targetId, p.category as ItemCategory);
+            if (p.category === undefined) throw malformed(intent.op, 'category');
+            await updateItemCategory(intent.scope, intent.targetId, p.category);
 
             return;
         case 'list.create':
-            await addList(
-                String(p.title),
-                p.user as Parameters<typeof addList>[1],
-                (p.selectedUsers as string[] | undefined) ?? [],
-                p.listType as Parameters<typeof addList>[3] | undefined,
-                intent.targetId
-            );
+            if (!p.user) throw malformed(intent.op, 'user');
+            await addList(String(p.title), p.user, p.selectedUsers ?? [], p.listType, intent.targetId);
 
             return;
         case 'todo.create':
-            await createTodo(intent.payload as Parameters<typeof createTodo>[0], intent.targetId);
+            await createTodo({ ...p, title: p.title ?? '' }, intent.targetId);
 
             return;
         case 'todo.update':
-            await updateTodo(intent.targetId, intent.payload as Parameters<typeof updateTodo>[1]);
+            await updateTodo(intent.targetId, p);
 
             return;
         case 'todo.delete':
@@ -84,15 +71,15 @@ export const replayIntent = async (intent: OutboxIntent): Promise<void> => {
 
             return;
         case 'todo.complete':
-            await completeTodo(intent.targetId, intent.payload.date as string | undefined);
+            await completeTodo(intent.targetId, p.date);
 
             return;
         case 'label.create':
-            await createLabel(intent.payload as Parameters<typeof createLabel>[0], intent.targetId);
+            await createLabel({ ...p, name: p.name ?? '', color: p.color ?? '' }, intent.targetId);
 
             return;
         case 'label.update':
-            await updateLabel(intent.targetId, intent.payload as Parameters<typeof updateLabel>[1]);
+            await updateLabel(intent.targetId, p);
 
             return;
         case 'label.delete':
@@ -100,37 +87,39 @@ export const replayIntent = async (intent: OutboxIntent): Promise<void> => {
 
             return;
         case 'recipe.create': {
+            if (!p.user) throw malformed(intent.op, 'user');
             await addRecipe(
                 String(p.title),
-                p.user as Parameters<typeof addRecipe>[1],
-                (p.selectedUsers as string[] | undefined) ?? [],
-                p.ingredients as Parameters<typeof addRecipe>[3] | undefined,
-                p.link as string | undefined,
-                p.instructions as string[] | undefined,
+                p.user,
+                p.selectedUsers ?? [],
+                p.ingredients,
+                p.link,
+                p.instructions,
                 intent.targetId,
-                p.prepTime as number | undefined,
-                p.cookTime as number | undefined,
-                p.servings as number | undefined,
-                p.difficulty as Parameters<typeof addRecipe>[10] | undefined,
-                p.tags as string[] | undefined
+                p.prepTime,
+                p.cookTime,
+                p.servings,
+                p.difficulty,
+                p.tags
             );
 
             return;
         }
 
         case 'recipe.update': {
+            if (!p.ingredients) throw malformed(intent.op, 'ingredients');
             await updateRecipe(
                 intent.targetId,
                 String(p.title),
-                p.ingredients as Parameters<typeof updateRecipe>[2],
-                p.coverImageKey as string | undefined,
-                p.link as string | undefined,
-                p.instructions as string[] | undefined,
-                p.prepTime as number | undefined,
-                p.cookTime as number | undefined,
-                p.servings as number | undefined,
-                p.difficulty as Parameters<typeof updateRecipe>[9] | undefined,
-                p.tags as string[] | undefined
+                p.ingredients,
+                p.coverImageKey,
+                p.link,
+                p.instructions,
+                p.prepTime,
+                p.cookTime,
+                p.servings,
+                p.difficulty,
+                p.tags
             );
 
             return;

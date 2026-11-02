@@ -13,7 +13,7 @@ export interface EditTodoDrawerProps {
     todo: Todo | null;
     labels: LabelType[];
     onOpenChange: (open: boolean) => void;
-    onSave: (id: string, body: UpdateTodoBody) => Promise<unknown> | undefined;
+    onSave: (id: string, body: UpdateTodoBody) => Promise<void> | undefined;
 }
 
 const parseDay = (day: string): Date => {

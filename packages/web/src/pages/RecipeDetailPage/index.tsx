@@ -130,8 +130,7 @@ const RecipeDetailPage = () => {
             );
             await refetch();
         } catch (error) {
-            const err = error as { message?: string };
-            notifyError(err.message || 'Failed to add ingredient');
+            notifyError(error.message || 'Failed to add ingredient');
         }
     };
 
@@ -187,8 +186,7 @@ const RecipeDetailPage = () => {
             notifySuccess('Recipe updated');
             logger.info('Recipe updated', { recipeId, title: editedTitle });
         } catch (error) {
-            const err = error as { message?: string };
-            notifyError(err.message || 'Failed to update recipe');
+            notifyError(error.message || 'Failed to update recipe');
         }
     };
 
@@ -217,8 +215,7 @@ const RecipeDetailPage = () => {
             if (!options?.silent) notifySuccess('Ingredients updated');
             logger.info('Recipe ingredients updated', { recipeId, ingredientCount: ingredients.length });
         } catch (error) {
-            const err = error as { message?: string };
-            notifyError(err.message || 'Failed to update ingredients');
+            notifyError(error.message || 'Failed to update ingredients');
             throw error;
         }
     };
@@ -237,8 +234,7 @@ const RecipeDetailPage = () => {
                     notifySuccess('Recipe deleted successfully');
                     navigate('/recipes');
                 } catch (error) {
-                    const err = error as { message?: string };
-                    notifyError(err.message || 'Failed to delete recipe');
+                    notifyError(error.message || 'Failed to delete recipe');
                 }
             },
         });
@@ -262,8 +258,7 @@ const RecipeDetailPage = () => {
                 skipped: result.skipped,
             });
         } catch (error) {
-            const err = error as { message?: string };
-            notifyError(err.message || 'Failed to add ingredients to list');
+            notifyError(error.message || 'Failed to add ingredients to list');
         }
     };
 

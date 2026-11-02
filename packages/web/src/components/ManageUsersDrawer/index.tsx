@@ -45,7 +45,7 @@ interface ManageUsersDrawerProps {
 }
 
 const getMemberIds = (currentUsers: Array<{ id: string; username: string }>, ownerId: string) =>
-    currentUsers.filter((u) => u.id !== ownerId).map((u) => u.id);
+    currentUsers.flatMap((u) => (u.id === ownerId ? [] : [u.id]));
 
 export const ManageUsersDrawer = ({
     open,

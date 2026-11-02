@@ -2,13 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { getSpeechRecognition, type SpeechRecognitionLike } from '../utils/speechRecognition';
 
-const ERROR_MESSAGES: Record<string, string> = {
-    'not-allowed': 'Microphone access was blocked. Allow it in your browser settings to use voice.',
-    'service-not-allowed': 'Microphone access was blocked. Allow it in your browser settings to use voice.',
-    'no-speech': "I didn't hear anything. Try again.",
-    'audio-capture': 'No microphone was found.',
-    network: 'Speech recognition needs a connection. Try again when you are online.',
-};
+const ERROR_MESSAGES = new Map([
+    ['not-allowed', 'Microphone access was blocked. Allow it in your browser settings to use voice.'],
+    ['service-not-allowed', 'Microphone access was blocked. Allow it in your browser settings to use voice.'],
+    ['no-speech', "I didn't hear anything. Try again."],
+    ['audio-capture', 'No microphone was found.'],
+    ['network', 'Speech recognition needs a connection. Try again when you are online.'],
+]);
 
 export interface UseSpeechRecognition {
     supported: boolean;
@@ -64,7 +64,7 @@ export const useSpeechRecognition = ({
 
         recognition.onerror = (event) => {
             stoppedByUserRef.current = true;
-            setError(ERROR_MESSAGES[event.error] ?? 'Voice input failed. Try again.');
+            setError(ERROR_MESSAGES.get(event.error) ?? 'Voice input failed. Try again.');
             setListening(false);
         };
 

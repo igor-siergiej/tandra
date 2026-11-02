@@ -1,3 +1,4 @@
+import type { Ingredient, ItemCategory, ListType, Recipe, Todo, User } from '@tandra/types';
 import { type DBSchema, type IDBPDatabase, openDB } from 'idb';
 
 export type ItemOp = 'item.add' | 'item.toggle' | 'item.delete' | 'item.rename' | 'item.quantity' | 'item.category';
@@ -12,6 +13,46 @@ export type RecipeOp = 'recipe.create' | 'recipe.update' | 'recipe.delete';
 
 export type EntityType = 'item' | 'list' | 'todo' | 'label' | 'recipe';
 
+type TodoClearField = 'dueDate' | 'time' | 'labelId' | 'recurrence';
+
+/**
+ * Everything an outbox intent can carry. Each op reads the handful of fields it needs, so the keys are
+ * shared across ops and all optional; replay and the optimistic folds never need to guess a field's type.
+ */
+export interface OutboxPayload extends Partial<
+    Pick<Todo, 'done' | 'completedDates' | 'dueDate' | 'labelId' | 'ownerId' | 'recurrence' | 'time'>
+> {
+    // items
+    name?: string;
+    newItemName?: string;
+    isSelected?: boolean;
+    quantity?: number;
+    unit?: string;
+    category?: ItemCategory;
+    // lists, todos, recipes
+    title?: string;
+    listType?: ListType;
+    selectedUsers?: string[];
+    user?: User;
+    users?: User[];
+    userIds?: string[];
+    // todos
+    date?: string;
+    clear?: TodoClearField[];
+    // labels
+    color?: string;
+    // recipes
+    ingredients?: Array<Omit<Ingredient, 'id'> & { id?: string }>;
+    coverImageKey?: string;
+    link?: string;
+    instructions?: string[];
+    tags?: string[];
+    prepTime?: number;
+    cookTime?: number;
+    servings?: number;
+    difficulty?: Recipe['difficulty'];
+}
+
 export interface OutboxIntent {
     seq: number;
     id: string;
@@ -19,7 +60,7 @@ export interface OutboxIntent {
     op: ItemOp | ListOp | TodoOp | LabelOp | RecipeOp;
     targetId: string;
     scope: string;
-    payload: Record<string, unknown>;
+    payload: OutboxPayload;
     createdAt: number;
 }
 
@@ -61,8 +102,10 @@ export const outboxStore = {
     },
     async enqueue(intent: Omit<OutboxIntent, 'seq'>) {
         const db = await getDB();
-        const seq = (await db.add(STORE, intent as OutboxIntent)) as number;
-        const stored: OutboxIntent = { ...(intent as OutboxIntent), seq };
+        // The store auto-increments `seq`, so the record is written without one and gets it back from add().
+        // SAFETY: `seq` is the object store's keyPath with autoIncrement; IndexedDB assigns it on add, so the intent is complete once stored.
+        const seq = await db.add(STORE, intent as OutboxIntent);
+        const stored: OutboxIntent = { ...intent, seq };
         mirror = [...mirror, stored].sort(sortBySeq);
         notify();
 

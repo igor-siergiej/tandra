@@ -24,12 +24,10 @@ export const foldPendingItems = (listTitle: string, data: ListItemsData): ListIt
 
     if (pending.length === 0) return data;
 
-    const items = pending.reduce<ItemView[]>(
-        (acc, intent) => applyItemIntent(acc, intent),
-        data.items as unknown as ItemView[]
-    );
+    const items = pending.reduce<ItemView[]>((acc, intent) => applyItemIntent(acc, intent), data.items);
 
-    return { ...data, items: items as unknown as Item[] };
+    // SAFETY: ItemView is the subset of Item the outbox can build; the only gap is `dateAdded` on an item added while offline, which the list view never reads.
+    return { ...data, items: items as Item[] };
 };
 
 export const foldPendingLists = (userId: string, lists: ListResponse[]): ListResponse[] => {
@@ -37,12 +35,10 @@ export const foldPendingLists = (userId: string, lists: ListResponse[]): ListRes
 
     if (pending.length === 0) return lists;
 
-    const folded = pending.reduce<ListView[]>(
-        (acc, intent) => applyListIntent(acc, intent),
-        lists as unknown as ListView[]
-    );
+    const folded = pending.reduce<ListView[]>((acc, intent) => applyListIntent(acc, intent), lists);
 
-    return folded as unknown as ListResponse[];
+    // SAFETY: ListView is the subset of ListResponse the outbox can build; a list created offline has an empty `items` and the creator as its only user, which is what the server will answer with.
+    return folded as ListResponse[];
 };
 
 export const foldPendingTodos = (userId: string, todos: Todo[]): Todo[] => {

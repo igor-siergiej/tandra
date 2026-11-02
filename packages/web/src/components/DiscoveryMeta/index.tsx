@@ -11,6 +11,7 @@ const DIFFICULTY_LABEL: Record<RecipeDifficulty, string> = { easy: 'Easy', mediu
 
 type Chip = { icon: typeof ListChecks; text: string };
 
+// SAFETY: the icon is a lucide component; they share one props shape and typeof ListChecks only names that type.
 const optionalDifficultyChip = (difficulty: RecipeDifficulty | undefined): Chip | null =>
     difficulty ? { icon: Gauge as typeof ListChecks, text: DIFFICULTY_LABEL[difficulty] } : null;
 

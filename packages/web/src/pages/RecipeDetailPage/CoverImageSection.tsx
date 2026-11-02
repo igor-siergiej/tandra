@@ -18,7 +18,7 @@ interface CoverImageSectionProps {
 const useImageAction = (onImageChange?: () => void) => {
     const [isBusy, setIsBusy] = useState(false);
 
-    const run = async (action: () => Promise<unknown>, success: string, fallbackError: string) => {
+    const run = async <T,>(action: () => Promise<T>, success: string, fallbackError: string) => {
         setIsBusy(true);
 
         try {
@@ -104,6 +104,7 @@ const UploadButton = ({ recipe, isBusy, run }: { recipe: Recipe } & ImageAction)
                 accept="image/*"
                 onChange={handleImageSelect}
                 onClick={(e) => {
+                    // SAFETY: the handler is attached to the file <input>, so currentTarget is that input.
                     (e.currentTarget as HTMLInputElement).value = '';
                 }}
                 disabled={isBusy}

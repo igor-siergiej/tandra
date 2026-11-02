@@ -54,10 +54,12 @@ export const usePushNotifications = () => {
                 applicationServerKey: urlBase64ToUint8Array(publicKey),
             });
 
+            // SAFETY: a PushSubscription's JSON always carries endpoint and the p256dh/auth keys for a Web Push subscription; the DOM type marks them optional.
             const json = sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } };
             await subscribeToPush({ endpoint: json.endpoint, keys: json.keys });
             setIsSubscribed(true);
         } catch (error) {
+            // SAFETY: only the message of whatever was thrown is logged; a non-Error reads as undefined.
             logger.error('Failed to subscribe to push', { error: (error as Error).message });
         } finally {
             setIsBusy(false);
@@ -80,6 +82,7 @@ export const usePushNotifications = () => {
 
             setIsSubscribed(false);
         } catch (error) {
+            // SAFETY: only the message of whatever was thrown is logged; a non-Error reads as undefined.
             logger.error('Failed to unsubscribe from push', { error: (error as Error).message });
         } finally {
             setIsBusy(false);

@@ -91,6 +91,7 @@ export const useDiscoverySearch = (): DiscoverySearch => {
 
     const { fetchNextPage, refetch } = result;
 
+    // SAFETY: react-query errors from makeRequest are Errors carrying an optional numeric `status`.
     return {
         filters,
         activeFilterCount: activeFilterCount(filters),

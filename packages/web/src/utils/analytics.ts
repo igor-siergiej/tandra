@@ -29,6 +29,8 @@
  * of its own (it reads `location.href`), so the rewrite wraps `fetch` for those
  * two endpoints only.
  */
+import { z } from 'zod';
+
 import { readGuestFlag } from '../guest/guestFlag';
 import { isHeatmapPreview } from '../heatmapPreview/isHeatmapPreview';
 import { getConfig } from './config';
@@ -91,15 +93,15 @@ const LIST_PATH = /\/list\/[^/?#"\\\s]+(?:\/[^/?#"\\\s]+)?/g;
 const redactListPaths = (text: string): string => text.replace(LIST_PATH, '/list/:list');
 
 const redactAnalyticsRequests = (base: string): void => {
-    const endpoints: Record<string, true> = { [`${base}/p`]: true, [`${base}/api/record`]: true };
+    const endpoints = new Set([`${base}/p`, `${base}/api/record`]);
     const realFetch = window.fetch.bind(window);
     window.fetch = (input, init) => {
         // Both scripts post a JSON string to a string URL; a Request stringifies to `[object Request]` and is left alone.
-        const body = init?.body;
+        const body = z.string().safeParse(init?.body);
 
-        if (!endpoints[String(input)] || typeof body !== 'string') return realFetch(input, init);
+        if (!endpoints.has(String(input)) || !body.success) return realFetch(input, init);
 
-        return realFetch(input, { ...init, body: redactListPaths(body) });
+        return realFetch(input, { ...init, body: redactListPaths(body.data) });
     };
 };
 
@@ -121,7 +123,7 @@ const injectScript = (host: string, websiteId: string): void => {
     });
 };
 
-const HTTP_PROTOCOLS: Record<string, true> = { 'http:': true, 'https:': true };
+const HTTP_PROTOCOLS = new Set(['http:', 'https:']);
 
 /** The tracker settings when analytics is on and the host is http(s); otherwise null. */
 // One guard per config field; each is covered in analytics.test.ts.
@@ -135,7 +137,7 @@ const trackerConfig = (): { host: string; websiteId: string } | null => {
 
         if (a?.enabled === false || !a?.host || !a.websiteId) return null;
 
-        return HTTP_PROTOCOLS[new URL(a.host).protocol] ? { host: a.host, websiteId: a.websiteId } : null;
+        return HTTP_PROTOCOLS.has(new URL(a.host).protocol) ? { host: a.host, websiteId: a.websiteId } : null;
     } catch {
         // Config not loaded yet, or a malformed host.
         return null;

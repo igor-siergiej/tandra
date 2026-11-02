@@ -84,8 +84,7 @@ export const AddFromRecipeDrawer = ({
             await queryClient.invalidateQueries({ queryKey: [listTitle] });
             handleClose();
         } catch (error) {
-            const err = error as { message?: string };
-            notifyError(err.message || 'Failed to add ingredients');
+            notifyError(error.message || 'Failed to add ingredients');
         } finally {
             setIsLoading(false);
         }

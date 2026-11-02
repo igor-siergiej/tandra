@@ -23,6 +23,7 @@ interface RecipeTimingFieldsProps {
 // Prep time / cook time / servings / difficulty field group, shared by AddRecipePage's manual
 // entry form and RecipeDetailsSection's edit mode so the two stay in lockstep instead of
 // drifting as separate copies.
+// SAFETY: the Select only offers the RecipeDifficulty values.
 export const RecipeTimingFields = ({
     prepTimeId,
     cookTimeId,

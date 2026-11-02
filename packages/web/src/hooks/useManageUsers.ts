@@ -19,9 +19,8 @@ export const useManageUsers = ({ listTitle }: ManageUsersHookProps) => {
                 },
             });
         },
-        onError: (error: unknown) => {
-            const err = error as { message?: string };
-            toast.error(err.message || 'Failed to add user', {
+        onError: (error: Error) => {
+            toast.error(error.message || 'Failed to add user', {
                 style: {
                     backgroundColor: '#ef4444',
                     color: '#ffffff',
@@ -42,9 +41,8 @@ export const useManageUsers = ({ listTitle }: ManageUsersHookProps) => {
                 },
             });
         },
-        onError: (error: unknown) => {
-            const err = error as { message?: string };
-            toast.error(err.message || 'Failed to remove user', {
+        onError: (error: Error) => {
+            toast.error(error.message || 'Failed to remove user', {
                 style: {
                     backgroundColor: '#ef4444',
                     color: '#ffffff',

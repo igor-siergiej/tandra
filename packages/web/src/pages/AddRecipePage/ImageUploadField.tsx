@@ -25,6 +25,7 @@ export const ImageUploadField = ({
             onFileSelected(file);
             const reader = new FileReader();
             reader.onload = (event) => {
+                // SAFETY: the reader was started with readAsDataURL, so its result is a string.
                 onPreviewReady(event.target?.result as string);
             };
 

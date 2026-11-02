@@ -104,7 +104,7 @@ export const MonthGrid = ({
     const gridEnd = endOfWeek(endOfMonth(month), { weekStartsOn: 1 });
     const days = eachDayOfInterval({ start: gridStart, end: gridEnd });
 
-    const handleDragEnd = (_e: unknown, info: PanInfo) => {
+    const handleDragEnd = (_e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
         const direction = resolveMonthSwipe(info.offset.x, info.velocity.x);
 
         if (direction !== 0) onChangeMonth?.(direction);

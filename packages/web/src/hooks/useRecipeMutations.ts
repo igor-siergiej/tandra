@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { drainOutbox } from '../offline/drainer';
 import { applyRecipeIntent } from '../offline/intents';
-import { type OutboxIntent, outboxStore } from '../offline/outboxStore';
+import { type OutboxIntent, type OutboxPayload, outboxStore } from '../offline/outboxStore';
 import { useFriends } from './useFriends';
 
 export const useRecipeMutations = (user: User | undefined) => {
@@ -11,7 +11,7 @@ export const useRecipeMutations = (user: User | undefined) => {
     const { friends } = useFriends();
     const userId = user?.id ?? '';
 
-    const enqueueRecipe = async (op: OutboxIntent['op'], targetId: string, payload: Record<string, unknown>) => {
+    const enqueueRecipe = async (op: OutboxIntent['op'], targetId: string, payload: OutboxPayload) => {
         const intent: Omit<OutboxIntent, 'seq'> = {
             id: crypto.randomUUID(),
             entityType: 'recipe',
@@ -22,11 +22,13 @@ export const useRecipeMutations = (user: User | undefined) => {
             createdAt: Date.now(),
         };
 
+        // SAFETY: the optimistic fold never reads `seq`, which the outbox assigns when the intent is stored.
         queryClient.setQueryData<Recipe[]>(['recipes', userId], (old) =>
             applyRecipeIntent(old ?? [], intent as OutboxIntent)
         );
 
         if (op === 'recipe.update') {
+            // SAFETY: the optimistic fold never reads `seq`, which the outbox assigns when the intent is stored.
             queryClient.setQueryData<Recipe | undefined>(['recipe', targetId], (old) =>
                 old ? (applyRecipeIntent([old], intent as OutboxIntent)[0] ?? old) : old
             );

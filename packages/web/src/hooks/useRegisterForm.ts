@@ -32,7 +32,7 @@ export const registerSchema = z
         path: ['repeatPassword'],
     });
 
-type RegisterFormData = z.infer<typeof registerSchema>;
+export type RegisterFormData = z.infer<typeof registerSchema>;
 
 export const useRegisterForm = () => {
     const navigate = useNavigate();

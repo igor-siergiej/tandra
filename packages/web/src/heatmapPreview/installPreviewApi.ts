@@ -16,7 +16,7 @@ import {
 
 type Responder = (match: RegExpExecArray, url: URL) => Response;
 
-const json = (body: unknown): Response =>
+const json = <T>(body: T): Response =>
     new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
 
 const notAvailable = (): Response =>
@@ -50,7 +50,7 @@ const GET_ROUTES: Array<[RegExp, Responder]> = [
 ];
 
 // Public, account-free answers the real api can give: feature flags decide which buttons a page shows.
-const PASSTHROUGH: Record<string, true> = { '/api/features': true };
+const PASSTHROUGH = new Set(['/api/features']);
 
 const urlOf = (input: RequestInfo | URL): URL =>
     new URL(input instanceof Request ? input.url : String(input), window.location.href);
@@ -81,7 +81,7 @@ export const installPreviewApi = (): void => {
         const url = urlOf(input);
         const ownApi = url.origin === window.location.origin && url.pathname.startsWith('/api/');
 
-        if (!ownApi || PASSTHROUGH[url.pathname]) return realFetch(input, init);
+        if (!ownApi || PASSTHROUGH.has(url.pathname)) return realFetch(input, init);
 
         return respond(url, methodOf(input, init));
     };

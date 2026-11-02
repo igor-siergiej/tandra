@@ -29,6 +29,7 @@ const getSystemTheme = (): Theme => {
 };
 
 const getInitialTheme = (): Theme => {
+    // SAFETY: the value is narrowed to 'light' | 'dark' by the check on the next line before it is used.
     const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
 
     if (stored && (stored === 'light' || stored === 'dark')) {

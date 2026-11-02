@@ -111,6 +111,11 @@ const deleteListItems = async (listId: string, shouldDelete: (item: GuestItem) =
     );
 };
 
+export interface GuestSnapshot {
+    lists: GuestList[];
+    itemsByList: Map<string, GuestItem[]>;
+}
+
 export const guestStore = {
     /** Loads everything from IndexedDB into the in-memory mirror. Guest queries call it on every fetch. */
     // fallow-ignore-next-line complexity
@@ -293,7 +298,7 @@ export const guestStore = {
     },
 
     /** Snapshots the current state so the migration can iterate without reacting to live writes. */
-    snapshot(): { lists: GuestList[]; itemsByList: Map<string, GuestItem[]> } {
+    snapshot(): GuestSnapshot {
         const itemsByList = new Map<string, GuestItem[]>();
 
         for (const list of listsMirror) {

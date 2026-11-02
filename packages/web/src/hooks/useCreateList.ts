@@ -1,4 +1,4 @@
-import type { ListType, User } from '@tandra/types';
+import type { ListResponse, ListType, User } from '@tandra/types';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { logger } from '../utils/logger';
@@ -22,14 +22,10 @@ export const useCreateList = (user: User | undefined) => {
         }
 
         const id = crypto.randomUUID();
-        queryClient.setQueryData(['lists', user.id], (old: unknown) => {
-            const lists = (old as unknown[]) ?? [];
-
-            return [
-                ...lists,
-                { id, title, dateAdded: new Date(), items: [], users: [user], listType, ownerId: user.id },
-            ];
-        });
+        queryClient.setQueryData<ListResponse[]>(['lists', user.id], (old) => [
+            ...(old ?? []),
+            { id, title, dateAdded: new Date(), items: [], users: [user], listType, ownerId: user.id },
+        ]);
         await source.createList({ id, title, listType, selectedUsers, user });
         logger.info('List create queued', { listTitle: title, listType });
     };

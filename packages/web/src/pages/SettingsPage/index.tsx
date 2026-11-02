@@ -59,9 +59,9 @@ const SettingsPage = () => {
                                     onChange={() => setUnitSystem(option.value)}
                                     className="mt-0.5 accent-primary"
                                 />
-                                <span className="flex flex-col">
-                                    <span className="text-sm font-medium text-foreground">{option.label}</span>
-                                    <span className="text-xs text-muted-foreground">{option.hint}</span>
+                                <span className="flex flex-col text-sm font-medium text-foreground">
+                                    {option.label}
+                                    <span className="text-xs font-normal text-muted-foreground">{option.hint}</span>
                                 </span>
                             </label>
                         );
@@ -78,9 +78,9 @@ const SettingsPage = () => {
                         onChange={(event) => setKeepListening(event.target.checked)}
                         className="mt-0.5 accent-primary"
                     />
-                    <span className="flex flex-col">
-                        <span className="text-sm font-medium text-foreground">Keep listening until I tap stop</span>
-                        <span className="text-xs text-muted-foreground">
+                    <span className="flex flex-col text-sm font-medium text-foreground">
+                        Keep listening until I tap stop
+                        <span className="text-xs font-normal text-muted-foreground">
                             Voice input carries on through pauses instead of stopping when you go quiet.
                         </span>
                     </span>

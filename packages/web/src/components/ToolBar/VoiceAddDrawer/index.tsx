@@ -59,8 +59,8 @@ export const VoiceAddDrawer = ({ open, onOpenChange, onAddMany }: VoiceAddDrawer
 
                 if (items.length === 0) setFailure("I couldn't find any items in that. Try again.");
             })
-            .catch((error: unknown) => {
-                setFailure(error instanceof Error ? error.message : 'Could not understand that. Try again.');
+            .catch((cause: unknown) => {
+                setFailure(cause instanceof Error ? cause.message : 'Could not understand that. Try again.');
             })
             .finally(() => setBusy(false));
     }, [speech.listening, speech.transcript, parsed, busy]);

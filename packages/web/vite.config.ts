@@ -20,6 +20,7 @@ export default defineConfig(({ mode }) => {
 
     // The newest release version is all the app shell needs (for the unread dot); the notes themselves are loaded
     // only when the panel opens.
+    // SAFETY: the file is written by scripts/collect-release-notes.js; only `version` is read, and the build fails on an empty list.
     const releaseNotes = JSON.parse(fs.readFileSync('./src/data/release-notes.json', 'utf8')) as Array<{
         version: string;
     }>;

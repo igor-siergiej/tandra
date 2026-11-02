@@ -6,11 +6,21 @@ export interface PanInfo {
     velocity: { x: number };
 }
 
+export type SwipeState = 'closed' | 'left' | 'right';
+
+/** The pointer event framer-motion hands to a drag-end callback. */
+export type DragEndEvent = MouseEvent | TouchEvent | PointerEvent;
+
+interface SwipeTarget {
+    newState: SwipeState;
+    targetX: number;
+}
+
 export interface UseSwipeGestureReturn {
     x: MotionValue<number>;
     controls: AnimationControls;
-    swipeState: 'closed' | 'left' | 'right';
-    handleDragEnd: (event: unknown, info: PanInfo) => void;
+    swipeState: SwipeState;
+    handleDragEnd: (event: DragEndEvent, info: PanInfo) => void;
     closeSwipe: () => void;
 }
 
@@ -26,11 +36,7 @@ const SPRING = { type: 'spring', stiffness: 400, damping: 40 } as const;
 // instead of the button underneath — requiring a second tap to actually press it.
 export const SWIPE_REVEAL_DISTANCE = 80;
 
-const resolveSwipeTarget = (
-    swipeState: 'closed' | 'left' | 'right',
-    offset: number,
-    velocity: number
-): { newState: 'closed' | 'left' | 'right'; targetX: number } => {
+const resolveSwipeTarget = (swipeState: SwipeState, offset: number, velocity: number): SwipeTarget => {
     const threshold = 60;
     const swipeVelocityThreshold = 500;
     const closeThreshold = 30;
@@ -68,9 +74,9 @@ const resolveSwipeTarget = (
 export function useSwipeGesture(): UseSwipeGestureReturn {
     const x = useMotionValue(0);
     const controls = useAnimation();
-    const [swipeState, setSwipeState] = useState<'closed' | 'left' | 'right'>('closed');
+    const [swipeState, setSwipeState] = useState<SwipeState>('closed');
 
-    const handleDragEnd = (_event: unknown, info: PanInfo) => {
+    const handleDragEnd = (_event: DragEndEvent, info: PanInfo) => {
         const { newState, targetX } = resolveSwipeTarget(swipeState, info.offset.x, info.velocity.x);
         setSwipeState(newState);
         void controls.start({ x: targetX, transition: SPRING });

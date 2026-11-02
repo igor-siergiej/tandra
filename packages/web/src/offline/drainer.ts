@@ -1,3 +1,4 @@
+import { caughtErrorSchema } from '../utils/caughtError';
 import { logger } from '../utils/logger';
 import { type OutboxIntent, outboxStore } from './outboxStore';
 import { replayIntent } from './replay';
@@ -9,11 +10,8 @@ import { replayIntent } from './replay';
 const RETRYABLE_CLIENT_STATUSES = new Set([401, 408, 425, 429]);
 let draining = false;
 
-const statusOf = (err: unknown): number | undefined => {
-    const status = err instanceof Error && 'status' in err ? err.status : undefined;
-
-    return typeof status === 'number' ? status : undefined;
-};
+const statusOf = (cause: unknown): number | undefined =>
+    cause instanceof Error ? caughtErrorSchema.parse(cause).status : undefined;
 
 const isPermanentRejection = (status: number | undefined): status is number =>
     status !== undefined && status >= 400 && status < 500 && !RETRYABLE_CLIENT_STATUSES.has(status);

@@ -3,6 +3,7 @@ import { clientsClaim } from 'workbox-core';
 import { precacheAndRoute } from 'workbox-precaching';
 import { registerRoute } from 'workbox-routing';
 import { NetworkFirst } from 'workbox-strategies';
+import { z } from 'zod';
 
 declare const self: ServiceWorkerGlobalScope & { __WB_MANIFEST: Array<{ url: string; revision: string | null }> };
 
@@ -28,15 +29,28 @@ self.addEventListener('message', (event) => {
     }
 });
 
+const pushPayloadSchema = z.object({
+    title: z.string().optional().catch(undefined),
+    body: z.string().optional().catch(undefined),
+    data: z
+        .object({ url: z.string().optional().catch(undefined) })
+        .optional()
+        .catch(undefined),
+});
+
+type PushPayload = z.output<typeof pushPayloadSchema>;
+
+const notificationDataSchema = z.object({ url: z.string().optional().catch(undefined) }).catch({});
+
 self.addEventListener('push', (event: PushEvent) => {
     if (!event.data) {
         return;
     }
 
-    let payload: { title?: string; body?: string; data?: { url?: string } };
+    let payload: PushPayload;
 
     try {
-        payload = event.data.json();
+        payload = pushPayloadSchema.parse(event.data.json());
     } catch {
         payload = { title: 'Tandra', body: event.data.text() };
     }
@@ -59,6 +73,7 @@ self.addEventListener('push', (event: PushEvent) => {
             const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
             // Only suppress the OS notification when the user is actively focused on the app.
             // Backgrounded (hidden) or closed windows still get notified.
+            // SAFETY: clients.matchAll({ type: 'window' }) only returns WindowClient instances; the DOM typing returns Client.
             const focused = windows.some((client) => (client as WindowClient).focused);
 
             if (focused) {
@@ -72,7 +87,7 @@ self.addEventListener('push', (event: PushEvent) => {
 
 self.addEventListener('notificationclick', (event: NotificationEvent) => {
     event.notification.close();
-    const targetUrl = (event.notification.data as { url?: string })?.url ?? '/';
+    const targetUrl = notificationDataSchema.parse(event.notification.data).url ?? '/';
 
     event.waitUntil(
         self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (clientList) => {
@@ -80,6 +95,7 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
                 if ('focus' in client) {
                     try {
                         if ('navigate' in client) {
+                            // SAFETY: clients.matchAll({ type: 'window' }) only returns WindowClient instances; the DOM typing returns Client.
                             await (client as WindowClient).navigate(targetUrl);
                         }
 

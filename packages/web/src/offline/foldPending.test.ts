@@ -1,4 +1,5 @@
 import 'fake-indexeddb/auto';
+import { ListType } from '@tandra/types';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
@@ -68,7 +69,7 @@ describe('foldPendingLists', () => {
             op: 'list.create',
             targetId: 'L1',
             scope: 'user-1',
-            payload: { title: 'Groceries', listType: 'shopping', ownerId: 'user-1' },
+            payload: { title: 'Groceries', listType: ListType.SHOPPING, ownerId: 'user-1' },
             createdAt: 0,
         });
 

@@ -1,6 +1,6 @@
-import type { Ingredient, ItemCategory, Label, Recipe, Todo } from '@tandra/types';
+import type { ItemCategory, Label, Recipe, Todo } from '@tandra/types';
 
-import type { OutboxIntent } from './outboxStore';
+import type { OutboxIntent, OutboxPayload } from './outboxStore';
 
 export interface ItemView {
     id: string;
@@ -25,10 +25,10 @@ export const applyItemIntent = (items: ItemView[], intent: OutboxIntent): ItemVi
                 ...items,
                 {
                     id: intent.targetId,
-                    name: String(p.name ?? ''),
+                    name: p.name ?? '',
                     isSelected: false,
-                    ...(p.quantity !== undefined && { quantity: Number(p.quantity) }),
-                    ...(p.unit !== undefined && { unit: String(p.unit) }),
+                    ...(p.quantity !== undefined && { quantity: p.quantity }),
+                    ...(p.unit !== undefined && { unit: p.unit }),
                 },
             ];
         }
@@ -36,21 +36,21 @@ export const applyItemIntent = (items: ItemView[], intent: OutboxIntent): ItemVi
         case 'item.delete':
             return items.filter((i) => i.id !== intent.targetId);
         case 'item.toggle':
-            return items.map((i) => (i.id === intent.targetId ? { ...i, isSelected: Boolean(p.isSelected) } : i));
+            return items.map((i) => (i.id === intent.targetId ? { ...i, isSelected: p.isSelected === true } : i));
         case 'item.rename':
-            return items.map((i) => (i.id === intent.targetId ? { ...i, name: String(p.newItemName) } : i));
+            return items.map((i) => (i.id === intent.targetId ? { ...i, name: p.newItemName ?? '' } : i));
         case 'item.quantity':
             return items.map((i) =>
                 i.id === intent.targetId
                     ? {
                           ...i,
-                          ...(p.quantity !== undefined && { quantity: Number(p.quantity) }),
-                          ...(p.unit !== undefined && { unit: String(p.unit) }),
+                          ...(p.quantity !== undefined && { quantity: p.quantity }),
+                          ...(p.unit !== undefined && { unit: p.unit }),
                       }
                     : i
             );
         case 'item.category':
-            return items.map((i) => (i.id === intent.targetId ? { ...i, category: p.category as ItemCategory } : i));
+            return items.map((i) => (i.id === intent.targetId ? { ...i, category: p.category } : i));
         default:
             return items;
     }
@@ -77,11 +77,11 @@ export const applyListIntent = (lists: ListView[], intent: OutboxIntent): ListVi
             ...lists,
             {
                 id: intent.targetId,
-                title: String(p.title ?? ''),
+                title: p.title ?? '',
                 items: [],
-                users: (p.users as ListView['users']) ?? [],
-                listType: String(p.listType ?? 'shopping'),
-                ...(p.ownerId !== undefined && { ownerId: String(p.ownerId) }),
+                users: p.users ?? [],
+                listType: p.listType ?? 'shopping',
+                ...(p.ownerId !== undefined && { ownerId: p.ownerId }),
                 dateAdded: new Date(),
             },
         ];
@@ -91,28 +91,27 @@ export const applyListIntent = (lists: ListView[], intent: OutboxIntent): ListVi
 };
 
 // fallow-ignore-next-line complexity
-const applyTodoUpdate = (todo: Todo, payload: Record<string, unknown>): Todo => {
+const applyTodoUpdate = (todo: Todo, payload: OutboxPayload): Todo => {
     const { clear, ...changes } = payload;
-    const next: Todo = { ...todo, ...(changes as Partial<Todo>) };
+    const next: Todo = { ...todo, ...changes };
 
-    for (const field of (clear as Array<keyof Todo> | undefined) ?? []) delete next[field];
+    for (const field of clear ?? []) delete next[field];
 
     return next;
 };
 
 // fallow-ignore-next-line complexity
-const newTodo = (id: string, p: Record<string, unknown>): Todo =>
-    ({
-        id,
-        ownerId: String(p.ownerId ?? ''),
-        title: String(p.title ?? ''),
-        done: false,
-        dateAdded: new Date(),
-        ...(p.dueDate !== undefined && { dueDate: p.dueDate as Todo['dueDate'] }),
-        ...(p.time !== undefined && { time: String(p.time) }),
-        ...(p.labelId !== undefined && { labelId: String(p.labelId) }),
-        ...(p.recurrence !== undefined && { recurrence: p.recurrence as Todo['recurrence'], completedDates: [] }),
-    }) as Todo;
+const newTodo = (id: string, p: OutboxPayload): Todo => ({
+    id,
+    ownerId: p.ownerId ?? '',
+    title: p.title ?? '',
+    done: false,
+    dateAdded: new Date(),
+    ...(p.dueDate !== undefined && { dueDate: p.dueDate }),
+    ...(p.time !== undefined && { time: p.time }),
+    ...(p.labelId !== undefined && { labelId: p.labelId }),
+    ...(p.recurrence !== undefined && { recurrence: p.recurrence, completedDates: [] }),
+});
 
 // fallow-ignore-next-line complexity
 export const applyTodoIntent = (todos: Todo[], intent: OutboxIntent): Todo[] => {
@@ -129,7 +128,7 @@ export const applyTodoIntent = (todos: Todo[], intent: OutboxIntent): Todo[] => 
             // fallow-ignore-next-line complexity
             return todos.map((t) => {
                 if (t.id !== intent.targetId) return t;
-                const date = p.date as string | undefined;
+                const { date } = p;
 
                 if (t.recurrence && date) {
                     const current = t.completedDates ?? [];
@@ -160,9 +159,9 @@ export const applyLabelIntent = (labels: Label[], intent: OutboxIntent): Label[]
                 ...labels,
                 {
                     id: intent.targetId,
-                    ownerId: String(p.ownerId ?? ''),
-                    name: String(p.name ?? ''),
-                    color: String(p.color ?? ''),
+                    ownerId: p.ownerId ?? '',
+                    name: p.name ?? '',
+                    color: p.color ?? '',
                 },
             ];
         }
@@ -172,8 +171,8 @@ export const applyLabelIntent = (labels: Label[], intent: OutboxIntent): Label[]
                 l.id === intent.targetId
                     ? {
                           ...l,
-                          ...(p.name !== undefined && { name: String(p.name) }),
-                          ...(p.color !== undefined && { color: String(p.color) }),
+                          ...(p.name !== undefined && { name: p.name }),
+                          ...(p.color !== undefined && { color: p.color }),
                       }
                     : l
             );
@@ -187,14 +186,14 @@ export const applyLabelIntent = (labels: Label[], intent: OutboxIntent): Label[]
 // Optional Recipe fields shared between recipe.create and recipe.update payloads — both branches
 // merge the same subset onto a base object, so building it once keeps them from drifting apart.
 // fallow-ignore-next-line complexity
-const optionalRecipeFields = (p: Record<string, unknown>) => ({
-    ...(p.link !== undefined && { link: String(p.link) }),
-    ...(p.instructions !== undefined && { instructions: p.instructions as string[] }),
-    ...(p.tags !== undefined && { tags: p.tags as string[] }),
-    ...(p.prepTime !== undefined && { prepTime: p.prepTime as number }),
-    ...(p.cookTime !== undefined && { cookTime: p.cookTime as number }),
-    ...(p.servings !== undefined && { servings: p.servings as number }),
-    ...(p.difficulty !== undefined && { difficulty: p.difficulty as Recipe['difficulty'] }),
+const optionalRecipeFields = (p: OutboxPayload) => ({
+    ...(p.link !== undefined && { link: p.link }),
+    ...(p.instructions !== undefined && { instructions: p.instructions }),
+    ...(p.tags !== undefined && { tags: p.tags }),
+    ...(p.prepTime !== undefined && { prepTime: p.prepTime }),
+    ...(p.cookTime !== undefined && { cookTime: p.cookTime }),
+    ...(p.servings !== undefined && { servings: p.servings }),
+    ...(p.difficulty !== undefined && { difficulty: p.difficulty }),
 });
 
 // fallow-ignore-next-line complexity
@@ -204,19 +203,19 @@ export const applyRecipeIntent = (recipes: Recipe[], intent: OutboxIntent): Reci
     switch (intent.op) {
         case 'recipe.create': {
             if (recipes.some((r) => r.id === intent.targetId)) return recipes;
-            const rawIngredients = (p.ingredients as Array<Omit<Ingredient, 'id'>> | undefined) ?? [];
+            const rawIngredients = p.ingredients ?? [];
 
             return [
                 ...recipes,
                 {
                     id: intent.targetId,
-                    title: String(p.title ?? ''),
-                    ingredients: rawIngredients.map((ing) => ({ ...ing, id: crypto.randomUUID() })) as Ingredient[],
-                    ownerId: String(p.ownerId ?? ''),
-                    users: (p.users as Recipe['users']) ?? [],
+                    title: p.title ?? '',
+                    ingredients: rawIngredients.map((ing) => ({ ...ing, id: crypto.randomUUID() })),
+                    ownerId: p.ownerId ?? '',
+                    users: p.users ?? [],
                     dateAdded: new Date(),
                     ...optionalRecipeFields(p),
-                } as Recipe,
+                },
             ];
         }
 
@@ -226,8 +225,10 @@ export const applyRecipeIntent = (recipes: Recipe[], intent: OutboxIntent): Reci
                 r.id === intent.targetId
                     ? {
                           ...r,
-                          ...(p.title !== undefined && { title: String(p.title) }),
-                          ...(p.ingredients !== undefined && { ingredients: p.ingredients as Ingredient[] }),
+                          ...(p.title !== undefined && { title: p.title }),
+                          ...(p.ingredients !== undefined && {
+                              ingredients: p.ingredients.map((ing) => ({ ...ing, id: ing.id ?? crypto.randomUUID() })),
+                          }),
                           ...optionalRecipeFields(p),
                       }
                     : r

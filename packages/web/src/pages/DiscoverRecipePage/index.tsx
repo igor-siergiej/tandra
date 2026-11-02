@@ -263,6 +263,7 @@ const DiscoverRecipePage = () => {
     let body: React.ReactNode;
 
     if (isError) {
+        // SAFETY: react-query errors from makeRequest are Errors carrying an optional numeric `status`.
         body = (
             <Problem
                 notFound={(error as { status?: number } | null)?.status === NOT_FOUND}

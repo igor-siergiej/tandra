@@ -38,6 +38,7 @@ const MealPlanPage = () => {
 
     const { data: entries = [] } = useQuery(getMealPlanQuery(from, to));
 
+    // SAFETY: the placeholder query never resolves recipes for a signed-out user; an empty array is a valid Recipe[].
     const { data: recipes = [] } = useQuery(
         user?.id ? getRecipesQuery(user.id) : { queryKey: [], queryFn: async () => [] as Recipe[] }
     );
@@ -47,7 +48,7 @@ const MealPlanPage = () => {
     );
 
     const refresh = () => queryClient.invalidateQueries({ queryKey: planKey });
-    const onError = (error: unknown) => notifyError(error instanceof Error ? error.message : 'Something went wrong');
+    const onError = (error: Error) => notifyError(error instanceof Error ? error.message : 'Something went wrong');
 
     const addMutation = useMutation({ mutationFn: createMealPlanEntry, onSuccess: refresh, onError });
 

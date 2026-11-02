@@ -120,7 +120,7 @@ const InvitePanel = ({
     );
 };
 
-const resolveRedeemErrorMessage = (isRedeemError: boolean, redeemError: unknown): string | null => {
+const resolveRedeemErrorMessage = (isRedeemError: boolean, redeemError: Error | null): string | null => {
     if (!isRedeemError) return null;
 
     if (!(redeemError instanceof Error)) return null;
@@ -133,7 +133,7 @@ interface EnterCodePanelProps {
     onOtpChange: (value: string) => void;
     isRedeeming: boolean;
     redeemSuccess: boolean;
-    redeemError: unknown;
+    redeemError: Error | null;
     isRedeemError: boolean;
     onRedeem: () => void;
 }

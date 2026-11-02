@@ -77,7 +77,7 @@ export const addList = async (
     selectedUsers?: Array<string>,
     listType?: ListType,
     id?: string
-): Promise<unknown> => {
+): Promise<void> => {
     const dateAdded = generateTimestamp(new Date());
 
     const requestBody = {
@@ -89,14 +89,12 @@ export const addList = async (
         ...(id !== undefined && { id }),
     };
 
-    const result = await makeRequest({
+    await makeRequest({
         pathname: '/api/lists',
         method: MethodType.PUT,
         operationString: 'add list',
         body: JSON.stringify(requestBody),
     });
-
-    return result;
 };
 
 export const addItem = async (
@@ -105,10 +103,10 @@ export const addItem = async (
     quantity?: number,
     unit?: string,
     id?: string
-): Promise<unknown> => {
+): Promise<void> => {
     const dateAdded = generateTimestamp(new Date());
 
-    const result = await makeRequest({
+    await makeRequest({
         pathname: `/api/lists/${encodeURIComponent(listTitle)}/items`,
         method: MethodType.PUT,
         operationString: 'add item',
@@ -122,8 +120,6 @@ export const addItem = async (
     });
 
     void fetch(`/api/image/${encodeURIComponent(itemName)}`).catch(() => {});
-
-    return result;
 };
 
 export interface SpokenItem {
@@ -140,6 +136,7 @@ export const parseSpokenItems = async (transcript: string): Promise<Array<Spoken
         body: JSON.stringify({ transcript }),
     });
 
+    // SAFETY: POST /api/items/parse answers { items } (see ItemParseHandlers).
     return (result as { items: Array<SpokenItem> }).items;
 };
 
@@ -326,6 +323,7 @@ export const addRecipe = async (
         body: JSON.stringify(requestBody),
     });
 
+    // SAFETY: PUT /api/recipes answers with the created recipe.
     return result as Recipe;
 };
 

@@ -93,6 +93,7 @@ export const optionalServingsChip = (
 };
 
 const recipeMetaChips = (recipe: Recipe): Array<{ icon: typeof ListChecks; text: string }> => {
+    // SAFETY: the icon is a lucide component; they share one props shape and typeof ListChecks only names that type.
     const chips = [
         { icon: ListChecks as typeof ListChecks, text: ingredientSummary(recipe) },
         { icon: CalendarDays as typeof ListChecks, text: relativeDate(recipe.dateAdded) },

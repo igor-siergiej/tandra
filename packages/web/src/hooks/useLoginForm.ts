@@ -28,7 +28,7 @@ interface ReturnLocation {
 const redirectTarget = ({ pathname, search = '', hash = '' }: ReturnLocation = {}): string =>
     pathname ? `${pathname}${search}${hash}` : '/';
 
-type LoginFormData = z.infer<typeof loginSchema>;
+export type LoginFormData = z.infer<typeof loginSchema>;
 
 export const useLoginForm = () => {
     const navigate = useNavigate();

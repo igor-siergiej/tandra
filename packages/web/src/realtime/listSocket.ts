@@ -1,9 +1,23 @@
+import { z } from 'zod';
+
+import { caughtErrorSchema } from '../utils/caughtError';
+
 export interface Viewer {
     id: string;
     username: string;
 }
 
-type ServerMessage = { type: 'changed' } | { type: 'presence'; users: Viewer[] };
+const serverMessageSchema = z
+    .object({
+        type: z.enum(['changed', 'presence']).optional().catch(undefined),
+        users: z
+            .array(z.object({ id: z.string(), username: z.string() }))
+            .optional()
+            .catch(undefined),
+    })
+    .catch({});
+
+type ServerMessage = z.output<typeof serverMessageSchema>;
 
 interface ListSocketOptions {
     listTitle: string;
@@ -30,15 +44,15 @@ const socketUrl = (listTitle: string, ticket: string) => {
     return `${origin}/api/ws/lists/${encodeURIComponent(listTitle)}?ticket=${encodeURIComponent(ticket)}`;
 };
 
-const parse = (data: unknown): Partial<ServerMessage> => {
+const parse = (data: string): Partial<ServerMessage> => {
     try {
-        return JSON.parse(String(data)) ?? {};
+        return serverMessageSchema.parse(JSON.parse(data));
     } catch {
         return {};
     }
 };
 
-const isForbidden = (err: unknown) => FORBIDDEN_STATUSES.has((err as { status?: number } | null)?.status ?? 0);
+const isForbidden = (cause: unknown) => FORBIDDEN_STATUSES.has(caughtErrorSchema.parse(cause).status ?? 0);
 
 class ListSocketConnection {
     private socket: WebSocket | null = null;
@@ -110,7 +124,7 @@ class ListSocketConnection {
             this.options.onChanged();
         };
 
-        socket.onmessage = (event) => this.handle(parse(event.data));
+        socket.onmessage = (event) => this.handle(parse(String(event.data)));
         socket.onclose = (event) => {
             if (this.socket === socket) this.socket = null;
             this.options.onPresence([]);

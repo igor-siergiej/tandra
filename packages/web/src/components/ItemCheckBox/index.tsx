@@ -91,6 +91,7 @@ const ItemCheckBox = ({ item, listTitle, listType, showImage }: ItemCheckBoxProp
         if (hasQuantityChange) updateQuantityMutation.mutate({ quantity: newQuantity, unit: newUnit });
 
         if (values.category && values.category !== (item.category ?? '')) {
+            // SAFETY: the category Select only offers ItemCategory values, and '' is excluded by the check above.
             updateCategoryMutation.mutate(values.category as ItemCategory);
         }
 

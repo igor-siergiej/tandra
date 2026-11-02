@@ -139,16 +139,18 @@ export const HamburgerMenu = ({ onClose, onLogout }: HamburgerMenuProps) => {
 
     return (
         <div className="flex flex-col gap-2.5">
-            {conditionalButtons
-                .filter((item) => item.show)
-                .map((item) => (
-                    <MenuItem key={item.label} delay={item.delay}>
-                        <Button variant="outline" onClick={item.onClick} className={OUTLINE_BTN}>
-                            {item.icon}
-                            {item.label}
-                        </Button>
-                    </MenuItem>
-                ))}
+            {conditionalButtons.flatMap((item) =>
+                item.show
+                    ? [
+                          <MenuItem key={item.label} delay={item.delay}>
+                              <Button variant="outline" onClick={item.onClick} className={OUTLINE_BTN}>
+                                  {item.icon}
+                                  {item.label}
+                              </Button>
+                          </MenuItem>,
+                      ]
+                    : []
+            )}
 
             <MenuItem delay={0.05}>
                 <ThemeToggle />

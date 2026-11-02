@@ -20,6 +20,7 @@ export const RecurrenceField = ({ value, onChange }: RecurrenceFieldProps) => {
         if (next === NONE) {
             onChange(undefined);
         } else {
+            // SAFETY: the Select only offers the Freq values (or NONE, handled above), so `next` is one of them.
             onChange({ freq: next as Freq, interval: value?.interval ?? 1 });
         }
     };

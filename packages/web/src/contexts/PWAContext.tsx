@@ -138,6 +138,7 @@ export const PWAProvider: React.FC<PWAProviderProps> = ({ children }) => {
     useEffect(() => {
         const handleBeforeInstallPrompt = (e: Event) => {
             e.preventDefault();
+            // SAFETY: beforeinstallprompt is a Chromium event that lib.dom does not declare; the listener is registered only for that event name.
             const event = e as BeforeInstallPromptEvent;
 
             setDeferredPrompt(event);
