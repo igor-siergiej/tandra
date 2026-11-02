@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+
 import type { ShoppingRow } from '../../utils/mealPlan';
 import { ShoppingPreviewDrawer } from './ShoppingPreviewDrawer';
 

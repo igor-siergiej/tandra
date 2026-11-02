@@ -2,6 +2,7 @@ import { act, renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { recordInAppNavigation, resetNavigationDepthForTests } from '../utils/navigationHistory';
 
 const { mockNavigate } = vi.hoisted(() => ({

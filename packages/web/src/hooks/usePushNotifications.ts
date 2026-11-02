@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+
 import { getVapidPublicKey, subscribeToPush, unsubscribeFromPush } from '../api';
 import { logger } from '../utils/logger';
 import { urlBase64ToUint8Array } from '../utils/push';

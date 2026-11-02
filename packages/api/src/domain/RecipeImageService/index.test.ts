@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
+
 import type { Logger } from '@imapps/api-utils';
 
 import { RecipeImageService } from './index';

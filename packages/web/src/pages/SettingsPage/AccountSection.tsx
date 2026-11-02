@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+
 import { useUser } from '../../auth';
 import { authClient } from '../../auth/client';
 import { oauthErrorMessage } from '../../auth/errors';

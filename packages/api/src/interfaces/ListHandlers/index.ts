@@ -1,6 +1,7 @@
 import { APIError } from '@imapps/api-utils/hono';
 import type { ListType } from '@tandra/types';
 import type { Context } from 'hono';
+
 import { dependencyContainer } from '../../dependencies';
 import { DependencyToken } from '../../dependencies/types';
 import type { AuthorizationService } from '../../domain/AuthorizationService';

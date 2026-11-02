@@ -1,5 +1,6 @@
 import type { DiscoveryFacetBucket, DiscoveryFacets, RecipeDifficulty } from '@tandra/types';
 import type { ReactNode } from 'react';
+
 import type { DiscoverySearch, DiscoveryTimeFilter } from '../../hooks/useDiscoverySearch';
 
 const MAX_CHIPS = 12;

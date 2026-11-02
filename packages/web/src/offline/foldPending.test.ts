@@ -1,5 +1,6 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
+
 import {
     foldPendingItems,
     foldPendingLabels,

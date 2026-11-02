@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+
 import { getSpeechRecognition, type SpeechRecognitionLike } from '../utils/speechRecognition';
 
 const ERROR_MESSAGES: Record<string, string> = {

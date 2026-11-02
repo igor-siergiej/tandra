@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'bun:test';
+
 import type { DiscoveryRecipe } from '@tandra/types';
 
 import { RuleIngredientStructurer } from '../RuleIngredientStructurer';
@@ -57,29 +58,26 @@ const setup = (initial: DiscoveryRecipe[] = []) => {
         downloadImage: vi.fn(),
     };
     // The cover service has its own tests; here it stores a cover for any page that names a picture.
-    const cover = vi.fn(
-        async (id: string, file: string | undefined): Promise<CoverOutcome> =>
-            file
-                ? {
-                      fields: {
-                          coverImageKey: `discovery-image/${id}/1.jpg`,
-                          coverImageAttribution: 'Photo: Jane, CC BY 2.0, via Wikimedia Commons',
-                          coverImageSourceUrl: 'https://commons.wikimedia.org/wiki/File:Soup.jpg',
-                      },
-                      decided: true,
-                  }
-                : { fields: {}, decided: true }
+    const cover = vi.fn(async (id: string, file: string | undefined): Promise<CoverOutcome> =>
+        file
+            ? {
+                  fields: {
+                      coverImageKey: `discovery-image/${id}/1.jpg`,
+                      coverImageAttribution: 'Photo: Jane, CC BY 2.0, via Wikimedia Commons',
+                      coverImageSourceUrl: 'https://commons.wikimedia.org/wiki/File:Soup.jpg',
+                  },
+                  decided: true,
+              }
+            : { fields: {}, decided: true }
     );
     const tagger = { generateTags: vi.fn(async (_title: string): Promise<string[]> => ['broth']) };
     const estimator = {
-        estimate: vi.fn(
-            async (_recipe: unknown, _fields: string[]): Promise<RecipeEstimate> => ({
-                prepTime: 7,
-                cookTime: 40,
-                servings: 3,
-                difficulty: 'hard',
-            })
-        ),
+        estimate: vi.fn(async (_recipe: unknown, _fields: string[]): Promise<RecipeEstimate> => ({
+            prepTime: 7,
+            cookTime: 40,
+            servings: 3,
+            difficulty: 'hard',
+        })),
     };
     let n = 0;
     const service = new WikibooksIngestService(

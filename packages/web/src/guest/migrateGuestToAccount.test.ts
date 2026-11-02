@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto';
 import { ListType, type User } from '@tandra/types';
 import { beforeEach, describe, expect, it } from 'vitest';
+
 import { guestStore } from './guestStore';
 import { type MigrateAdapter, migrateGuestToAccount } from './migrateGuestToAccount';
 

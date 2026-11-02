@@ -1,4 +1,5 @@
 import type { Context, Next } from 'hono';
+
 import type { ListRealtimeHub } from '../domain/ListRealtimeHub';
 
 /**

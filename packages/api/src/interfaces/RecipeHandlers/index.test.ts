@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'bun:test';
-import type { Recipe } from '@tandra/types';
 
+import type { Recipe } from '@tandra/types';
 import sharp from 'sharp';
+
 import * as recipeHandlers from './index';
 
 const mockDependencyContainer = {

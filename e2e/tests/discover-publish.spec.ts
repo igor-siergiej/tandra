@@ -1,4 +1,5 @@
 import type { Browser, Page } from '@playwright/test';
+
 import { apiCreateRecipe } from '../api-helpers';
 import { openPageAs } from '../auth';
 import { E2E_OPENSEARCH_URL, seedDiscoveryLibrary } from '../db-helpers';

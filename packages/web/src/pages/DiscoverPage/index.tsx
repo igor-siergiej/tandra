@@ -1,6 +1,7 @@
 import { AlertTriangle, Search, SlidersHorizontal } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { PinnedSearchField } from '../../components/PinnedSearchField';
 import ToolBar from '../../components/ToolBar';
 import { Button } from '../../components/ui/button';

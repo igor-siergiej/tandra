@@ -1,5 +1,6 @@
 import type { Logger } from '@imapps/api-utils';
 import type { ListInvite, ListInvitePreview, User } from '@tandra/types';
+
 import type { FriendService } from '../FriendService';
 import { DEFAULT_INVITE_TTL_MS, generateInviteToken } from '../inviteToken';
 import type { ListInviteRepository } from '../ListInviteRepository';

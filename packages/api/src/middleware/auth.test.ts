@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'bun:test';
+
 import { memoryAdapter } from 'better-auth/adapters/memory';
 import type { Context } from 'hono';
 

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { identify, loadTracker, startReplay, stopReplay, track } from './analytics';
 
 // Mock the config module so analytics can resolve getConfig().

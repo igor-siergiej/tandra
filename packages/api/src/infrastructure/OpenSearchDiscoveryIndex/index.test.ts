@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'bun:test';
+
 import { errors } from '@opensearch-project/opensearch';
 import type { DiscoveryRecipe } from '@tandra/types';
 

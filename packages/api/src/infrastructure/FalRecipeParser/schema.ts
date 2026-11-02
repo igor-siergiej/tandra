@@ -30,10 +30,8 @@ export const parsedRecipeSchema: z.ZodType<ParsedRecipe> = z
         ingredients: z.array(ingredientSchema).min(1),
         instructions: stringArrayField(),
     })
-    .transform(
-        (recipe): ParsedRecipe => ({
-            title: recipe.title,
-            ingredients: recipe.ingredients,
-            instructions: recipe.instructions,
-        })
-    );
+    .transform((recipe): ParsedRecipe => ({
+        title: recipe.title,
+        ingredients: recipe.ingredients,
+        instructions: recipe.instructions,
+    }));

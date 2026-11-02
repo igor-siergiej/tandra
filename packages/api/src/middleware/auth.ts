@@ -1,4 +1,5 @@
 import type { Context, Next } from 'hono';
+
 import { dependencyContainer } from '../dependencies/container';
 import { DependencyToken } from '../dependencies/types';
 import type { Auth } from '../infrastructure/BetterAuth';

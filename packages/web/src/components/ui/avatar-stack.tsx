@@ -1,4 +1,5 @@
 import type { User } from '@tandra/types';
+
 import { cn } from '../../lib/utils';
 
 const AVATAR_COLORS = [

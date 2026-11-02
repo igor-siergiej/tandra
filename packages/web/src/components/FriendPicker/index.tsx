@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+
 import { useFriends } from '../../hooks/useFriends';
 import { Switch } from '../ui/switch';
 

@@ -1,6 +1,7 @@
 import type { MealPlanEntry, Recipe } from '@tandra/types';
 import { format } from 'date-fns';
 import { CalendarDays, Plus } from 'lucide-react';
+
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '../../components/ui/empty';

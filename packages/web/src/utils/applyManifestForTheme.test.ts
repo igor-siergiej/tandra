@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { applyManifestForTheme } from './applyManifestForTheme';
 
 const setSystemPrefersDark = (matches: boolean) => {

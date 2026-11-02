@@ -1,6 +1,7 @@
 import type { Label } from '@tandra/types';
 import { format } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+
 import { LabelFilter } from '../../components/Calendar/LabelFilter';
 import type { DayDot } from '../../components/Calendar/MonthGrid';
 import { MonthGrid } from '../../components/Calendar/MonthGrid';

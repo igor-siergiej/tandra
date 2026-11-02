@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { applyItemIntent, applyLabelIntent, applyListIntent, applyRecipeIntent, applyTodoIntent } from './intents';
 import type { OutboxIntent } from './outboxStore';
 

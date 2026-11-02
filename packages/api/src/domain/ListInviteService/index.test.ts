@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'bun:test';
+
 import type { ListInvite } from '@tandra/types';
+
 import type { FriendService } from '../FriendService';
 import type { ListInviteRepository } from '../ListInviteRepository';
 import type { ListService } from '../ListService';

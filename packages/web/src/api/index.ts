@@ -16,6 +16,7 @@ import type {
     Todo,
     User,
 } from '@tandra/types';
+
 import {
     foldPendingItems,
     foldPendingLabels,

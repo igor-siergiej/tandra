@@ -1,6 +1,7 @@
 import { APIError } from '@imapps/api-utils/hono';
 import type { PushSubscription } from '@tandra/types';
 import type { Context } from 'hono';
+
 import { config } from '../../config';
 import { dependencyContainer } from '../../dependencies';
 import { DependencyToken } from '../../dependencies/types';

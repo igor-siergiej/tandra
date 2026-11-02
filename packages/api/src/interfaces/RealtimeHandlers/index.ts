@@ -1,4 +1,5 @@
 import type { Context, Next } from 'hono';
+
 import type { ListRealtimeHub, ListSocket } from '../../domain/ListRealtimeHub';
 import type { WsTicketStore } from '../../domain/WsTicketStore';
 import { upgradeWebSocket } from '../../infrastructure/bunWebSocket';

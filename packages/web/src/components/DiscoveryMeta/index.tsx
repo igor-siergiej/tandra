@@ -1,5 +1,6 @@
 import type { DiscoveryEstimatedField, DiscoveryRecipeSummary, RecipeDifficulty } from '@tandra/types';
 import { Clock, Flame, Gauge, type ListChecks } from 'lucide-react';
+
 import { MetaChip, optionalServingsChip, optionalTimeChip } from '../RecipeCard';
 
 /** Prefixed to a value the extractor filled in because the source did not state it. */

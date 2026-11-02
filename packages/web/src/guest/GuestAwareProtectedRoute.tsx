@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
+
 import { ProtectedRoute, useAuth, useUser } from '../auth';
 import LoadingPage from '../components/LoadingPage';
 import { useGuest } from './GuestContext';

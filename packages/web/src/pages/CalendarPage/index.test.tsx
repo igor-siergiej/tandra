@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
+
 import CalendarPage from './index';
 
 // ToolBar pulls in auth/user/router providers; stub it for this unit test.

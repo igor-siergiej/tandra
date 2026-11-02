@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+
 import { installWebMcpOriginTrialToken } from './originTrial';
 
 const metas = () => document.head.querySelectorAll('meta[http-equiv="origin-trial"]');

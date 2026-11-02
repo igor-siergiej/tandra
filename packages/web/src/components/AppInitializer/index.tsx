@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { useAuth, useRefreshSession } from '../../auth';
 import { usePWA } from '../../hooks/usePWA';
 import { onIntentsDiscarded, startDrainer } from '../../offline/drainer';

@@ -6,6 +6,7 @@ import type {
     DiscoverySearchResult,
     DiscoverySource,
 } from '@tandra/types';
+
 import type { DiscoveryRecipeRepository } from '../DiscoveryRecipeRepository';
 import type { DiscoveryIndex, NormalizedDiscoveryQuery } from './types';
 

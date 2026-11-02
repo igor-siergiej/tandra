@@ -1,4 +1,5 @@
 import { MongoClient, ObjectId } from 'mongodb';
+
 import { E2E_OPENSEARCH_URL, seedDiscoveryLibrary } from './db-helpers';
 import { DISCOVERY_FIXTURES } from './discovery-fixtures';
 import { MOCK_USER, MOCK_USER_2, PASSWORDS } from './mocks/data/users';

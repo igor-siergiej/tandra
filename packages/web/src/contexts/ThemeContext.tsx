@@ -1,5 +1,6 @@
 import type React from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
+
 import { applyManifestForTheme } from '../utils/applyManifestForTheme';
 
 type Theme = 'light' | 'dark';

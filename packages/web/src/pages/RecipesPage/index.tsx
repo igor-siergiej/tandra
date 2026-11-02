@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, ChefHat, Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+
 import { generateRecipeAiImage, getRecipesQuery } from '../../api';
 import { useUser } from '../../auth';
 import { ListsSkeleton } from '../../components/LoadingSkeleton';

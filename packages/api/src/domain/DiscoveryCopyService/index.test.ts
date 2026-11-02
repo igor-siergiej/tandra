@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { Readable } from 'node:stream';
+
 import type { DiscoveryRecipe, Recipe, User } from '@tandra/types';
 
 import { RecipeService } from '../RecipeService';

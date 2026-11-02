@@ -10,7 +10,6 @@
  *   bun run discover:ingest -- --limit 25   process at most 25 new/changed pages (trial run)
  */
 import 'dotenv/config';
-
 import { config } from '../src/config';
 import { dependencyContainer, registerDepdendencies } from '../src/dependencies';
 import { DependencyToken } from '../src/dependencies/types';

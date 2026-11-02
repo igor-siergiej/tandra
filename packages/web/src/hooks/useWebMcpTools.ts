@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+
 import { useUser } from '../auth';
 import { registerWebMcpTools } from '../webmcp/registerTools';
 

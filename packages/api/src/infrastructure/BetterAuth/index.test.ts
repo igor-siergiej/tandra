@@ -1,4 +1,5 @@
 import { describe, expect, it, mock } from 'bun:test';
+
 import type { Logger } from '@imapps/api-utils';
 import { memoryAdapter } from 'better-auth/adapters/memory';
 

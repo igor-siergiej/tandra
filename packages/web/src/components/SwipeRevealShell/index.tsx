@@ -2,6 +2,7 @@ import { Edit2, Loader2, Trash2 } from 'lucide-react';
 import type { AnimationControls, MotionValue } from 'motion/react';
 import { motion } from 'motion/react';
 import type { MouseEvent, ReactNode } from 'react';
+
 import type { PanInfo } from '../../hooks/useSwipeGesture';
 import { SWIPE_REVEAL_DISTANCE } from '../../hooks/useSwipeGesture';
 import { Button } from '../ui/button';

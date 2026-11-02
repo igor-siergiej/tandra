@@ -2,6 +2,7 @@ import { Bell, Download, Loader2, LogOut, Moon, RefreshCw, Settings, Sparkles, S
 import { motion } from 'motion/react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { Button } from '../../../components/ui/button';
 import { Switch } from '../../../components/ui/switch';
 import { useTheme } from '../../../contexts/ThemeContext';

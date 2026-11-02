@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { loadConfig } from './index';
 
 const mockFetch = (impl: () => Promise<Response>) => {

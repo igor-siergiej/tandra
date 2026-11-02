@@ -1,5 +1,6 @@
 import { Replace } from 'lucide-react';
 import { useEffect, useState } from 'react';
+
 import { suggestIngredientSubstitutes } from '../../api';
 import { useAiFeatures } from '../../utils/useAiFeatures';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';

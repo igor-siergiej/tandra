@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+
 import type { SessionUser } from '../auth';
 import { track } from '../utils/analytics';
 import { logger } from '../utils/logger';

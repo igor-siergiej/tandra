@@ -5,7 +5,6 @@
  *   bun run discover:validate            (from the repo root, reads .env)
  */
 import 'dotenv/config';
-
 import type { DiscoveryRecipe } from '@tandra/types';
 
 import { config } from '../src/config';

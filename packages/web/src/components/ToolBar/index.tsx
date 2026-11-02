@@ -20,6 +20,7 @@ import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import useMeasure from 'react-use-measure';
+
 import type { SpokenItem } from '../../api';
 import { useAuth, useUser } from '../../auth';
 import { Card } from '../../components/ui/card';

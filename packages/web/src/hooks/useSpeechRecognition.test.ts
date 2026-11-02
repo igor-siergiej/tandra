@@ -1,5 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
 import type { SpeechRecognitionLike } from '../utils/speechRecognition';
 import { useSpeechRecognition } from './useSpeechRecognition';
 

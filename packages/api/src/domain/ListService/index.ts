@@ -1,7 +1,7 @@
 import type { Logger } from '@imapps/api-utils';
-
 import type { Item, ItemCategory, List, ListType, User } from '@tandra/types';
 import { ITEM_CATEGORIES, ListType as ListTypeEnum } from '@tandra/types';
+
 import { AuthorizationService } from '../AuthorizationService';
 import type { FriendService } from '../FriendService';
 import type { IdGenerator } from '../IdGenerator';

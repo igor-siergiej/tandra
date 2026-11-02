@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+
 import react from '@vitejs/plugin-react';
 import { type Connect, defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';

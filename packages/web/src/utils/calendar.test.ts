@@ -1,6 +1,7 @@
 import type { Todo } from '@tandra/types';
 import { endOfMonth, startOfMonth } from 'date-fns';
 import { describe, expect, it } from 'vitest';
+
 import { dayKey } from '../components/Calendar/MonthGrid';
 import { buildCalendarDayData, buildWeekAgenda } from './calendar';
 import { isoDay } from './recurrence';

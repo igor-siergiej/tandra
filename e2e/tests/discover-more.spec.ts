@@ -1,4 +1,5 @@
 import type { DiscoveryRecipeSummary } from '@tandra/types';
+
 import { apiGetRecipes } from '../api-helpers';
 import { E2E_OPENSEARCH_URL } from '../db-helpers';
 import { expect, test } from '../fixtures';

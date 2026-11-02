@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { RegisterForm } from './index';
 
 const mockUseRegisterForm = vi.fn();

@@ -1,6 +1,7 @@
 import type { DiscoveryFacets, DiscoveryRecipeSummary, DiscoverySearchQuery, RecipeDifficulty } from '@tandra/types';
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
+
 import { searchDiscoveryRecipes } from '../api';
 import { useDebouncedValue } from './useDebouncedValue';
 

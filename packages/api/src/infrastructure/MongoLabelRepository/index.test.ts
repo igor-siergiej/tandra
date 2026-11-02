@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
+
 import type { Label } from '@tandra/types';
+
 import { MongoLabelRepository } from './index';
 
 const makeLabel = (over: Partial<Label> = {}): Label => ({

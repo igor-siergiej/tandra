@@ -1,6 +1,7 @@
 import type { Recipe } from '@tandra/types';
 import { CalendarDays, Clock, Flame, ImageOff, ListChecks, Utensils } from 'lucide-react';
 import type { ReactNode } from 'react';
+
 import { useAuthedImage } from '../../hooks/useAuthedImage';
 import { AvatarStack } from '../ui/avatar-stack';
 import { Skeleton } from '../ui/skeleton';

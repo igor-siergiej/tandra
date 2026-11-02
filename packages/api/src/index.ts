@@ -1,6 +1,6 @@
 import 'dotenv/config';
-
 import { createApp } from '@imapps/api-utils/hono';
+
 import { config } from './config';
 import { allowedOrigins } from './config/cors';
 import { dependencyContainer, registerDepdendencies } from './dependencies';

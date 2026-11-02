@@ -1,4 +1,5 @@
 import { ArrowLeft } from 'lucide-react';
+
 import { PrivacyLink } from '../../components/PrivacyLink';
 import { useUnitSystem } from '../../contexts/UnitSystemContext';
 import { useGoBack } from '../../hooks/useGoBack';

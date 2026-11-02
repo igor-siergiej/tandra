@@ -9,6 +9,7 @@ import {
     startOfWeek,
 } from 'date-fns';
 import { motion, type PanInfo } from 'motion/react';
+
 import { DayDots } from './DayDots';
 
 export const dayKey = (date: Date): string => format(date, 'yyyy-MM-dd');

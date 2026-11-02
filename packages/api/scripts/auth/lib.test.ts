@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+
 import { memoryAdapter } from 'better-auth/adapters/memory';
 
 import { type Auth, type AuthOptions, createAuth } from '../../src/infrastructure/BetterAuth';

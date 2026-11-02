@@ -1,5 +1,6 @@
 import type { MongoDbConnection } from '@imapps/api-utils';
 import type { ListInvite } from '@tandra/types';
+
 import { CollectionNames, type Collections } from '../../dependencies/types';
 import type { ListInviteRepository } from '../../domain/ListInviteRepository';
 

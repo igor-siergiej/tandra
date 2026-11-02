@@ -1,7 +1,7 @@
 import type { Logger } from '@imapps/api-utils';
 import type { Label } from '@tandra/types';
-import type { IdGenerator } from '../IdGenerator';
 
+import type { IdGenerator } from '../IdGenerator';
 import type { LabelRepository } from '../LabelRepository';
 import type { TodoRepository } from '../TodoRepository';
 

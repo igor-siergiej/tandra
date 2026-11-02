@@ -1,5 +1,6 @@
 import type { Logger } from '@imapps/api-utils';
 import type { Friendship, PairingCode, User } from '@tandra/types';
+
 import type { FriendRepository } from '../FriendRepository';
 import type { IdGenerator } from '../IdGenerator';
 

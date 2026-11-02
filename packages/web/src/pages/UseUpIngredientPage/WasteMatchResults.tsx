@@ -1,4 +1,5 @@
 import { Recycle } from 'lucide-react';
+
 import { RecipeResultCard } from '../../components/RecipeResultCard';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '../../components/ui/empty';
 import type { IngredientWasteMatch } from '../../hooks/useIngredientWasteSearch';

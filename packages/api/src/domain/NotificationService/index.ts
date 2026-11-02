@@ -1,5 +1,6 @@
 import type { Logger } from '@imapps/api-utils';
 import type { Item, List, Todo, User } from '@tandra/types';
+
 import type { WebPushSender } from '../../infrastructure/WebPushSender';
 import type { PushSubscriptionRepository } from '../PushSubscriptionRepository';
 

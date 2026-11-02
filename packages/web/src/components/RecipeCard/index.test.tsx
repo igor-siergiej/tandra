@@ -1,6 +1,7 @@
 import type { Recipe } from '@tandra/types';
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { RecipeCard } from './index';
 
 describe('RecipeCard', () => {

@@ -2,6 +2,7 @@ import type { ListType } from '@tandra/types';
 import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, ListPlus } from 'lucide-react';
 import { useEffect } from 'react';
+
 import ListsList from '../../components/ListsList';
 import { ListsSkeleton } from '../../components/LoadingSkeleton';
 import ToolBar from '../../components/ToolBar';

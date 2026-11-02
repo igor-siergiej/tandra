@@ -1,5 +1,6 @@
 import type { User } from '@tandra/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
 import { generateFriendCode, getFriendsQuery, redeemFriendCode, unfriend } from '../api';
 
 export const useFriends = () => {

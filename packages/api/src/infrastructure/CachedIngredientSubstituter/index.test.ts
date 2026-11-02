@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'bun:test';
+
 import { CachedIngredientSubstituter } from './index';
 
 const setup = (options = {}) => {

@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+
 import { type DayTodoItem, DayTodoList } from './index';
 
 const item = (over: Partial<DayTodoItem> = {}): DayTodoItem => ({

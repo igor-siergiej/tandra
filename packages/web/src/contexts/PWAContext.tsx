@@ -1,8 +1,8 @@
-import { useRegisterSW } from 'virtual:pwa-register/react';
 import { RefreshCw } from 'lucide-react';
 import type React from 'react';
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { useRegisterSW } from 'virtual:pwa-register/react';
 
 const UPDATE_NOTIFIED_KEY = 'pwa-update-notified-at';
 const UPDATE_SNOOZE_MS = 24 * 60 * 60 * 1000;

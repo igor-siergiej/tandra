@@ -7,6 +7,7 @@
  *   OPENSEARCH_TEST_URL=http://localhost:9200 bun test OpenSearchDiscoveryIndex
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'bun:test';
+
 import { Client } from '@opensearch-project/opensearch';
 import type { DiscoveryRecipe } from '@tandra/types';
 

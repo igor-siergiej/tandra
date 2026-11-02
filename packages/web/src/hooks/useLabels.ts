@@ -1,5 +1,6 @@
 import type { Label } from '@tandra/types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+
 import { getLabelsQuery } from '../api';
 import { useUser } from '../auth';
 import { drainOutbox } from '../offline/drainer';

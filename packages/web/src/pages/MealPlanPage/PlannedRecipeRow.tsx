@@ -1,5 +1,6 @@
 import type { MealPlanEntry } from '@tandra/types';
 import { ImageOff, Utensils, X } from 'lucide-react';
+
 import { PortionsStepper } from '../../components/PortionsStepper';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';

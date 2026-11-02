@@ -1,8 +1,10 @@
 import { execFile } from 'node:child_process';
 import path from 'node:path';
 import { promisify } from 'node:util';
+
 import type { DiscoveryRecipe, User } from '@tandra/types';
 import { MongoClient } from 'mongodb';
+
 import { resolveMongoUri } from './mongo-uri';
 import { currentStack, type Stack } from './stack';
 

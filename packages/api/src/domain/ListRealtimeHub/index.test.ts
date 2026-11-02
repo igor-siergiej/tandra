@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+
 import { ListRealtimeHub, type ListSocket } from './index';
 
 const socket = (sent: string[] = []): ListSocket & { sent: string[] } => ({

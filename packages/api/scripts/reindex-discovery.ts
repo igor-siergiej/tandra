@@ -5,7 +5,6 @@
  *   bun run reindex:discovery        (from the repo root, reads .env)
  */
 import 'dotenv/config';
-
 import { config } from '../src/config';
 import { dependencyContainer, registerDepdendencies } from '../src/dependencies';
 import { DependencyToken } from '../src/dependencies/types';

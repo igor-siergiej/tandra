@@ -1,5 +1,6 @@
 import { render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import RouterErrorHandler from './index';
 
 // Mock ErrorPage to avoid rendering it

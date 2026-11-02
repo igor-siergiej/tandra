@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+
 import { canonicalPair, MongoFriendRepository } from './index';
 
 describe('canonicalPair', () => {
