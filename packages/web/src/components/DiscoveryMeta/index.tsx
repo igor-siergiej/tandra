@@ -19,12 +19,14 @@ type Meta = Pick<DiscoveryRecipeSummary, 'prepTime' | 'cookTime' | 'servings' | 
 // One chip per stated field, each tagged with whether its value was estimated rather than read from the source.
 const metaChips = (recipe: Meta): Array<{ chip: Chip; estimated: boolean }> => {
     const estimatedFields = new Set<DiscoveryEstimatedField>(recipe.estimated ?? []);
+
     const candidates: Array<[Chip | null, DiscoveryEstimatedField]> = [
         [optionalTimeChip(recipe.prepTime, Clock, 'prep'), 'prepTime'],
         [optionalTimeChip(recipe.cookTime, Flame, 'cook'), 'cookTime'],
         [optionalServingsChip(recipe.servings), 'servings'],
         [optionalDifficultyChip(recipe.difficulty), 'difficulty'],
     ];
+
     return candidates.flatMap(([chip, field]) => (chip ? [{ chip, estimated: estimatedFields.has(field) }] : []));
 };
 

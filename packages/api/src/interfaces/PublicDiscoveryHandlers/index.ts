@@ -22,6 +22,7 @@ const RATE_LIMIT_PER_WINDOW = 600;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 
 const rateLimiter = new IpRateLimiter(RATE_LIMIT_PER_WINDOW);
+
 setInterval(() => rateLimiter.reset(), RATE_LIMIT_WINDOW_MS).unref();
 
 const clientIp = (c: Context): string =>
@@ -33,11 +34,13 @@ const isRateLimitError = (error: unknown): error is RateLimitDecision => {
 
 const requireRateLimit = (c: Context): void => {
     const ip = clientIp(c);
+
     if (!rateLimiter.isAllowed(ip)) {
         const decision: RateLimitDecision = {
             allowed: false,
             retryAfterSeconds: Math.ceil(RATE_LIMIT_WINDOW_MS / 1000),
         };
+
         throw new APIError('Too many requests', 429, { 'Retry-After': String(decision.retryAfterSeconds) });
     }
 };
@@ -54,13 +57,21 @@ const toPublicSummary = (recipe: DiscoveryRecipe): PublicDiscoveryRecipeSummary 
         licence: recipe.licence,
         attribution: recipe.attribution,
     };
+
     if (recipe.slug !== undefined) out.slug = recipe.slug;
+
     if (recipe.prepTime !== undefined) out.prepTime = recipe.prepTime;
+
     if (recipe.cookTime !== undefined) out.cookTime = recipe.cookTime;
+
     if (recipe.servings !== undefined) out.servings = recipe.servings;
+
     if (recipe.difficulty !== undefined) out.difficulty = recipe.difficulty;
+
     if (recipe.coverImageKey !== undefined) out.coverImageKey = recipe.coverImageKey;
+
     if (recipe.publishedBy !== undefined) out.publishedBy = recipe.publishedBy;
+
     return out;
 };
 
@@ -74,17 +85,21 @@ const toPublicRecipe = (recipe: DiscoveryRecipe): PublicDiscoveryRecipe => ({
 
 const parseCursor = (value: string | undefined): string | null => {
     if (!value) return null;
+
     // Cursor is the ObjectId of the last item on the previous page. We
     // accept hex (24 chars) and reject everything else; an invalid cursor
     // starts a fresh page rather than 500ing the caller.
     if (!/^[0-9a-f]{24}$/i.test(value)) return null;
+
     return value;
 };
 
 const parsePageSize = (value: string | undefined): number => {
     if (!value) return DEFAULT_PAGE_SIZE;
     const n = Math.trunc(Number(value));
+
     if (!Number.isFinite(n) || n < 1) return DEFAULT_PAGE_SIZE;
+
     return Math.min(n, MAX_PAGE_SIZE);
 };
 
@@ -100,19 +115,24 @@ export const createPublicDiscoveryHandlers = ({ discovery }: PublicDiscoveryHand
             const pageSize = parsePageSize(c.req.query('pageSize'));
             const cursor = parseCursor(c.req.query('cursor'));
             const page = await discovery.listPublic(pageSize, cursor);
+
             const lastId = (
                 page.at(-1) as (DiscoveryRecipe & { _id?: { toString(): string } }) | undefined
             )?._id?.toString();
+
             const response: PublicDiscoveryRecipePage = {
                 items: page.map(toPublicSummary),
                 ...(lastId && page.length === pageSize ? { nextCursor: lastId } : {}),
             };
+
             return c.json(response, 200);
         } catch (error) {
             if (isRateLimitError(error)) {
                 return c.json({ error: 'rate_limited' }, 429, { 'Retry-After': String(error.retryAfterSeconds) });
             }
+
             logger.error('Public discovery list failed', { error: (error as Error).message });
+
             return c.json({ error: 'internal' }, 500);
         }
     },
@@ -122,15 +142,20 @@ export const createPublicDiscoveryHandlers = ({ discovery }: PublicDiscoveryHand
         try {
             requireRateLimit(c);
             const slug = c.req.param('slug') ?? '';
+
             if (!slug) return c.json({ error: 'missing_slug' }, 400);
             const recipe = await discovery.getBySlug(slug);
+
             if (!recipe) return c.json({ error: 'not_found' }, 404);
+
             return c.json(toPublicRecipe(recipe), 200);
         } catch (error) {
             if (isRateLimitError(error)) {
                 return c.json({ error: 'rate_limited' }, 429, { 'Retry-After': String(error.retryAfterSeconds) });
             }
+
             logger.error('Public discovery by-slug lookup failed', { error: (error as Error).message });
+
             return c.json({ error: 'internal' }, 500);
         }
     },

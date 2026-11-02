@@ -127,6 +127,7 @@ describe('ListItem', () => {
         );
 
         const titleButton = screen.getByText('Test List').closest('button');
+
         if (titleButton) {
             await user.click(titleButton);
         }
@@ -265,6 +266,7 @@ describe('ListItem', () => {
             ...mockListResponse,
             users: [...mockListResponse.users, { id: currentUserId, username: 'me' }],
         };
+
         render(
             <ListItem
                 list={listWithSelf}

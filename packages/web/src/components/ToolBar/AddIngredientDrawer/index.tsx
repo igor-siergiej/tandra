@@ -50,6 +50,7 @@ export const AddIngredientDrawer = ({ open, onOpenChange, onAdd, trigger }: AddI
 
         if (!trimmedName) {
             setError('Ingredient name is required');
+
             return;
         }
 

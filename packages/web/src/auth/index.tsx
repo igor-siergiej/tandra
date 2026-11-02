@@ -35,6 +35,7 @@ const markReturningUser = () => {
     if (returningUserMarked) return;
     returningUserMarked = true;
     const cookie = returningUserCookie(window.location.hostname);
+
     // biome-ignore lint/suspicious/noDocumentCookie: the Cookie Store API is missing from Firefox.
     if (cookie) document.cookie = cookie;
 };
@@ -46,6 +47,7 @@ const SIGN_OUT_PENDING_KEY = 'tandra:sign-out-pending';
 const signOutOnServer = async (): Promise<boolean> => {
     try {
         const { error } = await authClient.signOut({});
+
         return !error;
     } catch {
         return false;
@@ -54,8 +56,10 @@ const signOutOnServer = async (): Promise<boolean> => {
 
 const finishPendingSignOut = async (): Promise<boolean> => {
     if (!localStorage.getItem(SIGN_OUT_PENDING_KEY)) return true;
+
     if (!(await signOutOnServer())) return false;
     localStorage.removeItem(SIGN_OUT_PENDING_KEY);
+
     return true;
 };
 
@@ -70,7 +74,9 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 const useAuthContext = (): AuthContextValue => {
     const context = useContext(AuthContext);
+
     if (!context) throw new Error('Auth hooks must be used inside <AuthRoot>');
+
     return context;
 };
 
@@ -81,8 +87,10 @@ export const AuthRoot = ({ children }: { children: ReactNode }) => {
 
     const refresh = useCallback(async () => {
         const next = await fetchSession();
+
         if (next.user || next.needsUsername) markReturningUser();
         setSession(next);
+
         return next;
     }, []);
 
@@ -98,35 +106,42 @@ export const AuthRoot = ({ children }: { children: ReactNode }) => {
             // Until an earlier sign-out reaches the server, stay signed out rather than trust the cookie.
             if (await finishPendingSignOut()) await refresh();
         };
+
         void start().finally(() => setIsLoading(false));
     }, [refresh]);
 
     const signedIn = Boolean(session.user) || session.needsUsername;
     useEffect(() => {
         if (signedIn) return;
+
         // An installed PWA can come back to the foreground from a Google sign-in without reloading (the
         // callback set the cookie in another tab), so ask again rather than keep showing /login.
         const recheck = () => {
             if (document.visibilityState !== 'visible') return;
             void finishPendingSignOut().then((finished) => finished && refresh());
         };
+
         document.addEventListener('visibilitychange', recheck);
+
         return () => document.removeEventListener('visibilitychange', recheck);
     }, [signedIn, refresh]);
 
     const value = useMemo(() => ({ session, isLoading, refresh, logout }), [session, isLoading, refresh, logout]);
+
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 /** The current user, or null while signed out / still resolving. */
 export const useUser = (): UserState => {
     const { session } = useAuthContext();
+
     return { user: session.user, needsUsername: session.needsUsername };
 };
 
 /** Sign-in state and the sign-out action. `isLoading` is true until the first session check settles. */
 export const useAuth = (): AuthState => {
     const { session, isLoading, logout } = useAuthContext();
+
     return { isAuthenticated: Boolean(session.user) || session.needsUsername, isLoading, logout };
 };
 
@@ -136,8 +151,10 @@ export const useAuth = (): AuthState => {
  */
 export const useRefreshSession = (): (() => Promise<SessionUser | null>) => {
     const { refresh } = useAuthContext();
+
     return useCallback(async () => {
         localStorage.removeItem(SIGN_OUT_PENDING_KEY);
+
         return (await refresh()).user;
     }, [refresh]);
 };
@@ -146,6 +163,8 @@ export const useRefreshSession = (): (() => Promise<SessionUser | null>) => {
 export const ProtectedRoute = ({ children }: { children: ReactNode }) => {
     const { isAuthenticated } = useAuth();
     const location = useLocation();
+
     if (!isAuthenticated) return <Navigate to="/login" state={{ from: location }} replace />;
+
     return <>{children}</>;
 };

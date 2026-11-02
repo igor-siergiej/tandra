@@ -103,6 +103,7 @@ function RippleButton({
     const handleClick = React.useCallback(
         (event: React.MouseEvent<HTMLButtonElement>) => {
             createRipple(event);
+
             if (onClick) {
                 onClick(event);
             }

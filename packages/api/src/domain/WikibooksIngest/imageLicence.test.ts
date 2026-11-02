@@ -70,6 +70,7 @@ describe('assessImage', () => {
         const result = assessImage(
             info({ descriptionUrl: 'https://en.wikibooks.org/wiki/File:Local.jpg', licenceShortName: 'CC BY-SA 3.0' })
         );
+
         expect(result).toMatchObject({ ok: true, attribution: expect.stringContaining('via Wikibooks') });
     });
 
@@ -80,6 +81,7 @@ describe('assessImage', () => {
                     'No machine-readable author provided. <a href="//commons.wikimedia.org/wiki/User:Ozten~commonswiki" title="User:Ozten~commonswiki">Ozten~commonswiki</a> assumed (based on copyright claims).',
             })
         );
+
         expect(result).toMatchObject({
             ok: true,
             attribution: 'Photo: Ozten~commonswiki, CC BY 2.0, via Wikimedia Commons',

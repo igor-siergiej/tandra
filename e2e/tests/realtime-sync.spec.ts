@@ -7,6 +7,7 @@ import { expect, test } from '../fixtures';
 import { MOCK_USER, MOCK_USER_2 } from '../mocks/data/users';
 
 const LIST_TITLE = 'Shared Realtime';
+
 // Acceptance bar from the card is ~2s; leave headroom for the CI runner, not for polling.
 const SYNC_TIMEOUT = 3000;
 
@@ -16,6 +17,7 @@ const shareListWithSecondUser = async (browser: Browser) => {
     await apiCreateList(LIST_TITLE, 'shopping', [MOCK_USER_2.id]);
 
     const page = await openPageAs(browser, MOCK_USER_2);
+
     return { context: page.context(), page };
 };
 

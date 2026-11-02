@@ -27,19 +27,23 @@ const appFor = (
         },
         logger as never
     );
+
     const app = new Hono<HonoVars>();
     app.onError(errorHandler);
     app.get('/api/discover/recipes', handlers.searchRecipes as never);
     app.get('/api/discover/recipes/:id/similar', handlers.getSimilarRecipes as never);
     app.get('/api/discover/recipes/:id', handlers.getRecipe as never);
+
     const asUser = async (
         c: { req: { header: (name: string) => string | undefined }; set: (k: 'user', v: unknown) => void },
         next: () => Promise<void>
     ) => {
         const id = c.req.header('x-test-user');
+
         if (id) c.set('user', { id, username: id });
         await next();
     };
+
     app.post('/api/recipes/:recipeId/publish', asUser as never, handlers.publishRecipe as never);
     app.delete('/api/discover/published/:id', asUser as never, handlers.unpublishRecipe as never);
     app.get('/api/discover/published', asUser as never, handlers.listPublished as never);
@@ -51,11 +55,13 @@ const appFor = (
         '/api/discover/recipes/:id/copy',
         async (c, next) => {
             const id = c.req.header('x-test-user');
+
             if (id) c.set('user', { id, username: id });
             await next();
         },
         handlers.copyRecipe as never
     );
+
     return app;
 };
 
@@ -94,10 +100,12 @@ const fakeIndex = (overrides: Partial<DiscoveryIndex> = {}): DiscoveryIndex => (
 /** A Mongo double holding BOTH the private recipe collection and the library, recording which were touched. */
 const fakeDb = (collections: Record<string, Array<Record<string, unknown>>>) => {
     const touched: string[] = [];
+
     return {
         touched,
         getCollection: (name: string) => {
             touched.push(name);
+
             return {
                 findOne: async (filter: { id: string }) => collections[name]?.find((d) => d.id === filter.id) ?? null,
             };
@@ -159,6 +167,7 @@ describe('GET /api/discover/recipes', () => {
                     Object.assign(new Error('Recipe discovery is temporarily unavailable'), { status: 503 })
                 ),
         });
+
         const res = await appFor(new DiscoveryService({} as never, index)).request('/api/discover/recipes?q=soup');
         expect(res.status).toBe(503);
         expect(await res.json()).toEqual({ error: 'Recipe discovery is temporarily unavailable' });
@@ -198,6 +207,7 @@ describe('library recipe endpoints', () => {
             ],
             discoveryRecipes: [libraryRecipe('lib-1')],
         });
+
         const index = fakeIndex();
         const app = appFor(new DiscoveryService(new MongoDiscoveryRecipeRepository(db as never), index));
 
@@ -245,10 +255,12 @@ describe('POST /api/discover/recipes/:id/copy', () => {
         const copy = copyService(async () => {
             throw Object.assign(new Error('This recipe is already in your recipes'), { status: 409 });
         });
+
         const res = await appFor(new DiscoveryService({} as never, fakeIndex()), copy).request(
             '/api/discover/recipes/lib-1/copy',
             { method: 'POST', headers: { 'x-test-user': 'u-me' } }
         );
+
         expect(res.status).toBe(409);
         expect(await res.json()).toEqual({ error: 'This recipe is already in your recipes' });
     });
@@ -274,6 +286,7 @@ describe('publish, moderation and published-list endpoints', () => {
                 },
             }
         );
+
         const res = await appFor(service(), {} as never, { publish: boom, moderation: boom }).request(path, { method });
         expect(res.status).toBe(401);
     });
@@ -282,6 +295,7 @@ describe('publish, moderation and published-list endpoints', () => {
         const publish = {
             publish: vi.fn(async () => ({ recipeId: 'r1', libraryId: 'user-1', publishedAt: new Date(0) })),
         };
+
         const res = await appFor(service(), {} as never, { publish }).request('/api/recipes/r1/publish', {
             method: 'POST',
             headers,
@@ -301,14 +315,17 @@ describe('publish, moderation and published-list endpoints', () => {
         const publish = {
             publish: vi.fn(async (_id: string, _user: unknown, body: { agreeToLicence?: boolean }) => {
                 if (body.agreeToLicence !== true) throw Object.assign(new Error('You must agree'), { status: 400 });
+
                 return {};
             }),
         };
+
         const res = await appFor(service(), {} as never, { publish }).request('/api/recipes/r1/publish', {
             method: 'POST',
             headers,
             body: 'not json',
         });
+
         expect(res.status).toBe(400);
         expect(await res.json()).toEqual({ error: 'You must agree' });
     });
@@ -319,10 +336,12 @@ describe('publish, moderation and published-list endpoints', () => {
                 throw Object.assign(new Error(message), { status });
             }),
         });
+
         const imported = await appFor(service(), {} as never, { publish: make(422, "can't be made public") }).request(
             '/api/recipes/r1/publish',
             { method: 'POST', headers, body: JSON.stringify({ agreeToLicence: true }) }
         );
+
         const duplicate = await appFor(service(), {} as never, {
             publish: make(409, 'already in the library'),
         }).request('/api/recipes/r1/publish', {
@@ -330,6 +349,7 @@ describe('publish, moderation and published-list endpoints', () => {
             headers,
             body: JSON.stringify({ agreeToLicence: true }),
         });
+
         expect(imported.status).toBe(422);
         expect(duplicate.status).toBe(409);
     });
@@ -340,6 +360,7 @@ describe('publish, moderation and published-list endpoints', () => {
         const app = appFor(service(), {} as never, { publish, moderation });
 
         const un = await app.request('/api/discover/published/user-1', { method: 'DELETE', headers });
+
         const rep = await app.request('/api/discover/recipes/user-1/report', {
             method: 'POST',
             headers,
@@ -365,6 +386,7 @@ describe('publish, moderation and published-list endpoints', () => {
         const forbidden = async () => {
             throw Object.assign(new Error('Admin access required'), { status: 403 });
         };
+
         const moderation = { delist: vi.fn(forbidden), listReports: vi.fn(forbidden) };
         const app = appFor(service(), {} as never, { moderation });
 

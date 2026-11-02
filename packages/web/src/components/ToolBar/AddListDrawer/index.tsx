@@ -40,6 +40,7 @@ export const AddListDrawer = ({ open, onOpenChange, onAdd, placeholder }: AddLis
 
         if (!trimmedName) {
             setError('List name is required');
+
             return;
         }
 

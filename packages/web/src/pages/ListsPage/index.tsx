@@ -16,10 +16,12 @@ import { logger } from '../../utils/logger';
 const ListsPage = () => {
     const user = useListUser();
     const source = useListSource();
+
     const { data, isLoading, isError, refetch } = useQuery({
         ...source.listsQuery(user?.id || ''),
         enabled: !!user?.id,
     });
+
     const { registerRefresh } = usePullToRefreshContext();
     const createList = useCreateList(user);
 
@@ -37,6 +39,7 @@ const ListsPage = () => {
 
     if (!user?.id) {
         logger.warn('Lists page accessed without user');
+
         return <div>User not available</div>;
     }
 

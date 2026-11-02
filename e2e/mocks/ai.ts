@@ -12,7 +12,9 @@ export type MockOutcome<T> = { ok: T; delayMs?: number } | { status: number; err
 
 const respond = async <T>(route: Route, outcome: MockOutcome<T>) => {
     if (outcome.delayMs) await new Promise((resolve) => setTimeout(resolve, outcome.delayMs));
+
     if ('ok' in outcome) return route.fulfill({ json: outcome.ok });
+
     return route.fulfill({ status: outcome.status, json: { error: outcome.error } });
 };
 

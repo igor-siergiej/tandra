@@ -11,8 +11,11 @@ interface TagsFieldProps {
 
 const commitTag = (tags: string[], raw: string): string[] => {
     const next = raw.trim();
+
     if (!next) return tags;
+
     if (tags.some((t) => t.toLowerCase() === next.toLowerCase())) return tags;
+
     return [...tags, next];
 };
 
@@ -34,11 +37,14 @@ export const TagsField = ({ tags, onChange, disabled }: TagsFieldProps) => {
                 disabled={disabled}
                 onChange={(e) => {
                     const value = e.target.value;
+
                     if (value.endsWith(',')) {
                         onChange(commitTag(tags, value.slice(0, -1)));
                         setDraft('');
+
                         return;
                     }
+
                     setDraft(value);
                 }}
                 onKeyDown={(e) => {

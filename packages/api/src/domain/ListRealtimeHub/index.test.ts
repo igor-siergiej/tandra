@@ -7,6 +7,7 @@ const socket = (sent: string[] = []): ListSocket & { sent: string[] } => ({
     send: (data: string) => sent.push(data),
     close: () => undefined,
 });
+
 const ALICE = { id: 'a', username: 'alice' };
 const BOB = { id: 'b', username: 'bob' };
 
@@ -36,12 +37,14 @@ describe('ListRealtimeHub', () => {
 
     it('keeps delivering to healthy sockets when one send throws', () => {
         const hub = new ListRealtimeHub();
+
         const broken = {
             send: () => {
                 throw new Error('closed');
             },
             close: () => undefined,
         };
+
         const healthy = socket();
         hub.join('L', ALICE, broken);
         hub.join('L', BOB, healthy);

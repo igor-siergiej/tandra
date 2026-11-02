@@ -10,6 +10,7 @@ const configState = vi.hoisted(() => ({
 vi.mock('./config', () => ({
     getConfig: () => {
         if (!configState.value) throw new Error('Configuration not loaded.');
+
         return configState.value;
     },
 }));
@@ -157,6 +158,7 @@ describe('analytics list-path redaction', () => {
         const view = JSON.stringify({
             payload: { url: '/list/Mum%27s%2070th/l-1', referrer: '/list/l-2?x=1', title: 'Tandra' },
         });
+
         const clicks = JSON.stringify({ payload: { events: [{ url: 'https://app.tandra.uk/list/l-3' }] } });
         await fetch('https://app.tandra.uk/pulse/p', { method: 'POST', body: view, keepalive: true });
         await fetch('https://app.tandra.uk/pulse/api/record', { method: 'POST', body: clicks });

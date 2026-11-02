@@ -9,6 +9,7 @@ class MockRepo {
     cleared: Array<{ labelId: string; ownerId: string }> = [];
     async insert(t: Todo) {
         this.store.set(t.id, t);
+
         return t;
     }
     async getById(id: string) {
@@ -22,6 +23,7 @@ class MockRepo {
     }
     async update(id: string, t: Todo) {
         this.store.set(id, t);
+
         return t;
     }
     async deleteById(id: string) {
@@ -36,6 +38,7 @@ class MockIds {
     private n = 0;
     generate() {
         this.n += 1;
+
         return `id-${this.n}`;
     }
 }
@@ -138,6 +141,7 @@ describe('TodoService', () => {
             title: 'Standup',
             recurrence: { freq: 'daily', interval: 1 },
         });
+
         const added = await svc.toggleComplete(t.id, 'u1', '2026-06-04');
         expect(added.completedDates).toEqual(['2026-06-04']);
         const removed = await svc.toggleComplete(t.id, 'u1', '2026-06-04');
@@ -155,6 +159,7 @@ describe('TodoService', () => {
             dueDate: '2026-06-29T00:00:00.000Z',
             recurrence: { freq: 'daily', interval: 1, until: '2026-07-29T00:00:00.000Z' },
         });
+
         expect(t.dueDate).toBe('2026-06-29');
         expect(t.recurrence?.until).toBe('2026-07-29');
     });
@@ -209,6 +214,7 @@ describe('TodoService', () => {
         it('notifies shared members when created with an actor', async () => {
             friends.add('u1', 'u2');
             const notify = { notifyTodoShared: mock(async () => {}) };
+
             const svcWithNotify = new TodoService(
                 repo as never,
                 new MockIds() as never,
@@ -216,6 +222,7 @@ describe('TodoService', () => {
                 friends as never,
                 notify as never
             );
+
             const actor = { id: 'u1', username: 'user-u1' };
             const todo = await svcWithNotify.createTodo('u1', { title: 'Plan trip' }, actor);
             expect(notify.notifyTodoShared).toHaveBeenCalledWith(todo, actor);
@@ -223,6 +230,7 @@ describe('TodoService', () => {
 
         it('does not notify when created without any shared members', async () => {
             const notify = { notifyTodoShared: mock(async () => {}) };
+
             const svcWithNotify = new TodoService(
                 repo as never,
                 new MockIds() as never,
@@ -230,6 +238,7 @@ describe('TodoService', () => {
                 friends as never,
                 notify as never
             );
+
             await svcWithNotify.createTodo('u1', { title: 'Solo task' }, { id: 'u1', username: 'user-u1' });
             expect(notify.notifyTodoShared).not.toHaveBeenCalled();
         });
@@ -237,6 +246,7 @@ describe('TodoService', () => {
         it('does not notify when created without an actor, even if shared', async () => {
             friends.add('u1', 'u2');
             const notify = { notifyTodoShared: mock(async () => {}) };
+
             const svcWithNotify = new TodoService(
                 repo as never,
                 new MockIds() as never,
@@ -244,6 +254,7 @@ describe('TodoService', () => {
                 friends as never,
                 notify as never
             );
+
             await svcWithNotify.createTodo('u1', { title: 'Plan trip' });
             expect(notify.notifyTodoShared).not.toHaveBeenCalled();
         });
@@ -254,6 +265,7 @@ describe('TodoService', () => {
             friends.add('u1', 'u2');
             friends.add('u1', 'u3');
             const notify = { notifyTodoShared: mock(async () => {}) };
+
             const svcWithNotify = new TodoService(
                 repo as never,
                 new MockIds() as never,
@@ -261,6 +273,7 @@ describe('TodoService', () => {
                 friends as never,
                 notify as never
             );
+
             const actor = { id: 'u1', username: 'user-u1' };
             const t = await svcWithNotify.createTodo('u1', { title: 'Plan trip', userIds: ['u2'] }, actor);
             notify.notifyTodoShared.mockClear();
@@ -287,6 +300,7 @@ describe('TodoService', () => {
         it('does not notify when the edited users[] adds nobody new', async () => {
             friends.add('u1', 'u2');
             const notify = { notifyTodoShared: mock(async () => {}) };
+
             const svcWithNotify = new TodoService(
                 repo as never,
                 new MockIds() as never,
@@ -294,6 +308,7 @@ describe('TodoService', () => {
                 friends as never,
                 notify as never
             );
+
             const actor = { id: 'u1', username: 'user-u1' };
             const t = await svcWithNotify.createTodo('u1', { title: 'Plan trip', userIds: ['u2'] }, actor);
             notify.notifyTodoShared.mockClear();
@@ -306,6 +321,7 @@ describe('TodoService', () => {
         it('does not notify when the update has no users[] at all', async () => {
             friends.add('u1', 'u2');
             const notify = { notifyTodoShared: mock(async () => {}) };
+
             const svcWithNotify = new TodoService(
                 repo as never,
                 new MockIds() as never,
@@ -313,6 +329,7 @@ describe('TodoService', () => {
                 friends as never,
                 notify as never
             );
+
             const actor = { id: 'u1', username: 'user-u1' };
             const t = await svcWithNotify.createTodo('u1', { title: 'Plan trip' }, actor);
             notify.notifyTodoShared.mockClear();
@@ -325,6 +342,7 @@ describe('TodoService', () => {
         it('does not notify without an actor, even when adding a member', async () => {
             friends.add('u1', 'u2');
             const notify = { notifyTodoShared: mock(async () => {}) };
+
             const svcWithNotify = new TodoService(
                 repo as never,
                 new MockIds() as never,
@@ -332,6 +350,7 @@ describe('TodoService', () => {
                 friends as never,
                 notify as never
             );
+
             const t = await svcWithNotify.createTodo('u1', { title: 'Plan trip' });
 
             await svcWithNotify.updateTodo(t.id, 'u1', { users: [{ id: 'u2', username: 'user-u2' }] });

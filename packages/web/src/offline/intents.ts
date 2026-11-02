@@ -16,9 +16,11 @@ export interface ItemView {
 // fallow-ignore-next-line complexity
 export const applyItemIntent = (items: ItemView[], intent: OutboxIntent): ItemView[] => {
     const p = intent.payload;
+
     switch (intent.op) {
         case 'item.add': {
             if (items.some((i) => i.id === intent.targetId)) return items;
+
             return [
                 ...items,
                 {
@@ -30,6 +32,7 @@ export const applyItemIntent = (items: ItemView[], intent: OutboxIntent): ItemVi
                 },
             ];
         }
+
         case 'item.delete':
             return items.filter((i) => i.id !== intent.targetId);
         case 'item.toggle':
@@ -66,8 +69,10 @@ export interface ListView {
 // fallow-ignore-next-line complexity
 export const applyListIntent = (lists: ListView[], intent: OutboxIntent): ListView[] => {
     const p = intent.payload;
+
     if (intent.op === 'list.create') {
         if (lists.some((l) => l.id === intent.targetId)) return lists;
+
         return [
             ...lists,
             {
@@ -81,6 +86,7 @@ export const applyListIntent = (lists: ListView[], intent: OutboxIntent): ListVi
             },
         ];
     }
+
     return lists;
 };
 
@@ -88,7 +94,9 @@ export const applyListIntent = (lists: ListView[], intent: OutboxIntent): ListVi
 const applyTodoUpdate = (todo: Todo, payload: Record<string, unknown>): Todo => {
     const { clear, ...changes } = payload;
     const next: Todo = { ...todo, ...(changes as Partial<Todo>) };
+
     for (const field of (clear as Array<keyof Todo> | undefined) ?? []) delete next[field];
+
     return next;
 };
 
@@ -109,6 +117,7 @@ const newTodo = (id: string, p: Record<string, unknown>): Todo =>
 // fallow-ignore-next-line complexity
 export const applyTodoIntent = (todos: Todo[], intent: OutboxIntent): Todo[] => {
     const p = intent.payload;
+
     switch (intent.op) {
         case 'todo.create':
             return todos.some((t) => t.id === intent.targetId) ? todos : [...todos, newTodo(intent.targetId, p)];
@@ -121,13 +130,17 @@ export const applyTodoIntent = (todos: Todo[], intent: OutboxIntent): Todo[] => 
             return todos.map((t) => {
                 if (t.id !== intent.targetId) return t;
                 const date = p.date as string | undefined;
+
                 if (t.recurrence && date) {
                     const current = t.completedDates ?? [];
+
                     const completedDates = current.includes(date)
                         ? current.filter((d) => d !== date)
                         : [...current, date];
+
                     return { ...t, completedDates };
                 }
+
                 return { ...t, done: !t.done };
             });
         default:
@@ -138,9 +151,11 @@ export const applyTodoIntent = (todos: Todo[], intent: OutboxIntent): Todo[] => 
 // fallow-ignore-next-line complexity
 export const applyLabelIntent = (labels: Label[], intent: OutboxIntent): Label[] => {
     const p = intent.payload;
+
     switch (intent.op) {
         case 'label.create': {
             if (labels.some((l) => l.id === intent.targetId)) return labels;
+
             return [
                 ...labels,
                 {
@@ -151,6 +166,7 @@ export const applyLabelIntent = (labels: Label[], intent: OutboxIntent): Label[]
                 },
             ];
         }
+
         case 'label.update':
             return labels.map((l) =>
                 l.id === intent.targetId
@@ -184,10 +200,12 @@ const optionalRecipeFields = (p: Record<string, unknown>) => ({
 // fallow-ignore-next-line complexity
 export const applyRecipeIntent = (recipes: Recipe[], intent: OutboxIntent): Recipe[] => {
     const p = intent.payload;
+
     switch (intent.op) {
         case 'recipe.create': {
             if (recipes.some((r) => r.id === intent.targetId)) return recipes;
             const rawIngredients = (p.ingredients as Array<Omit<Ingredient, 'id'>> | undefined) ?? [];
+
             return [
                 ...recipes,
                 {
@@ -201,6 +219,7 @@ export const applyRecipeIntent = (recipes: Recipe[], intent: OutboxIntent): Reci
                 } as Recipe,
             ];
         }
+
         case 'recipe.update':
             // fallow-ignore-next-line complexity
             return recipes.map((r) =>

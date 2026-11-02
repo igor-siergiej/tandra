@@ -51,7 +51,9 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
             if (e.key !== GUEST_FLAG_KEY) return;
             setIsGuest(readGuestFlag());
         };
+
         window.addEventListener('storage', onStorage);
+
         return () => window.removeEventListener('storage', onStorage);
     }, []);
 

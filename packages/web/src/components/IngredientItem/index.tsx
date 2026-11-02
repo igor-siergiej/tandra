@@ -89,6 +89,7 @@ const IngredientItem = ({ ingredient, onDelete, onEdit, isOwner = true, recipeTi
         e?.stopPropagation();
         setIsDeleting(true);
         setIsLoading(true);
+
         try {
             // onDelete's own caller shows the error toast on failure and no toast on success
             // (see RecipeDetailPage/IngredientsSection) — this just drives the fade-out animation.
@@ -116,6 +117,7 @@ const IngredientItem = ({ ingredient, onDelete, onEdit, isOwner = true, recipeTi
 
     const handleDrawerSave = () => {
         const name = editedName.trim();
+
         if (!name) return;
 
         setIsLoading(true);

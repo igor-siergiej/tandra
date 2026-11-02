@@ -43,9 +43,11 @@ export const AddFromRecipeDrawer = ({
     const { data: allRecipes = [] } = useQuery(
         user?.id ? getRecipesQuery(user.id) : { queryKey: [], queryFn: async () => [] }
     );
+
     const recipes = useRecipeSearch(allRecipes, recipeSearch);
 
     const existingItemNames = new Set(listItems.map((item) => item.name.toLowerCase()));
+
     const {
         selectedIds,
         toggleIngredient,
@@ -67,6 +69,7 @@ export const AddFromRecipeDrawer = ({
 
         try {
             setIsLoading(true);
+
             const result = await addItemsBulk(
                 listTitle,
                 selectedScaledIngredients.map((ingredient) => ({

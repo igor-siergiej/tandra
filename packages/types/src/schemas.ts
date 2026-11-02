@@ -8,8 +8,10 @@ import { ITEM_CATEGORIES } from './index';
 
 const text = z.string().trim().min(1, 'is required and must be a non-empty string');
 const id = z.string().min(1);
+
 // dateAdded arrives as an ISO string from JSON.
 const dateLike = z.union([z.string(), z.date()]);
+
 // A timezone-agnostic YYYY-MM-DD day; a full ISO instant is tolerated because older clients sent one.
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}/, 'must be a YYYY-MM-DD day');
 

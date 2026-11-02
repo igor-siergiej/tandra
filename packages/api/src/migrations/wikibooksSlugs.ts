@@ -13,7 +13,9 @@ export const backfillWikibooksSlugs = async (
 ): Promise<void> => {
     try {
         const { assigned, blocked } = await repository.assignWikibooksSlugs();
+
         if (assigned > 0) logger.info('Gave Wikibooks recipes their public slug', { assigned });
+
         if (blocked.length > 0) {
             logger.warn('Wikibooks recipes left without a slug: another recipe already uses it', { blocked });
         }

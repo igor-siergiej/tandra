@@ -15,6 +15,7 @@ interface RecipeResultCardProps {
 // useAuthedImage like every other recipe cover.
 const RecipeResultCover = ({ imageKey, title }: { imageKey: string; title: string }) => {
     const { imageUrl, hasError } = useAuthedImage(imageKey);
+
     if (hasError) {
         return (
             <div className="flex w-12 h-12 flex-shrink-0 items-center justify-center rounded bg-muted text-muted-foreground">
@@ -22,7 +23,9 @@ const RecipeResultCover = ({ imageKey, title }: { imageKey: string; title: strin
             </div>
         );
     }
+
     if (!imageUrl) return <Skeleton className="w-12 h-12 flex-shrink-0 rounded" />;
+
     return <img src={imageUrl} alt={title} className="w-12 h-12 rounded object-cover flex-shrink-0" />;
 };
 

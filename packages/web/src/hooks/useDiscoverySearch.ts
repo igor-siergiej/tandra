@@ -88,6 +88,7 @@ export const useDiscoverySearch = (): DiscoverySearch => {
         (patch: Partial<DiscoveryFilterState>) => setFilters((old) => ({ ...old, ...patch })),
         []
     );
+
     const { fetchNextPage, refetch } = result;
 
     return {

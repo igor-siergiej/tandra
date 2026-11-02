@@ -20,10 +20,12 @@ class MemoryRepo {
     }
     async insert(entry: MealPlanEntry) {
         this.store.set(entry.id, entry);
+
         return entry;
     }
     async update(id: string, entry: MealPlanEntry) {
         this.store.set(id, entry);
+
         return entry;
     }
     async deleteById(id: string) {

@@ -4,6 +4,7 @@ import * as schemas from '@tandra/types/schemas';
 
 const ok = (schema: { safeParse: (v: unknown) => { success: boolean } }, value: unknown) =>
     expect(schema.safeParse(value).success).toBe(true);
+
 const bad = (schema: { safeParse: (v: unknown) => { success: boolean } }, value: unknown) =>
     expect(schema.safeParse(value).success).toBe(false);
 

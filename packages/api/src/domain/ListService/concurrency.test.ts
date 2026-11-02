@@ -30,21 +30,26 @@ class SingleListRepository implements ListRepository {
 
     async getByRef(ref: string): Promise<List | null> {
         await yieldToEventLoop();
+
         return ref === this.doc.id || ref === this.doc.title ? structuredClone(this.doc) : null;
     }
 
     async replaceIfUnchanged(listId: string, list: List): Promise<number | null> {
         await yieldToEventLoop();
+
         if (this.alwaysConflict || listId !== this.doc.id || (this.doc.revision ?? 0) !== (list.revision ?? 0)) {
             return null;
         }
+
         const revision = (this.doc.revision ?? 0) + 1;
         this.doc = { ...structuredClone(list), revision };
+
         return revision;
     }
 
     async pushItem(listId: string, item: Item): Promise<void> {
         await yieldToEventLoop();
+
         if (listId !== this.doc.id) return;
         this.doc.items.push(structuredClone(item));
         this.doc.revision = (this.doc.revision ?? 0) + 1;
@@ -90,7 +95,9 @@ const setup = (items: Array<Item>) => {
         listType: ListType.SHOPPING,
         ownerId: 'u1',
     });
+
     const service = new ListService(repo, new CountingIds());
+
     return { repo, service };
 };
 
@@ -167,6 +174,7 @@ describe('ListService concurrent edits', () => {
         // still there ticked, or was cleared because the tick landed first.
         const list = repo.snapshot();
         expect(list.items.find((i) => i.name === 'eggs')).toBeUndefined();
+
         for (const remaining of list.items) expect(remaining.name).toBe('milk');
     });
 
@@ -179,6 +187,7 @@ describe('ListService concurrent edits', () => {
         ]);
 
         expect(deleted.status).toBe('fulfilled');
+
         // The toggle either ran first (fulfilled) or lost to the delete and must say so honestly.
         if (toggled.status === 'rejected') expect(toggled.reason).toMatchObject({ status: 404 });
     });

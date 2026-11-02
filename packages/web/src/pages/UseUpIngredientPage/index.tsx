@@ -21,6 +21,7 @@ const UseUpIngredientPage = () => {
     const { data: allRecipes = [] } = useQuery(
         user?.id ? getRecipesQuery(user.id) : { queryKey: [], queryFn: async () => [] }
     );
+
     const matches = useIngredientWasteSearch(allRecipes, query);
 
     // Fire one search event per non-empty query. Debounced to keep the
@@ -29,6 +30,7 @@ const UseUpIngredientPage = () => {
     useEffect(() => {
         if (query.trim().length < 2) return;
         const t = setTimeout(() => track('useup_search', { results: matches.length }), 400);
+
         return () => clearTimeout(t);
     }, [query, matches.length]);
 

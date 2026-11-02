@@ -19,6 +19,7 @@ vi.mock('../../guest/GuestContext', () => ({
 }));
 
 let searchParams = new URLSearchParams();
+
 vi.mock('react-router-dom', () => ({
     useNavigate: () => vi.fn(),
     useSearchParams: () => [searchParams],

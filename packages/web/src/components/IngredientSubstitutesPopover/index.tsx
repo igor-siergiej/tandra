@@ -11,6 +11,7 @@ interface IngredientSubstitutesPopoverProps {
 }
 
 type Status = 'idle' | 'loading' | 'success' | 'error';
+
 // fallow-ignore-next-line complexity
 const SubstitutesContent = ({
     status,
@@ -24,13 +25,16 @@ const SubstitutesContent = ({
     if (status === 'loading') {
         return <p className="text-sm text-muted-foreground">Thinking…</p>;
     }
+
     if (status === 'error') {
         return <p className="text-sm text-destructive">{errorMessage}</p>;
     }
+
     if (status === 'success') {
         if (substitutes.length === 0) {
             return <p className="text-sm text-muted-foreground">No substitutes found.</p>;
         }
+
         return (
             <ul className="text-sm space-y-1">
                 {substitutes.map((substitute) => (
@@ -39,6 +43,7 @@ const SubstitutesContent = ({
             </ul>
         );
     }
+
     return null;
 };
 
@@ -59,26 +64,35 @@ export const IngredientSubstitutesPopover = ({ ingredientName, recipeTitle }: In
     // [data-radix-popper-content-wrapper].
     useEffect(() => {
         if (!open) return;
+
         const handleScroll = (event: Event) => {
             if (event.target instanceof Element && event.target.closest('[data-radix-popper-content-wrapper]')) {
                 return;
             }
+
             setOpen(false);
         };
+
         window.addEventListener('scroll', handleScroll, { capture: true, passive: true });
+
         return () => window.removeEventListener('scroll', handleScroll, { capture: true });
     }, [open]);
 
     // fallow-ignore-next-line complexity
     const handleOpenChange = async (nextOpen: boolean) => {
         setOpen(nextOpen);
+
         if (!nextOpen || status !== 'idle') return;
+
         if (!ingredientSubstitutes) {
             setErrorMessage('Not available on this server');
             setStatus('error');
+
             return;
         }
+
         setStatus('loading');
+
         try {
             const result = await suggestIngredientSubstitutes(ingredientName, recipeTitle);
             setSubstitutes(result.substitutes);

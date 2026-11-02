@@ -43,6 +43,7 @@ interface PWAProviderProps {
 export const PWAProvider: React.FC<PWAProviderProps> = ({ children }) => {
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
     const [canInstall, setCanInstall] = useState(false);
+
     // Read on first render, not in an effect, so consumers never see a false `isInstalled` for a
     // frame inside an installed window.
     const [isInstalled, setIsInstalled] = useState(
@@ -50,6 +51,7 @@ export const PWAProvider: React.FC<PWAProviderProps> = ({ children }) => {
             window.matchMedia?.('(display-mode: standalone)').matches === true ||
             ('standalone' in navigator && navigator.standalone === true)
     );
+
     const [hasUpdate, setHasUpdate] = useState(false);
     const [shouldShowUpdateToast, setShouldShowUpdateToast] = useState(false);
     const [isUpdating, setIsUpdating] = useState(false);
@@ -81,6 +83,7 @@ export const PWAProvider: React.FC<PWAProviderProps> = ({ children }) => {
         onNeedRefresh() {
             setHasUpdate(true);
             const lastNotified = localStorage.getItem(UPDATE_NOTIFIED_KEY);
+
             if (!lastNotified || Date.now() - Number(lastNotified) > UPDATE_SNOOZE_MS) {
                 setShouldShowUpdateToast(true);
             }
@@ -90,8 +93,10 @@ export const PWAProvider: React.FC<PWAProviderProps> = ({ children }) => {
 
     const checkForUpdate = useCallback(async () => {
         const r = registrationRef.current;
+
         if (!r || isCheckingForUpdate) return;
         setIsCheckingForUpdate(true);
+
         try {
             await r.update();
         } finally {
@@ -101,10 +106,12 @@ export const PWAProvider: React.FC<PWAProviderProps> = ({ children }) => {
 
     const updateApp = useCallback(() => {
         localStorage.removeItem(UPDATE_NOTIFIED_KEY);
+
         if (toastIdRef.current !== null) {
             toast.dismiss(toastIdRef.current);
             toastIdRef.current = null;
         }
+
         setIsUpdating(true);
         updateServiceWorker(true);
     }, [updateServiceWorker]);

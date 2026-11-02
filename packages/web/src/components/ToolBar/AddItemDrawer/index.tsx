@@ -38,6 +38,7 @@ export const AddItemDrawer = ({ open, onOpenChange, onAdd, placeholder }: AddIte
 
         if (!trimmedName) {
             setError('Item name is required');
+
             return;
         }
 

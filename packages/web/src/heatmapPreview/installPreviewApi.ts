@@ -61,13 +61,16 @@ const methodOf = (input: RequestInfo | URL, init?: RequestInit): string =>
 const answerGet = (url: URL): Response => {
     for (const [pattern, responder] of GET_ROUTES) {
         const match = pattern.exec(url.pathname);
+
         if (match) return responder(match, url);
     }
+
     return notAvailable();
 };
 
 const respond = (url: URL, method: string): Response => {
     if (method === 'POST' && url.pathname === '/api/logs') return new Response(null, { status: 204 });
+
     return method === 'GET' ? answerGet(url) : notAvailable();
 };
 
@@ -77,7 +80,9 @@ export const installPreviewApi = (): void => {
     window.fetch = async (input, init) => {
         const url = urlOf(input);
         const ownApi = url.origin === window.location.origin && url.pathname.startsWith('/api/');
+
         if (!ownApi || PASSTHROUGH[url.pathname]) return realFetch(input, init);
+
         return respond(url, methodOf(input, init));
     };
 };

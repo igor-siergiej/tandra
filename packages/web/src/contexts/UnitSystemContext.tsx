@@ -12,9 +12,11 @@ const UnitSystemContext = createContext<UnitSystemContextType | undefined>(undef
 
 export const useUnitSystem = () => {
     const context = useContext(UnitSystemContext);
+
     if (context === undefined) {
         throw new Error('useUnitSystem must be used within a UnitSystemProvider');
     }
+
     return context;
 };
 
@@ -26,10 +28,12 @@ const isUnitSystem = (value: unknown): value is UnitSystem =>
 const getInitialUnitSystem = (): UnitSystem => {
     try {
         const stored = localStorage.getItem(STORAGE_KEY);
+
         if (isUnitSystem(stored)) return stored;
     } catch {
         // localStorage unavailable (private mode, disabled) — fall back to default.
     }
+
     return 'original';
 };
 
@@ -38,6 +42,7 @@ export const UnitSystemProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     const setUnitSystem = (system: UnitSystem) => {
         setUnitSystemState(system);
+
         try {
             localStorage.setItem(STORAGE_KEY, system);
         } catch (error) {

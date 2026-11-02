@@ -12,6 +12,7 @@ const app = (options?: { optional?: boolean }) => {
     a.post('/x', validateJson(schema, options), async (c) =>
         c.json({ received: await c.req.json().catch(() => null) })
     );
+
     return a;
 };
 

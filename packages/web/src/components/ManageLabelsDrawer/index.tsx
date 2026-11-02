@@ -21,8 +21,10 @@ export const ManageLabelsDrawer = ({ open, onOpenChange }: ManageLabelsDrawerPro
 
     const handleCreate = async () => {
         const trimmed = name.trim();
+
         if (!trimmed || isCreating) return;
         setIsCreating(true);
+
         try {
             await createLabel({ name: trimmed, color });
             setName('');

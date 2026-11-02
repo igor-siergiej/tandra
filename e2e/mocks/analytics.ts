@@ -44,5 +44,6 @@ export const mockAnalytics = async (page: Page): Promise<Array<CollectedHit>> =>
         hits.push(route.request().postDataJSON() as CollectedHit);
         await route.fulfill({ contentType: 'application/json', body: '{}' });
     });
+
     return hits;
 };

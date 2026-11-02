@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'bun:test';
 
 const mockParser = { parse: vi.fn() };
 const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
+
 const mockDependencyContainer = {
     resolve: vi.fn((token: string) => (token === 'ItemTextParser' ? mockParser : mockLogger)),
 };

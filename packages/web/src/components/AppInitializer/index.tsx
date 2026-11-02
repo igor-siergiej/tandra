@@ -28,14 +28,17 @@ const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
     useEffect(() => {
         if (!isLoading) return;
         const timer = setTimeout(() => setTimeoutReached(true), 10000);
+
         return () => clearTimeout(timer);
     }, [isLoading]);
 
     useEffect(() => {
         let stop = () => {};
+
         void outboxStore.hydrate().then(() => {
             stop = startDrainer();
         });
+
         return () => stop();
     }, []);
 
@@ -75,6 +78,7 @@ const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
     // No AnimatePresence exit here: waiting for the spinner to fade out held every cold load ~300ms before the page
     // even started fetching its chunk. The spinner goes at once; the content still fades in.
     if (isUpdating) return <LoadingPage />;
+
     if (isLoading) return <LoadingPage timeoutReached={timeoutReached} />;
 
     return (

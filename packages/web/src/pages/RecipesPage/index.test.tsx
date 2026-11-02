@@ -10,6 +10,7 @@ import RecipesPage from './index';
 
 vi.mock('../../hooks/useRecipeSearch', async () => {
     const actual = await vi.importActual<typeof import('../../hooks/useRecipeSearch')>('../../hooks/useRecipeSearch');
+
     return { useRecipeSearch: vi.fn(actual.useRecipeSearch) };
 });
 
@@ -55,6 +56,7 @@ vi.mock('../../components/ToolBar', () => ({
 
 const mockScrollTo = vi.fn();
 const mockScrollContainerRef = { current: { scrollTo: mockScrollTo, scrollHeight: 1234 } };
+
 vi.mock('../../contexts/ScrollContainerContext', () => ({
     useScrollContainer: () => mockScrollContainerRef,
 }));
@@ -207,6 +209,7 @@ describe('RecipesPage', () => {
             dateAdded: new Date(),
             coverImageKey: 'img-1',
         };
+
         const worseMatch: Recipe = {
             id: 'r2',
             title: 'Worse Match',
@@ -216,6 +219,7 @@ describe('RecipesPage', () => {
             dateAdded: new Date(),
             coverImageKey: 'img-2',
         };
+
         vi.mocked(useQuery).mockReturnValue({
             data: [bestMatch, worseMatch],
             isLoading: false,

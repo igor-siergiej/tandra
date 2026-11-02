@@ -35,7 +35,9 @@ const setup = (docs: DiscoveryRecipe[] = []) => {
                 })(),
         })),
     };
+
     const db = { getCollection: vi.fn(() => collection) };
+
     return { repo: new MongoDiscoveryRecipeRepository(db as never), collection, db };
 };
 
@@ -78,6 +80,7 @@ describe('MongoDiscoveryRecipeRepository', () => {
     it('streams the whole library in bounded batches, including the short final one', async () => {
         const { repo } = setup([recipe('a'), recipe('b'), recipe('c'), recipe('d'), recipe('e')]);
         const sizes: number[] = [];
+
         for await (const batch of repo.batches(2)) sizes.push(batch.length);
         expect(sizes).toEqual([2, 2, 1]);
     });
@@ -85,6 +88,7 @@ describe('MongoDiscoveryRecipeRepository', () => {
     it('yields nothing for an empty library', async () => {
         const { repo } = setup([]);
         const sizes: number[] = [];
+
         for await (const batch of repo.batches(2)) sizes.push(batch.length);
         expect(sizes).toEqual([]);
     });
@@ -139,6 +143,7 @@ describe('MongoDiscoveryRecipeRepository', () => {
         collection.find = vi.fn().mockReturnValue({
             sort: (s: unknown) => {
                 capturedSort = s;
+
                 return { limit: () => ({ toArray: async () => [] }) };
             },
         });
@@ -152,6 +157,7 @@ describe('MongoDiscoveryRecipeRepository', () => {
         const findCalls: unknown[][] = [];
         collection.find = vi.fn((filter: unknown) => {
             findCalls.push([filter]);
+
             return {
                 sort: () => ({ limit: () => ({ toArray: async () => [] }) }),
             };
@@ -170,12 +176,14 @@ describe('MongoDiscoveryRecipeRepository', () => {
 });
 
 type Doc = Record<string, unknown>;
+
 type Condition = { $ne?: unknown; $exists?: boolean; $in?: unknown[]; $nin?: unknown[]; $regex?: RegExp };
 
 // Just the query operators the slug backfill uses, with Mongo's meaning.
 const matchesCondition = (value: unknown, condition: unknown): boolean => {
     if (typeof condition !== 'object' || condition === null) return value === condition;
     const c = condition as Condition;
+
     return (
         (c.$ne === undefined || value !== c.$ne) &&
         (c.$exists === undefined || (value !== undefined) === c.$exists) &&
@@ -198,28 +206,35 @@ const libraryCollection = (docs: Doc[]) => ({
     ]),
     updateMany: vi.fn(async (filter: Doc, pipeline: Array<{ $set: Record<string, string> }>) => {
         let modifiedCount = 0;
+
         for (const doc of docs.filter((candidate) => matches(candidate, filter))) {
             const next = { ...doc };
+
             for (const stage of pipeline) {
                 for (const [field, path] of Object.entries(stage.$set)) next[field] = doc[path.replace(/^\$/, '')];
             }
+
             if (docs.some((other) => other !== doc && other.slug !== undefined && other.slug === next.slug)) {
                 throw Object.assign(new Error('E11000 duplicate key error collection: discoveryRecipes'), {
                     code: 11000,
                 });
             }
+
             Object.assign(doc, next);
             modifiedCount += 1;
         }
+
         return { modifiedCount };
     }),
 });
 
 describe('MongoDiscoveryRecipeRepository.assignWikibooksSlugs', () => {
     const doc = (id: string, source: string, slug?: string): Doc => ({ id, source, ...(slug && { slug }) });
+
     const setupLibrary = (docs: Doc[]) => {
         const collection = libraryCollection(docs);
         const repo = new MongoDiscoveryRecipeRepository({ getCollection: () => collection } as never);
+
         return { repo, collection, slugs: () => Object.fromEntries(docs.map((d) => [d.id, d.slug])) };
     };
 

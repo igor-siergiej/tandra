@@ -18,14 +18,17 @@ const handleImageResponse = async (
 ): Promise<string | null> => {
     if (!response.ok) {
         onError();
+
         return null;
     }
 
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
+
     if (isMounted) {
         onBlobUrl(url);
     }
+
     return url;
 };
 
@@ -60,6 +63,7 @@ export function useItemImage(itemName: string | null): UseItemImageReturn {
 
         return () => {
             isMounted = false;
+
             if (currentBlobUrl) {
                 URL.revokeObjectURL(currentBlobUrl);
             }

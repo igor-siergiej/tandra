@@ -126,6 +126,7 @@ describe('applyLabelIntent', () => {
             [],
             labelIntent('label.create', 'L1', { name: 'Home', color: '#fff', ownerId: 'user-1' })
         );
+
         expect(r[0]).toMatchObject({ id: 'L1', name: 'Home', color: '#fff', ownerId: 'user-1' });
     });
     it('label.update merges fields by id', () => {
@@ -161,6 +162,7 @@ describe('applyRecipeIntent', () => {
         const existing = [
             { id: 'R1', title: 'Pasta', ingredients: [], ownerId: 'user-1', users: [], dateAdded: new Date() },
         ];
+
         expect(
             applyRecipeIntent(existing as never, recipeIntent('recipe.update', 'R1', { title: 'Risotto' }))[0].title
         ).toBe('Risotto');
@@ -170,6 +172,7 @@ describe('applyRecipeIntent', () => {
             [],
             recipeIntent('recipe.create', 'R1', { title: 'Pasta', ownerId: 'user-1', tags: ['dinner', 'quick'] })
         );
+
         expect(r[0].tags).toEqual(['dinner', 'quick']);
     });
     it('recipe.update merges tags by id', () => {
@@ -184,6 +187,7 @@ describe('applyRecipeIntent', () => {
                 tags: ['dinner'],
             },
         ];
+
         expect(
             applyRecipeIntent(existing as never, recipeIntent('recipe.update', 'R1', { tags: ['dinner', 'quick'] }))[0]
                 .tags
@@ -201,22 +205,26 @@ describe('applyRecipeIntent', () => {
                 difficulty: 'easy',
             })
         );
+
         expect(r[0]).toMatchObject({ prepTime: 10, cookTime: 20, servings: 4, difficulty: 'easy' });
     });
     it('recipe.update merges prepTime, cookTime, servings and difficulty by id', () => {
         const existing = [
             { id: 'R1', title: 'Pasta', ingredients: [], ownerId: 'user-1', users: [], dateAdded: new Date() },
         ];
+
         const updated = applyRecipeIntent(
             existing as never,
             recipeIntent('recipe.update', 'R1', { prepTime: 15, cookTime: 25, servings: 6, difficulty: 'hard' })
         )[0];
+
         expect(updated).toMatchObject({ prepTime: 15, cookTime: 25, servings: 6, difficulty: 'hard' });
     });
     it('recipe.delete removes by id', () => {
         const existing = [
             { id: 'R1', title: 'Pasta', ingredients: [], ownerId: 'user-1', users: [], dateAdded: new Date() },
         ];
+
         expect(applyRecipeIntent(existing as never, recipeIntent('recipe.delete', 'R1'))).toHaveLength(0);
     });
 });

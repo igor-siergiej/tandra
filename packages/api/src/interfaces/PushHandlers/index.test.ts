@@ -51,8 +51,11 @@ describe('PushHandlers', () => {
         vi.clearAllMocks();
         mockDependencyContainer.resolve.mockImplementation((token: string) => {
             if (token === 'PushSubscriptionRepository') return mockRepo;
+
             if (token === 'Logger') return mockLogger;
+
             if (token === 'WebPushSender') return mockWebPushSender;
+
             return null;
         });
     });

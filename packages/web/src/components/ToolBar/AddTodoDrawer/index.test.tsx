@@ -51,6 +51,7 @@ describe('AddTodoDrawer', () => {
         const onAdd = vi.fn().mockResolvedValue(undefined);
         render(<AddTodoDrawer open onOpenChange={noop} onAdd={onAdd} labels={[]} />);
         const switches = await screen.findAllByRole('switch');
+
         for (const s of switches) expect(s).not.toBeChecked();
         fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Private' } });
         fireEvent.click(screen.getByRole('button', { name: 'Add Todo' }));

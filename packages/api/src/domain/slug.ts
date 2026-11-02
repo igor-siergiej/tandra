@@ -23,8 +23,11 @@ const asciiFor = (ch: string): string => {
         đ: 'd',
         ñ: 'n',
     };
+
     const lower = ch.toLowerCase();
+
     if (map[lower]) return map[lower];
+
     // Decompose accented characters and drop combining marks: "é" -> "e".
     return lower.normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
 };
@@ -35,7 +38,9 @@ export const slugify = (text: string): string => {
         .join('')
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '');
+
     if (!replaced) return 'untitled';
+
     return replaced.slice(0, MAX_LENGTH).replace(/-+$/g, '');
 };
 
@@ -59,13 +64,18 @@ export const uniqueSlug = async (
     if (existing?.startsWith(base) && !(await isTaken(existing))) {
         return existing;
     }
+
     // First try the bare base, then 2, 3, ... up to 9 999 (well past anything
     // the library could plausibly have).
     if (!(await isTaken(base))) return base;
+
     for (let n = 2; n < 10_000; n += 1) {
         const candidate = `${base}-${n}`;
+
         if (existing && candidate === existing) continue;
+
         if (!(await isTaken(candidate))) return candidate;
     }
+
     throw new Error(`Could not find a unique slug for "${base}" after 10 000 attempts`);
 };

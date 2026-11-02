@@ -80,6 +80,7 @@ describe('generateTimestamp', () => {
 
     it('should work with various days in month', () => {
         const testDays = [1, 5, 10, 15, 20, 25, 28, 31];
+
         for (const day of testDays) {
             const date = new Date(2025, 0, day, 12, 0, 0);
             const result = generateTimestamp(date);

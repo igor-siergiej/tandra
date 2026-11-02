@@ -23,6 +23,7 @@ const recipe = (id: string): DiscoveryRecipe => ({
 const setup = () => {
     const calls: string[] = [];
     const stored = new Map<string, DiscoveryRecipe>();
+
     const repository: DiscoveryRecipeRepository = {
         ensureIndexes: vi.fn(),
         getById: vi.fn(async (id: string) => stored.get(id) ?? null),
@@ -41,6 +42,7 @@ const setup = () => {
             yield [...stored.values()];
         }),
     };
+
     const index: DiscoveryIndex = {
         ensureIndex: vi.fn(),
         index: vi.fn(async () => {
@@ -59,10 +61,13 @@ const setup = () => {
         similar: vi.fn(async () => []),
         rebuild: vi.fn(async (batches) => {
             let n = 0;
+
             for await (const batch of batches) n += batch.length;
+
             return n;
         }),
     };
+
     return { service: new DiscoveryService(repository, index), repository, index, calls, stored };
 };
 
@@ -70,6 +75,7 @@ describe('search query normalisation', () => {
     const normalised = async (query: Parameters<DiscoveryService['search']>[0]) => {
         const { service, index } = setup();
         await service.search(query);
+
         return (index.search as ReturnType<typeof vi.fn>).mock.calls[0][0];
     };
 
@@ -79,6 +85,7 @@ describe('search query normalisation', () => {
             tags: [' Vegan ', 'vegan', '', 'Quick'],
             ingredients: [' olive oil ', ''],
         });
+
         expect(q).toMatchObject({ q: undefined, tags: ['vegan', 'quick'], ingredients: ['olive oil'], page: 1 });
         expect(q.difficulty).toEqual([]);
         expect(q.source).toEqual([]);

@@ -27,16 +27,20 @@ describe('DailyReminderScheduler', () => {
     it('schedules the reminder and runs it once per UK day on fire', async () => {
         const reminder = { sendDailyReminders: mock(async () => {}) };
         let captured: (() => void) | undefined;
+
         const schedule = mock((fn: () => void, _ms: number) => {
             captured = fn;
+
             return 0 as unknown as ReturnType<typeof setTimeout>;
         });
+
         let current = new Date('2026-06-25T06:00:00Z');
 
         const scheduler = new DailyReminderScheduler(reminder as never, {
             now: () => current,
             schedule: schedule as never,
         });
+
         scheduler.start();
         expect(schedule).toHaveBeenCalledTimes(1);
 
@@ -58,15 +62,20 @@ describe('DailyReminderScheduler', () => {
                 throw new Error('boom');
             }),
         };
+
         let captured: (() => void) | undefined;
+
         const schedule = mock((fn: () => void) => {
             captured = fn;
+
             return 0 as never;
         });
+
         const scheduler = new DailyReminderScheduler(reminder as never, {
             now: () => new Date('2026-06-25T07:30:00Z'),
             schedule: schedule as never,
         });
+
         scheduler.start();
         await expect(captured?.()).resolves.toBeUndefined();
         expect(schedule).toHaveBeenCalledTimes(2); // re-armed despite the error

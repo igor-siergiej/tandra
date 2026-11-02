@@ -22,12 +22,14 @@ const mergeTags = (manual: string[], aiTags: string[]): string[] => {
     const normalizedManual = manual.map(normalizeTag).filter(Boolean);
     const seen = new Set(normalizedManual);
     const merged = [...normalizedManual];
+
     for (const tag of aiTags.map(normalizeTag).filter(Boolean)) {
         if (!seen.has(tag)) {
             seen.add(tag);
             merged.push(tag);
         }
     }
+
     return merged;
 };
 
@@ -51,6 +53,7 @@ export class RecipeService {
         if (!this.substituter) {
             throw Object.assign(new Error('Ingredient substitution is not configured'), { status: 503 });
         }
+
         try {
             return await this.substituter.generateSubstitutes(ingredientName, recipeTitle);
         } catch (error) {
@@ -63,9 +66,11 @@ export class RecipeService {
     // fail or delay the create. Tags are added atomically so a concurrent edit is not overwritten.
     private async tagInBackground(recipe: Recipe, instructions?: string[]): Promise<void> {
         if (!this.tagger) return;
+
         try {
             const generated = await this.tagger.generateTags(recipe.title, recipe.ingredients, instructions);
             const fresh = mergeTags(recipe.tags ?? [], generated).slice((recipe.tags ?? []).length);
+
             if (fresh.length > 0) {
                 await this.recipeRepository.addTags(recipe.id, fresh);
             }
@@ -113,12 +118,15 @@ export class RecipeService {
         try {
             if (id) {
                 const existing = await this.recipeRepository.getById(id);
+
                 if (existing && existing.ownerId === ownerId) {
                     return existing; // idempotent replay
                 }
             }
+
             const users = await this.resolveSharedUsers(title, owner, selectedUsers);
             const mergedTags = mergeTags(tags ?? [], []);
+
             const recipe: Recipe = {
                 id: id ?? this.idGenerator.generate(),
                 title,
@@ -138,6 +146,7 @@ export class RecipeService {
                 ...(difficulty !== undefined && { difficulty }),
                 ...(attribution !== undefined && { attribution }),
             };
+
             const created = await this.recipeRepository.insert(recipe);
             void this.tagInBackground(created, instructions);
             this.logger?.info('Recipe created', {
@@ -146,6 +155,7 @@ export class RecipeService {
                 owner: owner.username,
                 ingredientCount: created.ingredients.length,
             });
+
             return created;
         } catch (error) {
             this.logger?.error('Failed to create recipe', {
@@ -159,11 +169,13 @@ export class RecipeService {
 
     async getRecipe(recipeId: string): Promise<Recipe> {
         const recipe = await this.recipeRepository.getById(recipeId);
+
         if (!recipe) {
             const error = new Error('Recipe not found');
             Object.assign(error, { status: 404 });
             throw error;
         }
+
         return recipe;
     }
 
@@ -186,11 +198,13 @@ export class RecipeService {
     ): Promise<Recipe> {
         try {
             const recipe = await this.getRecipe(recipeId);
+
             if (!this.authorizationService.isOwner(recipe, ownerId)) {
                 const error = new Error('Only recipe owner can update');
                 Object.assign(error, { status: 403 });
                 throw error;
             }
+
             recipe.title = title;
             recipe.ingredients = ingredients.map((ing) => ({
                 ...ing,
@@ -209,6 +223,7 @@ export class RecipeService {
                 recipeTitle: title,
                 ingredientCount: updated.ingredients.length,
             });
+
             return updated;
         } catch (error) {
             this.logger?.error('Failed to update recipe', {
@@ -223,11 +238,13 @@ export class RecipeService {
     async deleteRecipe(recipeId: string, userId: string): Promise<void> {
         try {
             const recipe = await this.getRecipe(recipeId);
+
             if (!this.authorizationService.isOwner(recipe, userId)) {
                 const error = new Error('Only recipe owner can delete');
                 Object.assign(error, { status: 403 });
                 throw error;
             }
+
             await this.recipeRepository.deleteById(recipeId);
             this.logger?.info('Recipe deleted', {
                 recipeId,
@@ -272,33 +289,39 @@ export class RecipeService {
             addedUser: friend.username,
             addedBy: requestingUserId,
         });
+
         return updated;
     }
 
     async removeUserFromRecipe(recipeId: string, userId: string, ownerId: string): Promise<Recipe> {
         try {
             const recipe = await this.getRecipe(recipeId);
+
             if (!this.authorizationService.canManageUsers(recipe, ownerId)) {
                 const error = new Error('Only recipe owner can remove users');
                 Object.assign(error, { status: 403 });
                 throw error;
             }
+
             if (userId === recipe.ownerId) {
                 const error = new Error('Cannot remove recipe owner');
                 Object.assign(error, { status: 400 });
                 throw error;
             }
+
             if (recipe.users.length === 1) {
                 const error = new Error('Cannot remove last user');
                 Object.assign(error, { status: 400 });
                 throw error;
             }
+
             const updated = await this.recipeRepository.removeUser(recipeId, userId);
             this.logger?.info('User removed from recipe', {
                 recipeId,
                 removedUserId: userId,
                 removedBy: ownerId,
             });
+
             return updated;
         } catch (error) {
             this.logger?.error('Failed to remove user from recipe', {
@@ -316,63 +339,77 @@ export class RecipeService {
             Object.assign(error, { status: 503 });
             throw error;
         }
+
         const recipe = await this.getRecipe(recipeId);
+
         if (!this.authorizationService.isOwner(recipe, userId)) {
             const error = new Error('Only recipe owner can regenerate image');
             Object.assign(error, { status: 403 });
             throw error;
         }
+
         // Generate at most once per recipe. If an AI image already exists, this is a no-op
         // (no paid API call); reverting the cover to it is handled by revertToAiImage.
         if (recipe.aiImageKey) {
             return recipe;
         }
+
         const key = await this.recipeImageService.generateRecipeImage(recipeId, recipe.title, recipe.ingredients);
         recipe.aiImageKey = key;
         recipe.coverImageKey = key;
+
         return this.recipeRepository.update(recipeId, recipe);
     }
 
     /** Point the cover back at the already-generated AI image. No generation, no API cost. */
     async revertToAiImage(recipeId: string, userId: string): Promise<Recipe> {
         const recipe = await this.getRecipe(recipeId);
+
         if (!this.authorizationService.isOwner(recipe, userId)) {
             const error = new Error('Only recipe owner can update image');
             Object.assign(error, { status: 403 });
             throw error;
         }
+
         // Backfill: legacy recipes stored the AI image under coverImageKey with no aiImageKey.
         const aiKey =
             recipe.aiImageKey ?? (recipe.coverImageKey?.startsWith('recipe-image/') ? recipe.coverImageKey : undefined);
+
         if (!aiKey) {
             const error = new Error('No AI image available to revert to');
             Object.assign(error, { status: 400 });
             throw error;
         }
+
         recipe.aiImageKey = aiKey;
         recipe.coverImageKey = aiKey;
+
         return this.recipeRepository.update(recipeId, recipe);
     }
 
     async setCoverImageKey(recipeId: string, coverImageKey: string, userId: string): Promise<Recipe> {
         try {
             const recipe = await this.getRecipe(recipeId);
+
             if (!this.authorizationService.isOwner(recipe, userId)) {
                 const error = new Error('Only recipe owner can update image');
                 Object.assign(error, { status: 403 });
                 throw error;
             }
+
             // Preserve a legacy AI image key (stored only in coverImageKey) before it is overwritten,
             // so the cover can later be reverted to it for free.
             if (!recipe.aiImageKey && recipe.coverImageKey?.startsWith('recipe-image/')) {
                 recipe.aiImageKey = recipe.coverImageKey;
             }
+
             recipe.coverImageKey = coverImageKey;
             const updated = await this.recipeRepository.update(recipeId, recipe);
             this.logger?.info('Recipe cover image updated', {
                 recipeId,
                 coverImageKey,
             });
+
             return updated;
         } catch (error) {
             this.logger?.error('Failed to update recipe cover image', {

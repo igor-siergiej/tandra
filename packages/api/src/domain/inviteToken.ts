@@ -13,13 +13,16 @@ const randomBytes = (size: number): Uint8Array => {
     // safe source for a secret token. Reject anything else rather than fall
     // back to a weaker source.
     crypto.getRandomValues(out);
+
     return out;
 };
 
 const base64UrlEncode = (bytes: Uint8Array): string => {
     let bin = '';
+
     for (const byte of bytes) bin += String.fromCharCode(byte);
     const b64 = btoa(bin);
+
     return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 };
 

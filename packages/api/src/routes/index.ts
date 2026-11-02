@@ -113,11 +113,13 @@ export const createRoutes = (): Hono<Vars> => {
     router.get('/api/lists/user/:userId', authenticate, getLists);
     const hub = dependencyContainer.resolve(DependencyToken.ListRealtimeHub);
     const listService = dependencyContainer.resolve(DependencyToken.ListService);
+
     const { issueListSocketTicket, connectListSocket } = createRealtimeHandlers({
         hub,
         tickets: dependencyContainer.resolve(DependencyToken.WsTicketStore),
         getList: (listTitle) => listService.getList(listTitle),
     });
+
     const resolveListId = async (listRef: string): Promise<string | undefined> => {
         try {
             return (await dependencyContainer.resolve(DependencyToken.ListService).getList(listRef)).id;
@@ -125,7 +127,9 @@ export const createRoutes = (): Hono<Vars> => {
             return undefined;
         }
     };
+
     const changed = notifyListChanged(hub, resolveListId);
+
     const removedMember = notifyListChanged(hub, resolveListId, (c, listId) =>
         hub.kick(listId, c.req.param('userId') ?? '')
     );
@@ -154,9 +158,11 @@ export const createRoutes = (): Hono<Vars> => {
 
     const conditionalImageAuth = async (c: Context<Vars>, next: Next) => {
         const name = c.req.param('name');
+
         if (name.startsWith('recipe-upload/') || name.startsWith('discovery-image/')) {
             return authenticate(c, next);
         }
+
         // Cached item images stay public; a session, when present, identifies who is paying for
         // a generation (ImageService refuses to generate without one).
         return optionalAuthenticate(c, next);
@@ -201,6 +207,7 @@ export const createRoutes = (): Hono<Vars> => {
         },
         dependencyContainer.resolve(DependencyToken.Logger)
     );
+
     router.get('/api/discover/recipes', authenticate, discovery.searchRecipes);
     router.get('/api/discover/recipes/:id/similar', authenticate, discovery.getSimilarRecipes);
     router.get('/api/discover/recipes/:id', authenticate, discovery.getRecipe);
@@ -230,6 +237,7 @@ export const createRoutes = (): Hono<Vars> => {
         { discovery: dependencyContainer.resolve(DependencyToken.DiscoveryService) },
         dependencyContainer.resolve(DependencyToken.Logger)
     );
+
     router.get('/api/public/discover/recipes', publicDiscoverCors, publicDiscovery.list);
     router.get('/api/public/discover/recipes/:slug', publicDiscoverCors, publicDiscovery.bySlug);
 
@@ -239,6 +247,7 @@ export const createRoutes = (): Hono<Vars> => {
         dependencyContainer.resolve(DependencyToken.ListInviteService),
         dependencyContainer.resolve(DependencyToken.Logger)
     );
+
     router.post('/api/lists/:title/invites', authenticate, listInvites.issue);
     router.get('/api/lists/invites', authenticate, listInvites.listMine);
     router.get('/api/lists/invites/:token', listInvites.preview);

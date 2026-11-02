@@ -4,6 +4,7 @@ import { CachedIngredientSubstituter } from './index';
 
 const setup = (options = {}) => {
     const inner = { generateSubstitutes: vi.fn().mockResolvedValue(['oat milk', 'soy milk']) };
+
     return { inner, cache: new CachedIngredientSubstituter(inner, options) };
 };
 

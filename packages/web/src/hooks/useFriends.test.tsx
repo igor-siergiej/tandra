@@ -8,6 +8,7 @@ import { useFriends, useRedeemFriendCode } from './useFriends';
 
 vi.mock('../api', async (importOriginal) => {
     const actual = await importOriginal<typeof api>();
+
     return { ...actual };
 });
 

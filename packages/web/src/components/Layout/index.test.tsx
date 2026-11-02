@@ -55,6 +55,7 @@ describe('Layout', () => {
                 <p>Content</p>
             </Layout>
         );
+
         const { container: wide } = renderAtPath(
             '/recipes',
             <Layout>
@@ -128,6 +129,7 @@ describe('Layout', () => {
                 <p>Content</p>
             </Layout>
         );
+
         const { container: useUp } = renderAtPath(
             '/recipes/use-up',
             <Layout>

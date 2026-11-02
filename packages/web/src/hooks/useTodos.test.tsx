@@ -16,6 +16,7 @@ vi.mock('../offline/drainer', () => ({ drainOutbox: vi.fn().mockResolvedValue(un
 
 vi.mock('../api', async (importOriginal) => {
     const actual = await importOriginal<typeof api>();
+
     return {
         ...actual,
         getTodosQuery: actual.getTodosQuery,
@@ -24,6 +25,7 @@ vi.mock('../api', async (importOriginal) => {
 
 const wrapper = ({ children }: { children: ReactNode }) => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
     return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 };
 
@@ -63,8 +65,10 @@ describe('useTodos', () => {
         const client = new QueryClient({
             defaultOptions: { queries: { retry: false, staleTime: Infinity } },
         });
+
         client.setQueryData(['todos'], []);
         vi.spyOn(api, 'getTodosQuery').mockReturnValue({ queryKey: ['todos'], queryFn: async () => [] } as never);
+
         const localWrapper = ({ children }: { children: ReactNode }) => (
             <QueryClientProvider client={client}>{children}</QueryClientProvider>
         );

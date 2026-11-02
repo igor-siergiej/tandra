@@ -34,6 +34,7 @@ export const useMigration = () => {
             try {
                 if (!user) {
                     logger.warn('Cannot migrate guest data: no signed-in user after authentication');
+
                     return;
                 }
 

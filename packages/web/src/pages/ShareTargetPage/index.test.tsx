@@ -12,7 +12,9 @@ const renderAt = (path: string) => {
         ],
         { initialEntries: [path] }
     );
+
     render(<RouterProvider router={router} />);
+
     return router;
 };
 

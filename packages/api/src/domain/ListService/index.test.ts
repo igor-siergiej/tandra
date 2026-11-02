@@ -41,6 +41,7 @@ class MockListRepository implements ListRepository {
         }
 
         this.lists[index] = list;
+
         return (list.revision ?? 0) + 1;
     }
 
@@ -54,8 +55,10 @@ class MockListRepository implements ListRepository {
 
     async setCategoryIfUnset(listId: string, itemId: string, category: ItemCategory): Promise<boolean> {
         const item = this.lists.find((l) => l.id === listId)?.items.find((i) => i.id === itemId);
+
         if (!item || item.category) return false;
         item.category = category;
+
         return true;
     }
 
@@ -240,6 +243,7 @@ describe('ListService', () => {
                     listType: ListType.SHOPPING,
                     ownerId: mockUser.id,
                 };
+
                 await mockRepository.insert(existing);
                 const insertSpy = vi.spyOn(mockRepository, 'insert');
 
@@ -821,6 +825,7 @@ describe('ListService', () => {
                     users: [mockUser],
                     ownerId: mockUser.id,
                 };
+
                 const mockList2: List = {
                     id: 'list-2',
                     title: 'Old Title',
@@ -926,6 +931,7 @@ describe('ListService', () => {
         describe('When no friend service is configured', () => {
             it('should throw a 403 error', async () => {
                 const serviceWithoutFriends = new ListService(mockRepository, mockIdGenerator);
+
                 const mockList: List = {
                     id: 'list-1',
                     title: 'Test List',
@@ -966,6 +972,7 @@ describe('ListService', () => {
             it('should throw a 400 error', async () => {
                 const existingUser: User = { id: 'friend-alice', username: 'user-friend-alice' };
                 friends.add(mockUser.id, existingUser.id);
+
                 const mockList: List = {
                     id: 'list-1',
                     title: 'Test List',
@@ -989,6 +996,7 @@ describe('ListService', () => {
         describe('When everything is valid', () => {
             it('should add the friend and return the updated list', async () => {
                 friends.add(mockUser.id, 'friend-2');
+
                 const mockList: List = {
                     id: 'list-1',
                     title: 'Test List',
@@ -1008,6 +1016,7 @@ describe('ListService', () => {
 
             it('rejects a non-friend by id (403) after allowing a friend', async () => {
                 friends.add(mockUser.id, 'friend-2');
+
                 const mockList: List = {
                     id: 'list-1',
                     title: 'Test List',
@@ -1042,6 +1051,7 @@ describe('ListService', () => {
         describe('When the requesting user is not the owner', () => {
             it('should throw a 403 error', async () => {
                 const otherUser: User = { id: 'user-2', username: 'user2' };
+
                 const mockList: List = {
                     id: 'list-1',
                     title: 'Test List',
@@ -1062,6 +1072,7 @@ describe('ListService', () => {
         describe('When trying to remove the owner', () => {
             it('should throw a 400 error', async () => {
                 const otherUser: User = { id: 'user-2', username: 'user2' };
+
                 const mockList: List = {
                     id: 'list-1',
                     title: 'Test List',
@@ -1101,6 +1112,7 @@ describe('ListService', () => {
         describe('When the user to remove is not in the list', () => {
             it('should throw a 400 error', async () => {
                 const otherUser: User = { id: 'user-2', username: 'user2' };
+
                 const mockList: List = {
                     id: 'list-1',
                     title: 'Test List',
@@ -1121,6 +1133,7 @@ describe('ListService', () => {
         describe('When everything is valid', () => {
             it('should remove the user and return the updated list', async () => {
                 const otherUser: User = { id: 'user-2', username: 'user2' };
+
                 const mockList: List = {
                     id: 'list-1',
                     title: 'Test List',
@@ -1350,6 +1363,7 @@ describe('ListService', () => {
 
 describe('Item id-addressing', () => {
     let service: ListService;
+
     let repo: {
         getByRef: Mock<(title: string) => Promise<List | null>>;
         replaceIfUnchanged: Mock<(title: string, list: List) => Promise<number | null>>;
@@ -1381,6 +1395,7 @@ describe('Item id-addressing', () => {
                 { id: 'a2', name: 'Milk', isSelected: false, dateAdded: new Date() },
             ],
         });
+
         repo.getByRef.mockResolvedValue(list);
         await service.setItemSelected('Test List', 'a2', true);
         const saved = repo.replaceIfUnchanged.mock.calls[0][1] as List;
@@ -1395,6 +1410,7 @@ describe('Item id-addressing', () => {
                 { id: 'a2', name: 'Bread', isSelected: false, dateAdded: new Date() },
             ],
         });
+
         repo.getByRef.mockResolvedValue(list);
         await service.deleteItem('Test List', 'a1');
         const saved = repo.replaceIfUnchanged.mock.calls[0][1] as List;
@@ -1403,6 +1419,7 @@ describe('Item id-addressing', () => {
 
     it('addItem uses caller-provided id when given', async () => {
         repo.getByRef.mockResolvedValue(makeList({ items: [] }));
+
         const item = await service.addItem(
             'Test List',
             'Eggs',
@@ -1412,6 +1429,7 @@ describe('Item id-addressing', () => {
             undefined,
             'client-uuid'
         );
+
         expect(item.id).toBe('client-uuid');
     });
 
@@ -1438,10 +1456,12 @@ describe('ListService notifications', () => {
             listType: ListType.SHOPPING,
             ownerId: 'u1',
         };
+
         const repo = {
             getByRef: async () => list,
             pushItem: async () => {},
         } as never;
+
         const idGenerator = { generate: () => 'i1' } as never;
         const notify = { notifyItemAdded: mock(async () => {}), notifyItemsAdded: mock(async () => {}) };
 
@@ -1597,6 +1617,7 @@ describe('ListService item categories', () => {
             await seedUncategorised();
             categorise.mockImplementation(async () => {
                 await service.setItemCategory('Groceries', 'i1', 'household');
+
                 return 'dairy';
             });
 

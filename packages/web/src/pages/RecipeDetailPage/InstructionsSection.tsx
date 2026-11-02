@@ -64,6 +64,7 @@ export const InstructionsSection = ({ instructions, isOwner, isEditing, onChange
                     onChange={(e) => setPasteText(e.target.value)}
                     onBlur={() => {
                         const parsed = splitIntoSteps(pasteText);
+
                         if (parsed.length > 0) {
                             onChange(parsed);
                             setShowPaste(false);

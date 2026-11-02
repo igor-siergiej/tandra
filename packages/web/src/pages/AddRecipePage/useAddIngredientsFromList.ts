@@ -19,6 +19,7 @@ const findList = (lists: ListResponse[], title: string | null): ListResponse | n
 const toggleInSet = (set: Set<string>, id: string): Set<string> => {
     const next = new Set(set);
     next.has(id) ? next.delete(id) : next.add(id);
+
     return next;
 };
 
@@ -41,6 +42,7 @@ export const useAddIngredientsFromList = (lists: ListResponse[], onAdd: (ingredi
 
     const setOpenState = (next: boolean) => {
         setOpen(next);
+
         if (!next) {
             setChosenListTitle(null);
             setSelectedIds(new Set());

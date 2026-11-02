@@ -72,6 +72,7 @@ describe('overdue marking', () => {
             endOfMonth(yesterday),
             ctx()
         );
+
         expect(selectedItems[0].overdue).toBe(true);
     });
 
@@ -84,6 +85,7 @@ describe('overdue marking', () => {
             endOfMonth(yesterday),
             ctx()
         );
+
         expect(selectedItems[0].overdue).toBe(false);
     });
 

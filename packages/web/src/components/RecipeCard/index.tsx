@@ -25,6 +25,7 @@ const RELATIVE_DATE_STEPS: Array<{ upToDays: number; format: (days: number) => s
 const relativeDate = (dateAdded: Date): string => {
     const daysAgo = Math.floor((Date.now() - new Date(dateAdded).getTime()) / MS_PER_DAY);
     const step = RELATIVE_DATE_STEPS.find(({ upToDays }) => daysAgo <= upToDays);
+
     return step ? step.format(daysAgo) : `${Math.round(daysAgo / 30)}mo ago`;
 };
 
@@ -41,6 +42,7 @@ const RecipeCardImage = ({ recipe }: { recipe: Recipe }) => {
     const { imageUrl, hasError } = useAuthedImage(recipe.coverImageKey);
 
     let content: React.ReactNode;
+
     if (hasError) {
         content = (
             <div className="absolute inset-0 flex items-center justify-center bg-muted/20 text-muted-foreground">
@@ -58,8 +60,10 @@ const RecipeCardImage = ({ recipe }: { recipe: Recipe }) => {
 
 const ingredientSummary = (recipe: Recipe): string => {
     const count = recipe.ingredients?.length ?? 0;
+
     return `${count} ${count === 1 ? 'ingredient' : 'ingredients'}`;
 };
+
 export const MetaChip = ({ icon: Icon, children }: { icon: typeof ListChecks; children: ReactNode }) => (
     <span className="inline-flex items-center gap-1">
         <Icon className="h-3.5 w-3.5" />
@@ -73,6 +77,7 @@ export const optionalTimeChip = (
     suffix: string
 ): { icon: typeof ListChecks; text: string } | null => {
     if (minutes === undefined) return null;
+
     return { icon, text: `${minutes}m ${suffix}` };
 };
 
@@ -80,6 +85,7 @@ export const optionalServingsChip = (
     servings: number | undefined
 ): { icon: typeof ListChecks; text: string } | null => {
     if (servings === undefined) return null;
+
     return {
         icon: Utensils,
         text: `${servings} ${servings === 1 ? 'serving' : 'servings'}`,
@@ -94,6 +100,7 @@ const recipeMetaChips = (recipe: Recipe): Array<{ icon: typeof ListChecks; text:
         optionalTimeChip(recipe.cookTime, Flame, 'cook'),
         optionalServingsChip(recipe.servings),
     ];
+
     return chips.filter((c): c is { icon: typeof ListChecks; text: string } => c !== null);
 };
 

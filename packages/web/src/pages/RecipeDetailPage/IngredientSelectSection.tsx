@@ -23,6 +23,7 @@ interface IngredientSelectSectionProps {
 export const IngredientSelectSection = ({ recipe, lists, onCancel, onConfirm }: IngredientSelectSectionProps) => {
     const { selectedIds, toggleIngredient, portions, setPortions, scaledIngredients, selectedScaledIngredients } =
         useIngredientSelection(recipe.ingredients, recipe.servings ?? 1);
+
     const [chosenList, setChosenList] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 

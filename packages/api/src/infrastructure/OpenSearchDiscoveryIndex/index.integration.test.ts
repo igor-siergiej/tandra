@@ -43,10 +43,12 @@ describe.skipIf(!url)('OpenSearchDiscoveryIndex (real OpenSearch)', () => {
     const wipe = async () => {
         await client.indices.delete({ index: 'discovery-recipes*' }, { ignore: [404] });
     };
+
     const load = async (...recipes: DiscoveryRecipe[]) => {
         for (const r of recipes) await index.index(r);
         await client.indices.refresh({ index: INDEX_ALIAS });
     };
+
     // Through the service, so queries are normalised exactly as the API does it.
     const service = new DiscoveryService({} as never, index);
     const search = (q: Parameters<DiscoveryService['search']>[0]) => service.search(q);
@@ -71,9 +73,11 @@ describe.skipIf(!url)('OpenSearchDiscoveryIndex (real OpenSearch)', () => {
 
     it('uses an explicit strict mapping: unknown fields are rejected instead of mapped dynamically', async () => {
         await index.ensureIndex();
+
         // The client returns a thenable, not a Promise, so `.rejects` cannot be used on it directly.
         const attempt = (async () =>
             client.index({ index: INDEX_ALIAS, id: 'x', body: { title: 'x', surprise: 'field' } }))();
+
         await expect(attempt).rejects.toThrow(/strict_dynamic_mapping_exception/);
     });
 
@@ -81,6 +85,7 @@ describe.skipIf(!url)('OpenSearchDiscoveryIndex (real OpenSearch)', () => {
         // Inside the `discovery-recipes*` pattern so `wipe` cleans it up too.
         const otherAlias = 'discovery-recipes-other';
         const other = new OpenSearchDiscoveryIndex(client as unknown as OpenSearchApi, undefined, otherAlias);
+
         const otherSearch = (q: Parameters<DiscoveryService['search']>[0]) =>
             new DiscoveryService({} as never, other).search(q);
 
@@ -375,6 +380,7 @@ describe.skipIf(!url)('OpenSearchDiscoveryIndex (real OpenSearch)', () => {
                 yield [recipe('partial')];
                 throw new Error('mongo went away');
             }
+
             await expect(index.rebuild(failing())).rejects.toThrow('mongo went away');
 
             expect(ids(await search({}))).toEqual(['live']);

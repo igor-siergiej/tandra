@@ -109,6 +109,7 @@ export const DayTodoList = ({ items, labels: _labels, ...handlers }: DayTodoList
     if (items.length === 0) {
         return <p className="text-sm text-muted-foreground py-4 text-center">No todos for this day</p>;
     }
+
     return (
         <ul className="space-y-2 py-2">
             {items.map((item) => (

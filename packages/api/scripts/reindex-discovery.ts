@@ -17,8 +17,11 @@ if (!config.get('opensearchUrl')) {
 }
 
 const database = dependencyContainer.resolve(DependencyToken.Database);
+
 await database.connect({ connectionUri: config.get('connectionUri'), databaseName: config.get('databaseName') });
 
 const count = await dependencyContainer.resolve(DependencyToken.DiscoveryService).reindex();
+
 console.log(`Reindexed ${count} library recipes.`);
+
 process.exit(0);

@@ -44,9 +44,12 @@ export class ListInviteService {
     /** Issue a fresh token for one of the caller's lists. TTL defaults to 7 days. */
     async issue(listTitle: string, owner: User, ttlMs: number = DEFAULT_INVITE_TTL_MS): Promise<IssuedInvite> {
         const list = await this.services.lists.getList(listTitle);
+
         if (!list) throw fail('List not found', 404);
+
         if (list.ownerId !== owner.id) throw fail('Only the list owner can invite', 403);
         const now = new Date();
+
         const invite: ListInvite = {
             token: generateInviteToken(),
             listTitle,
@@ -55,8 +58,10 @@ export class ListInviteService {
             createdAt: now,
             expiresAt: new Date(now.getTime() + ttlMs),
         };
+
         await this.services.invites.insert(invite);
         this.logger?.info('List invite issued', { listTitle, ownerId: owner.id, token: invite.token.slice(0, 8) });
+
         return {
             token: invite.token,
             listTitle: invite.listTitle,
@@ -69,8 +74,11 @@ export class ListInviteService {
     /** Owner-only: revoke an outstanding invite. Idempotent. */
     async revoke(token: string, owner: User): Promise<void> {
         const invite = await this.services.invites.getByToken(token);
+
         if (!invite) throw fail('Invite not found', 404);
+
         if (invite.ownerId !== owner.id) throw fail('Only the inviter can revoke', 403);
+
         if (invite.revokedAt) return;
         await this.services.invites.markRevoked(token, new Date());
         this.logger?.info('List invite revoked', { token: token.slice(0, 8), by: owner.id });
@@ -80,10 +88,12 @@ export class ListInviteService {
     // fallow-ignore-next-line complexity
     async preview(token: string, viewerId?: string): Promise<ListInvitePreview> {
         const invite = await this.services.invites.getByToken(token);
+
         if (!invite) throw fail('Invite not found', 404);
         const ownerUsername = invite.ownerUsername;
         const expired = invite.expiresAt.getTime() < Date.now();
         const isClosed = Boolean(invite.revokedAt || invite.claimedAt || expired);
+
         return {
             listTitle: invite.listTitle,
             ownerUsername,
@@ -101,13 +111,19 @@ export class ListInviteService {
     // fallow-ignore-next-line complexity
     async claim(token: string, claimer: User): Promise<{ listTitle: string; ownerId: string }> {
         const invite = await this.services.invites.getByToken(token);
+
         if (!invite) throw fail('Invite not found', 404);
+
         if (invite.revokedAt) throw fail('This invite has been revoked', 410);
+
         if (invite.claimedAt) throw fail('This invite has already been used', 410);
+
         if (invite.expiresAt.getTime() < Date.now()) throw fail('This invite has expired', 410);
+
         if (invite.ownerId === claimer.id) throw fail('You cannot accept your own invite', 400);
 
         const claimed = await this.services.invites.markClaimed(token, claimer.id, new Date());
+
         if (!claimed) throw fail('This invite has already been used', 410);
 
         await this.services.friends.createFriendship({ id: invite.ownerId, username: invite.ownerUsername }, claimer);
@@ -117,6 +133,7 @@ export class ListInviteService {
             ownerId: invite.ownerId,
             claimerId: claimer.id,
         });
+
         return { listTitle: invite.listTitle, ownerId: invite.ownerId };
     }
 
@@ -124,6 +141,7 @@ export class ListInviteService {
     async listOpenByOwner(ownerId: string): Promise<ListInvitePublic[]> {
         const now = new Date();
         const invites = await this.services.invites.listOpenByOwner(ownerId, now);
+
         return invites.map((invite) => ({
             token: invite.token,
             listTitle: invite.listTitle,

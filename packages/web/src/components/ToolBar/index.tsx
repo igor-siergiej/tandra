@@ -223,8 +223,10 @@ const ToolBar = ({
         if (isGuest) {
             exitGuestMode();
             navigate('/');
+
             return;
         }
+
         await logout();
         await clearUserData(queryClient);
         navigate('/login');
@@ -310,6 +312,7 @@ const ToolBar = ({
                                 actionsFab={<ActionsFab actionItems={actionItems} />}
                                 onMenuClick={() => {
                                     setIsMenuOpen(!isMenuOpen);
+
                                     if (!isMenuOpen) {
                                         setMenuActive(1);
                                     } else {

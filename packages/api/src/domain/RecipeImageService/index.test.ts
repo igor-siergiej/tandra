@@ -22,12 +22,15 @@ class MockImageStore {
 
     async getHeadObject(key: string) {
         this.calls.getHeadObject.push([key]);
+
         if (this.rejectedErrors.getHeadObject) throw this.rejectedErrors.getHeadObject;
+
         return this.resolvedValues.getHeadObject;
     }
 
     async putObject(key: string, buffer: unknown, options?: unknown) {
         this.calls.putObject.push([key, buffer, options]);
+
         if (this.rejectedErrors.putObject) throw this.rejectedErrors.putObject;
     }
 
@@ -48,6 +51,7 @@ class MockImageGenerator {
 
     async generateImage(prompt: string) {
         this.calls.push([prompt]);
+
         return this.resolvedValue;
     }
 

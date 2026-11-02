@@ -23,6 +23,7 @@ class FakeCollection {
     }
     find(q: { ownerId: string }) {
         const matched = this.docs.filter((d) => d.ownerId === q.ownerId);
+
         return { toArray: async () => matched };
     }
     async insertOne(doc: Label) {
@@ -30,6 +31,7 @@ class FakeCollection {
     }
     async findOneAndReplace(q: { id: string }, doc: Label) {
         const i = this.docs.findIndex((d) => d.id === q.id);
+
         if (i >= 0) this.docs[i] = doc;
     }
     async deleteOne(q: { id: string }) {

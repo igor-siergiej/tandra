@@ -62,6 +62,7 @@ const COUNT_UNIT_SYNONYMS: Record<string, true> = {
 
 const normalizeUnitForMerge = (unit?: string): string => {
     const trimmed = (unit ?? '').trim().toLowerCase();
+
     return COUNT_UNIT_SYNONYMS[trimmed] ? '' : trimmed;
 };
 
@@ -81,6 +82,7 @@ export const isMergeableIngredient = (a: MergeableIngredient, b: MergeableIngred
 // Sums two optional quantities, staying undefined only when neither side tracked one.
 export const resolveMergedQuantity = (existing?: number, incoming?: number): number | undefined => {
     if (existing === undefined && incoming === undefined) return undefined;
+
     return (existing ?? 0) + (incoming ?? 0);
 };
 

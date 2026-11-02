@@ -5,8 +5,10 @@ import { describe, expect, it, vi } from 'vitest';
 import UseUpIngredientPage from './index';
 
 const mockNavigate = vi.fn();
+
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+
     return { ...actual, useNavigate: () => mockNavigate };
 });
 
@@ -15,6 +17,7 @@ vi.mock('../../auth', () => ({
 }));
 
 let mockRecipes: unknown[] = [];
+
 vi.mock('@tanstack/react-query', () => ({
     useQuery: () => ({ data: mockRecipes }),
 }));

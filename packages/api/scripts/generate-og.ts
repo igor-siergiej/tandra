@@ -40,8 +40,11 @@ const svg = `
 `.trim();
 
 const buf = Buffer.from(svg);
+
 mkdirSync(dirname(OUT), { recursive: true });
 
 const png = await sharp(buf).png().toBuffer();
+
 writeFileSync(OUT, png);
+
 console.log(`Wrote ${OUT} (${png.length} bytes)`);

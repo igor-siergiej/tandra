@@ -49,11 +49,13 @@ export const useLoginForm = () => {
     // fallow-ignore-next-line complexity
     const onSubmit = async (data: LoginFormData) => {
         logger.info('Login attempt', { username: data.username });
+
         try {
             const { error } = await authClient.signIn.username({
                 username: data.username,
                 password: data.password,
             });
+
             if (error) throw new Error(authErrorMessage(error, 'Login failed'));
 
             const user = await refreshSession();

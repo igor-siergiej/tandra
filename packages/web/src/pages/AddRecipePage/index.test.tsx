@@ -9,8 +9,10 @@ import { generateRecipeAiImage, importRecipe, importRecipeImage, uploadRecipeIma
 import AddRecipePage from './index';
 
 const mockNavigate = vi.fn();
+
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+
     return { ...actual, useNavigate: () => mockNavigate };
 });
 
@@ -34,6 +36,7 @@ vi.mock('sonner', () => ({
 }));
 
 const mockCreateRecipe = vi.fn();
+
 vi.mock('../../hooks/useRecipeMutations', () => ({
     useRecipeMutations: () => ({
         createRecipe: mockCreateRecipe,
@@ -54,6 +57,7 @@ vi.mock('../../api', () => ({
 
 const renderPage = (initialEntry = '/recipes/new') => {
     const queryClient = new QueryClient();
+
     const result = render(
         <QueryClientProvider client={queryClient}>
             <MemoryRouter initialEntries={[initialEntry]}>
@@ -63,6 +67,7 @@ const renderPage = (initialEntry = '/recipes/new') => {
             </MemoryRouter>
         </QueryClientProvider>
     );
+
     return { ...result, queryClient };
 };
 
@@ -338,6 +343,7 @@ describe('AddRecipePage', () => {
             const image = Promise.withResolvers<File>();
             imageSignal = signal;
             signal?.addEventListener('abort', () => image.reject(new DOMException('Aborted', 'AbortError')));
+
             return image.promise;
         });
 
@@ -449,6 +455,7 @@ describe('AddRecipePage', () => {
         await enterManualMode();
         mockCreateRecipe.mockImplementation(async () => {
             mockRecipesData = [{ id: 'recipe-1', title: 'Pizza Margherita', ingredients: [] }];
+
             return 'recipe-1';
         });
 

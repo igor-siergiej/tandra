@@ -19,6 +19,7 @@ export class AuthorizationService {
         if (entity.ownerId) {
             return entity.ownerId === userId;
         }
+
         // Backward compatibility: assume first user is owner
         return entity.users?.[0]?.id === userId;
     }
@@ -44,6 +45,7 @@ export class AuthorizationService {
         if (list.ownerId) {
             return list.ownerId;
         }
+
         return list.users?.[0]?.id || null;
     }
 }

@@ -39,6 +39,7 @@ export class MongoListInviteRepository implements ListInviteRepository {
             { $set: { claimedBy: userId, claimedAt: at } },
             { returnDocument: 'after' }
         );
+
         return (result ?? null) as ListInvite | null;
     }
 

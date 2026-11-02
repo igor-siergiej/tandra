@@ -24,6 +24,7 @@ export const useLabels = () => {
             payload,
             createdAt: Date.now(),
         };
+
         queryClient.setQueryData<Label[]>(['labels'], (old) => applyLabelIntent(old ?? [], intent as OutboxIntent));
         await outboxStore.enqueue(intent);
         void drainOutbox();

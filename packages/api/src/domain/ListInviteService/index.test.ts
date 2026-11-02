@@ -29,6 +29,7 @@ const fakeInvite = (over: Partial<ListInvite> = {}): ListInvite => ({
 
 const setup = (initialInvites: ListInvite[] = []) => {
     const invites: ListInvite[] = [...initialInvites];
+
     const invitesRepo: ListInviteRepository = {
         ensureIndexes: async () => {},
         insert: async (invite) => {
@@ -37,13 +38,16 @@ const setup = (initialInvites: ListInvite[] = []) => {
         getByToken: async (token) => invites.find((i) => i.token === token) ?? null,
         markClaimed: async (token, userId, at) => {
             const existing = invites.find((i) => i.token === token);
+
             if (!existing || existing.claimedAt) return null;
             existing.claimedBy = userId;
             existing.claimedAt = at;
+
             return existing;
         },
         markRevoked: async (token, at) => {
             const existing = invites.find((i) => i.token === token);
+
             if (existing && !existing.revokedAt) existing.revokedAt = at;
         },
         listOpenByOwner: async (ownerId) =>
@@ -53,23 +57,29 @@ const setup = (initialInvites: ListInvite[] = []) => {
                 )
                 .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
     };
+
     const list = {
         id: 'l1',
         title: 'Groceries',
         ownerId: 'user-a',
         users: [{ id: 'user-a', username: 'alice' }],
     } as never;
+
     const lists: Pick<ListService, 'getList' | 'addInvitedUser'> = {
         getList: async () => list,
         addInvitedUser: async (_title, claimer, _ownerId) => {
             (list as { users: unknown[] }).users.push(claimer);
+
             return list;
         },
     };
+
     const friends: Pick<FriendService, 'createFriendship'> = {
         createFriendship: async () => ({}) as never,
     };
+
     const service = new ListInviteService({ invites: invitesRepo, lists, friends }, noopLogger);
+
     return { service, invites, invitesRepo, list, lists, friends };
 };
 
@@ -169,8 +179,10 @@ describe('ListInviteService.claim', () => {
         let created = { a: '', b: '' };
         friends.createFriendship = async (a, b) => {
             created = { a: a.id, b: b.id };
+
             return {} as never;
         };
+
         const result = await service.claim('token-abc', FAKE_USER_B);
         expect(result.listTitle).toBe('Groceries');
         expect(invites[0]?.claimedBy).toBe('user-b');
@@ -187,17 +199,20 @@ describe('ListInviteService.listOpenByOwner', () => {
             createdAt: new Date('2026-01-01'),
             expiresAt: new Date(Date.now() + 60_000),
         });
+
         const newer = fakeInvite({
             token: 'new',
             createdAt: new Date('2026-02-01'),
             expiresAt: new Date(Date.now() + 60_000),
         });
+
         const revoked = fakeInvite({
             token: 'rev',
             createdAt: new Date('2026-01-15'),
             expiresAt: new Date(Date.now() + 60_000),
             revokedAt: new Date(),
         });
+
         const { service } = setup([older, newer, revoked]);
         const items: ListInvitePublic[] = await service.listOpenByOwner('user-a');
         expect(items.map((i) => i.token)).toEqual(['new', 'old']);

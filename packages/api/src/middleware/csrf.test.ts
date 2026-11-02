@@ -18,6 +18,7 @@ const appWithCsrf = () => {
     app.post('/api/lists/:title/invites', (c) => c.json({ ok: true }, 201));
     app.delete('/api/lists/:title/invites/:token', (c) => c.body(null, 204));
     app.put('/api/lists', (c) => c.json({ ok: true }, 201));
+
     return app;
 };
 
@@ -28,6 +29,7 @@ describe('csrfForFormPosts', () => {
             headers: { Origin: 'https://evil.example', 'Content-Type': 'application/x-www-form-urlencoded' },
             body: 'title=evil',
         });
+
         expect(res.status).toBe(403);
     });
 
@@ -37,6 +39,7 @@ describe('csrfForFormPosts', () => {
             headers: { Origin: 'https://evil.example', 'Content-Type': 'multipart/form-data; boundary=x' },
             body: '--x--',
         });
+
         expect(res.status).toBe(403);
     });
 
@@ -46,6 +49,7 @@ describe('csrfForFormPosts', () => {
             headers: { Origin: 'http://localhost:4000', 'Content-Type': 'application/x-www-form-urlencoded' },
             body: 'title=ok',
         });
+
         expect(res.status).toBe(201);
     });
 
@@ -75,6 +79,7 @@ describe('csrfForFormPosts', () => {
             },
             body: 'title=evil',
         });
+
         expect(res.status).toBe(403);
     });
 });

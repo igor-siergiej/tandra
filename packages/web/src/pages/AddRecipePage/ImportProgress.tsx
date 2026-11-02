@@ -31,9 +31,11 @@ const StageIcon = ({ status }: { status: StageStatus }) => {
     if (status === 'done') {
         return <Check className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />;
     }
+
     if (status === 'active') {
         return <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden="true" />;
     }
+
     return <span className="ml-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/40" aria-hidden="true" />;
 };
 

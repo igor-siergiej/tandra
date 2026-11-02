@@ -23,6 +23,7 @@ export default defineConfig(({ mode }) => {
     const releaseNotes = JSON.parse(fs.readFileSync('./src/data/release-notes.json', 'utf8')) as Array<{
         version: string;
     }>;
+
     const latestRelease = releaseNotes[0]?.version ?? '';
 
     return {
@@ -143,16 +144,21 @@ export default defineConfig(({ mode }) => {
 // mirror sits *before* Vite's SPA fallback middleware and short-circuits them.
 function spaNotFoundMirror(paths: string[]): Plugin {
     const exact = new Set(paths);
+
     const middleware: Connect.NextHandleFunction = (req, res, next) => {
         const url = req.url ? req.url.split('?')[0] : '';
+
         if (exact.has(url) || url.startsWith('/.well-known/')) {
             res.statusCode = 404;
             res.setHeader('content-type', 'text/plain');
             res.end('Not Found');
+
             return;
         }
+
         next();
     };
+
     return {
         name: 'spa-not-found-mirror',
         // Run before Vite's built-in SPA fallback.
@@ -175,10 +181,13 @@ function robotsTxtMirror(): Plugin {
             res.statusCode = 200;
             res.setHeader('content-type', 'text/plain');
             res.end('User-agent: *\nDisallow: /\n');
+
             return;
         }
+
         next();
     };
+
     return {
         name: 'robots-txt-mirror',
         configureServer: (server) => {

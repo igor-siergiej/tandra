@@ -27,6 +27,7 @@ import { installWebMcpOriginTrialToken } from './webmcp/originTrial';
 if (isHeatmapPreview) installPreviewApi();
 
 applyManifestForTheme();
+
 installWebMcpOriginTrialToken(import.meta.env.VITE_WEBMCP_OT_TOKEN, __IS_PROD__);
 
 const lazyLoadPage = (importFn: () => Promise<unknown>, fallbackName: string) =>

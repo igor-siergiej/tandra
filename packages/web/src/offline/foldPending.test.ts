@@ -71,9 +71,11 @@ describe('foldPendingLists', () => {
             payload: { title: 'Groceries', listType: 'shopping', ownerId: 'user-1' },
             createdAt: 0,
         });
+
         const server = [
             { id: 'S1', title: 'Existing', dateAdded: new Date(), items: [], users: [], listType: 'shopping' },
         ];
+
         const folded = foldPendingLists('user-1', server as never);
         expect(folded.map((l) => l.id)).toEqual(['S1', 'L1']);
     });
@@ -88,9 +90,11 @@ describe('foldPendingLists', () => {
             payload: { title: 'X' },
             createdAt: 0,
         });
+
         const server = [
             { id: 'S1', title: 'Existing', dateAdded: new Date(), items: [], users: [], listType: 'shopping' },
         ];
+
         expect(foldPendingLists('user-1', server as never)).toHaveLength(1);
     });
 });
@@ -160,9 +164,11 @@ describe('foldPendingRecipes', () => {
             payload: { title: 'Pasta', ownerId: 'user-1' },
             createdAt: 0,
         });
+
         const server = [
             { id: 'S1', title: 'Soup', ingredients: [], ownerId: 'user-1', users: [], dateAdded: new Date() },
         ];
+
         expect(foldPendingRecipes('user-1', server as never).map((r) => r.id)).toEqual(['S1', 'R1']);
     });
 });
@@ -181,6 +187,7 @@ describe('foldPendingRecipe', () => {
             payload: { title: 'New Title' },
             createdAt: 0,
         });
+
         const server = {
             id: 'R1',
             title: 'Old Title',
@@ -189,6 +196,7 @@ describe('foldPendingRecipe', () => {
             users: [],
             dateAdded: new Date(),
         };
+
         expect(foldPendingRecipe('R1', server as never).title).toBe('New Title');
     });
     it('returns the recipe unchanged when no pending intent targets it', async () => {
@@ -201,6 +209,7 @@ describe('foldPendingRecipe', () => {
             payload: { title: 'Nope' },
             createdAt: 0,
         });
+
         const server = {
             id: 'R1',
             title: 'Old Title',
@@ -209,6 +218,7 @@ describe('foldPendingRecipe', () => {
             users: [],
             dateAdded: new Date(),
         };
+
         expect(foldPendingRecipe('R1', server as never).title).toBe('Old Title');
     });
 });

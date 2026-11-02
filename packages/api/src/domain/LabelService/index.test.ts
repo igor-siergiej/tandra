@@ -8,6 +8,7 @@ class MockLabelRepo {
     store = new Map<string, Label>();
     async insert(l: Label) {
         this.store.set(l.id, l);
+
         return l;
     }
     async getById(id: string) {
@@ -18,6 +19,7 @@ class MockLabelRepo {
     }
     async update(id: string, l: Label) {
         this.store.set(id, l);
+
         return l;
     }
     async deleteById(id: string) {
@@ -36,6 +38,7 @@ class MockIds {
     private n = 0;
     generate() {
         this.n += 1;
+
         return `L-${this.n}`;
     }
 }

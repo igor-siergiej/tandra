@@ -124,6 +124,7 @@ describe('collectNotes', () => {
             '',
             'Release-Notes: Toasts appear at the top.',
         ].join('\n');
+
         const published = new Set(['recipe cards show times.', 'the friend picker keeps the keyboard open.']);
 
         expect(collectNotes([commit('fix(web): toasts (#182)', body)], published)).toEqual([
@@ -173,6 +174,7 @@ describe('parseCommits', () => {
 describe('upsertRelease', () => {
     it('replaces an existing version instead of duplicating it', () => {
         const releases = [{ version: '1.2.0', date: '2026-01-01', notes: [{ type: 'fix', text: 'Old' }] }];
+
         const updated = upsertRelease(releases, {
             version: '1.2.0',
             date: '2026-01-02',
@@ -187,6 +189,7 @@ describe('upsertRelease', () => {
             { version: '1.9.0', date: '2026-01-01', notes: [] },
             { version: '1.10.0', date: '2026-01-02', notes: [] },
         ];
+
         const updated = upsertRelease(releases, { version: '1.10.1', date: '2026-01-03', notes: [] });
 
         expect(updated.map((release) => release.version)).toEqual(['1.10.1', '1.10.0', '1.9.0']);

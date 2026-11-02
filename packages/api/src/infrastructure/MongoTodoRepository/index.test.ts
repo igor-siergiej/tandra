@@ -25,8 +25,10 @@ class FakeCollection {
     find(q: { ownerId?: string }) {
         const matched = this.docs.filter((d) => {
             if (q.ownerId !== undefined && d.ownerId !== q.ownerId) return false;
+
             return true;
         });
+
         return { toArray: async () => matched };
     }
     async insertOne(doc: Todo) {
@@ -34,6 +36,7 @@ class FakeCollection {
     }
     async findOneAndReplace(q: { id: string }, doc: Todo) {
         const i = this.docs.findIndex((d) => d.id === q.id);
+
         if (i >= 0) this.docs[i] = doc;
     }
     async deleteOne(q: { id: string }) {
@@ -97,9 +100,11 @@ describe('MongoTodoRepository', () => {
 
     it('findDueCandidates queries incomplete todos due on or before today (day string)', async () => {
         const mockFind = mock(() => ({ toArray: async () => [] }));
+
         const mockDb = {
             getCollection: () => ({ find: mockFind }),
         } as never;
+
         const testRepo = new MongoTodoRepository(mockDb);
 
         await testRepo.findDueCandidates('2026-06-25');

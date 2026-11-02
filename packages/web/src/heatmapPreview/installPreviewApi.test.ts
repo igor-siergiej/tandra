@@ -25,6 +25,7 @@ describe('installPreviewApi', () => {
 
     it('refuses writes and unknown api routes instead of forwarding them', async () => {
         const write = await fetch('/api/lists/abc/items', { method: 'PUT', body: '{}' });
+
         const unknown = await fetch(
             new Request(`${window.location.origin}/api/lists/abc/socket-ticket`, { method: 'POST' })
         );

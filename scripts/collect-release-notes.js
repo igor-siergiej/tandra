@@ -43,6 +43,7 @@ const USER_FACING_TYPES = {
 
 const HEADER_PATTERN = /^(\w+)(?:\(([^)]*)\))?(!)?:\s*(.+)$/;
 const TRAILER_PATTERN = /^release-notes:[ \t]*(.*)$/i;
+
 /** Any other `Token: value` trailer line, which terminates a Release-Notes block. */
 const OTHER_TRAILER_PATTERN = /^[A-Za-z][A-Za-z-]*:[ \t]/;
 
@@ -109,6 +110,7 @@ export const commitToNotes = (commit) => {
     const header = parseHeader(commit.subject);
 
     if (!header) return [];
+
     // Release commits are semantic-release's own bookkeeping, never a note.
     if (header.type === 'chore' && header.scope === 'release') return [];
 
@@ -116,6 +118,7 @@ export const commitToNotes = (commit) => {
     const type = USER_FACING_TYPES[header.type];
 
     if (trailers.length > 0) return trailers.map((text) => ({ type: type ?? 'improvement', text }));
+
     if (!type) return [];
 
     return [{ type, text: tidySubject(header.description) }];

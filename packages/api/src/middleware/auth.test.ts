@@ -13,6 +13,7 @@ const createMockContext = (
     requestHeaders: Record<string, string> = {}
 ): Context<AuthVars> => {
     const allHeaders = { ...headers, ...requestHeaders };
+
     const req = new Request('http://localhost/', {
         headers: allHeaders,
     });
@@ -52,6 +53,7 @@ describe('authenticate middleware with Better Auth session', () => {
         username?: string;
         displayUsername?: string;
     }
+
     const buildAuth = (): { auth: Auth; db: { user: UserRow[] } } => {
         const db: Record<string, unknown[]> = {
             user: [],
@@ -60,13 +62,16 @@ describe('authenticate middleware with Better Auth session', () => {
             verification: [],
             rateLimit: [],
         };
+
         const memoryAuthDb = memoryAdapter(db) as unknown as AuthDatabase;
+
         const auth = createAuth({
             database: memoryAuthDb,
             secret: 'test-secret-test-secret-test-secret-123',
             baseURL: 'http://localhost:4000',
             trustedOrigins: ['http://localhost:4000'],
         });
+
         return { auth, db: db as unknown as { user: UserRow[] } };
     };
 
@@ -77,9 +82,12 @@ describe('authenticate middleware with Better Auth session', () => {
             body: { email: 'x@y.z', name: 'Alice', password: 'password123', username: 'Alice' },
             asResponse: true,
         });
+
         const setCookie = signUp.headers.get('set-cookie');
+
         if (!setCookie) throw new Error('sign-up did not set the session cookie');
         const userId = ((await signUp.json()) as { user: { id: string } }).user.id;
+
         return { cookieHeader: setCookie.split(';')[0], userId, username: 'Alice' };
     };
 
@@ -104,6 +112,7 @@ describe('authenticate middleware with Better Auth session', () => {
     it('returns 403 username_required when the session user has no username yet', async () => {
         const { auth, db } = buildAuth();
         __setAuthGetterForTests(() => auth);
+
         // Sign up normally so Better Auth hands back a properly-signed session cookie, then
         // mutate the in-memory user row to clear its username — Better Auth's username
         // validation hook rejects an empty username over its HTTP/adapter surface, but the
@@ -118,14 +127,18 @@ describe('authenticate middleware with Better Auth session', () => {
             },
             asResponse: true,
         });
+
         const cookieHeader = signUp.headers.get('set-cookie')?.split(';')[0];
+
         if (!cookieHeader) throw new Error('sign-up did not set the session cookie');
         const userId = ((await signUp.json()) as { user: { id: string } }).user.id;
         const target = db.user.find((u) => u.id === userId);
+
         if (target) {
             delete target.username;
             delete target.displayUsername;
         }
+
         const reqCtx = createMockContext({}, { cookie: cookieHeader });
         const result = await authenticate(reqCtx, mockNext);
 

@@ -51,6 +51,7 @@ const RecipeDetailPage = () => {
     const queryClient = useQueryClient();
     const { updateRecipe, deleteRecipe } = useRecipeMutations(user ?? undefined);
     const { confirm, isOpen, config: confirmConfig, handleConfirm, handleCancel } = useConfirmation();
+
     const { addUserMutation, removeUserMutation } = useManageRecipeUsers({
         recipeId: recipeId ?? '',
         userId: user?.id ?? '',
@@ -160,8 +161,10 @@ const RecipeDetailPage = () => {
     // fallow-ignore-next-line complexity
     const handleSaveAll = async () => {
         if (!recipe) return;
+
         if (!editedTitle.trim()) {
             notifyError('Recipe title is required');
+
             return;
         }
 
@@ -210,6 +213,7 @@ const RecipeDetailPage = () => {
                 recipe.difficulty
             );
             await refetch();
+
             if (!options?.silent) notifySuccess('Ingredients updated');
             logger.info('Recipe ingredients updated', { recipeId, ingredientCount: ingredients.length });
         } catch (error) {

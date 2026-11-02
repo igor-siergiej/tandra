@@ -18,6 +18,7 @@ export interface EditTodoDrawerProps {
 
 const parseDay = (day: string): Date => {
     const [year, month, date] = day.split('-').map(Number);
+
     return new Date(year, month - 1, date);
 };
 
@@ -37,10 +38,13 @@ const EditTodoForm = ({ todo, labels, onSave, onDone }: EditTodoFormProps) => {
 
     const handleSave = async () => {
         const trimmed = title.trim();
+
         if (!trimmed) {
             setError('Title is required');
+
             return;
         }
+
         await onSave(todo.id, buildUpdateBody(todo, { title: trimmed, dueDate, time, labelId, recurrence }));
         onDone();
     };

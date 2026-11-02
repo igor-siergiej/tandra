@@ -93,6 +93,7 @@ test.describe('Portions scaling', () => {
         const recipe = await apiCreateRecipe('Soup', [{ name: 'Carrot', quantity: 2, unit: 'cups' }], [], {
             servings: 4,
         });
+
         await apiCreateList('Groceries');
         await authenticatedPage.goto(`/recipes/${recipe.id}`);
 

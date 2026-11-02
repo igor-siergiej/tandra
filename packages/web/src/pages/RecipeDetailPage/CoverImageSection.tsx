@@ -20,6 +20,7 @@ const useImageAction = (onImageChange?: () => void) => {
 
     const run = async (action: () => Promise<unknown>, success: string, fallbackError: string) => {
         setIsBusy(true);
+
         try {
             await action();
             notifySuccess(success);
@@ -53,12 +54,15 @@ const CoverImagePreview = ({
             </div>
         );
     }
+
     if (imageUrl) {
         return <img src={imageUrl} alt={alt} className="h-full w-full object-cover" />;
     }
+
     if (showSkeleton) {
         return <Skeleton className="absolute inset-0 h-full w-full rounded-none" />;
     }
+
     return null;
 };
 
@@ -66,6 +70,7 @@ type ImageAction = ReturnType<typeof useImageAction>;
 
 const RevertButton = ({ recipe, isBusy, run }: { recipe: Recipe } & ImageAction) => {
     if (!recipe.aiImageKey || recipe.coverImageKey === recipe.aiImageKey) return null;
+
     return (
         <Button
             type="button"
@@ -86,6 +91,7 @@ const UploadButton = ({ recipe, isBusy, run }: { recipe: Recipe } & ImageAction)
 
     const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
+
         if (!file) return;
         await run(() => uploadRecipeImage(recipe.id, file), 'Image uploaded successfully', 'Failed to upload image');
     };
@@ -120,6 +126,7 @@ const UploadButton = ({ recipe, isBusy, run }: { recipe: Recipe } & ImageAction)
 
 const OwnerControls = ({ recipe, onImageChange }: { recipe: Recipe; onImageChange?: () => void }) => {
     const action = useImageAction(onImageChange);
+
     return (
         <div className="absolute bottom-3 right-3 z-10 flex gap-2">
             <RevertButton recipe={recipe} {...action} />

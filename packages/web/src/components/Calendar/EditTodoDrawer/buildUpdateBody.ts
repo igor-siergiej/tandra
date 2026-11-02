@@ -16,5 +16,6 @@ export const buildUpdateBody = (todo: Todo, { dueDate, ...rest }: EditValues): U
     const values = { ...rest, dueDate: dueDate ? isoDay(dueDate) : undefined };
     const clear = CLEARABLE.filter((field) => !values[field] && todo[field]);
     const defined = Object.fromEntries(Object.entries(values).filter(([, value]) => value));
+
     return clear.length > 0 ? { ...defined, clear } : defined;
 };

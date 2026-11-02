@@ -58,6 +58,7 @@ describe('occursOn', () => {
             dueDate: '2026-06-01',
             recurrence: { freq: 'daily', interval: 1, until: '2026-06-10' },
         };
+
         expect(occursOn(todo, at('2026-06-25T09:00:00Z'))).toBe(false);
     });
 
@@ -68,6 +69,7 @@ describe('occursOn', () => {
             recurrence: { freq: 'daily', interval: 1 },
             completedDates: ['2026-06-25'],
         };
+
         expect(occursOn(todo, at('2026-06-25T09:00:00Z'))).toBe(false);
     });
 

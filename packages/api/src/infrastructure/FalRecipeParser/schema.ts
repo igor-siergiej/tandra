@@ -13,14 +13,19 @@ const ingredientSchema = z
     // fallow-ignore-next-line complexity
     .transform((raw, ctx) => {
         const name = raw.name.trim();
+
         if (!name) {
             ctx.addIssue({ code: 'custom', message: 'ingredient has no name' });
+
             return z.NEVER;
         }
+
         if (raw.quantity === undefined) {
             return { name };
         }
+
         const unit = raw.unit?.trim() || 'pcs';
+
         return { name, quantity: raw.quantity, unit };
     });
 

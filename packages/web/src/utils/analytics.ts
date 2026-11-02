@@ -56,6 +56,7 @@ let pending: Array<[string, EventPayload]> = [];
 const flushPending = (): void => {
     const queued = pending;
     pending = [];
+
     for (const [event, data] of queued) window.umami?.track(event, data);
 };
 
@@ -65,6 +66,7 @@ const appendScript = (src: string, websiteId: string, onLoad?: () => void): void
     script.defer = true;
     script.dataset.websiteId = websiteId;
     script.src = src;
+
     if (onLoad) script.addEventListener('load', onLoad);
     document.head.appendChild(script);
 };
@@ -94,13 +96,16 @@ const redactAnalyticsRequests = (base: string): void => {
     window.fetch = (input, init) => {
         // Both scripts post a JSON string to a string URL; a Request stringifies to `[object Request]` and is left alone.
         const body = init?.body;
+
         if (!endpoints[String(input)] || typeof body !== 'string') return realFetch(input, init);
+
         return realFetch(input, { ...init, body: redactListPaths(body) });
     };
 };
 
 const injectScript = (host: string, websiteId: string): void => {
     if (injected || injectStarted) return;
+
     if (typeof document === 'undefined') return;
 
     injectStarted = true;
@@ -111,6 +116,7 @@ const injectScript = (host: string, websiteId: string): void => {
     appendScript(`${base}/p.js`, websiteId, () => {
         injected = true;
         flushPending();
+
         if (!optedOut()) appendScript(`${base}/recorder.js`, websiteId);
     });
 };
@@ -123,9 +129,12 @@ const HTTP_PROTOCOLS: Record<string, true> = { 'http:': true, 'https:': true };
 const trackerConfig = (): { host: string; websiteId: string } | null => {
     // The dashboard's heatmap preview frame is the analyst, not a visitor: record nothing from it.
     if (isHeatmapPreview) return null;
+
     try {
         const a = getConfig().analytics;
+
         if (a?.enabled === false || !a?.host || !a.websiteId) return null;
+
         return HTTP_PROTOCOLS[new URL(a.host).protocol] ? { host: a.host, websiteId: a.websiteId } : null;
     } catch {
         // Config not loaded yet, or a malformed host.
@@ -136,8 +145,10 @@ const trackerConfig = (): { host: string; websiteId: string } | null => {
 const ensureInjected = (): boolean => {
     if (injected) return true;
     const c = trackerConfig();
+
     if (!c) return false;
     injectScript(c.host, c.websiteId);
+
     return true;
 };
 

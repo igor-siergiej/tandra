@@ -20,6 +20,7 @@ interface MealPlanDayCardProps {
 
 const DayHeader = ({ day, isToday, onPick }: { day: Date; isToday: boolean; onPick: (day: Date) => void }) => {
     const weekday = format(day, 'EEEE');
+
     return (
         <div className="flex items-center justify-between gap-2">
             <div className="flex items-baseline gap-2">
@@ -44,9 +45,11 @@ const DayHeader = ({ day, isToday, onPick }: { day: Date; isToday: boolean; onPi
 
 const EmptyDayHint = ({ day, isToday }: { day: Date; isToday: boolean }) => {
     const dayLabel = format(day, 'EEEE d MMM');
+
     const description = isToday
         ? `Add what you're cooking for ${dayLabel.toLowerCase()}.`
         : `Plan a recipe for ${dayLabel}.`;
+
     return (
         <Empty className="mt-2 flex-none justify-start border-dashed bg-muted/30 p-4" data-testid="meal-plan-day-empty">
             <EmptyHeader>
@@ -82,6 +85,7 @@ export const MealPlanDayCard = ({
             <div className="space-y-2">
                 {entries.map((entry) => {
                     const recipe = recipeById.get(entry.recipeId);
+
                     return (
                         <PlannedRecipeRow
                             key={entry.id}

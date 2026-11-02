@@ -19,6 +19,7 @@ const openRecipe = async (page: Page, id: string) => {
 
 const swipeRow = async (page: Page, name: string, dx: number) => {
     const box = await page.getByText(name, { exact: true }).first().boundingBox();
+
     if (!box) throw new Error(`Row "${name}" not found`);
     const cx = box.x + box.width / 2;
     const cy = box.y + box.height / 2;
@@ -93,6 +94,7 @@ test.describe('Editing the recipe', () => {
         const recipe = await apiCreateRecipe('Toast', [], [], {
             instructions: ['Slice bread', 'Toast it', 'Butter it'],
         });
+
         await openRecipe(authenticatedPage, recipe.id);
 
         await authenticatedPage.getByLabel('Edit recipe').click();
@@ -165,6 +167,7 @@ test.describe('Cover photo', () => {
         let uploads = 0;
         await authenticatedPage.route(/\/api\/recipes\/[^/]+\/image\/upload$/, (route) => {
             uploads++;
+
             return route.fulfill({ json: { imageKey: 'new-cover' } });
         });
         const recipe = await apiCreateRecipe('Toast');
@@ -198,6 +201,7 @@ test.describe('Cover photo', () => {
         let reverts = 0;
         await authenticatedPage.route(/\/api\/recipes\/[^/]+\/image\/revert$/, (route) => {
             reverts++;
+
             return route.fulfill({ json: {} });
         });
         const recipe = await apiCreateRecipe('Toast');

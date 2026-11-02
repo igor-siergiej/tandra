@@ -50,28 +50,38 @@ export class TodoService {
 
     private async getOwned(todoId: string, ownerId: string): Promise<Todo> {
         const todo = await this.repo.getById(todoId);
+
         if (!todo) throw notFound();
+
         if (todo.ownerId !== ownerId) throw forbidden();
+
         return todo;
     }
 
     /** Owner or a shared member may load the todo; used where shared todos are collaborative (edit/complete). */
     private async getOwnedOrMember(todoId: string, actorId: string): Promise<Todo> {
         const todo = await this.repo.getById(todoId);
+
         if (!todo) throw notFound();
+
         if (todo.ownerId !== actorId && !todo.users?.some((u) => u.id === actorId)) throw forbidden();
+
         return todo;
     }
 
     async createTodo(ownerId: string, rawInput: CreateTodoInput, actor?: User): Promise<Todo> {
         const input = normalizeDays(rawInput);
+
         if (input.id) {
             const existing = await this.repo.getById(input.id);
+
             if (existing && existing.ownerId === ownerId) {
                 return existing;
             }
         }
+
         const users = await resolveFriendMembers(this.friendService, ownerId, input.userIds);
+
         const todo: Todo = {
             id: input.id ?? this.idGenerator.generate(),
             ownerId,
@@ -84,11 +94,14 @@ export class TodoService {
             ...(input.recurrence !== undefined && { recurrence: input.recurrence, completedDates: [] }),
             ...(users.length > 0 && { users }),
         };
+
         await this.repo.insert(todo);
         this.logger?.info('Todo created', { todoId: todo.id, ownerId });
+
         if (actor && todo.users && todo.users.length > 0) {
             void this.notificationService?.notifyTodoShared(todo, actor);
         }
+
         return todo;
     }
 
@@ -100,22 +113,27 @@ export class TodoService {
         const owned = await this.repo.findByOwnerId(userId);
         const shared = await this.repo.findByMember(userId);
         const byId = new Map<string, Todo>();
+
         for (const t of [...owned, ...shared]) byId.set(t.id, t);
+
         return [...byId.values()];
     }
 
     async updateTodo(todoId: string, actorId: string, rawInput: UpdateTodoInput, actor?: User): Promise<Todo> {
         const existing = await this.getOwnedOrMember(todoId, actorId);
         const { clear, ...input } = normalizeDays(rawInput);
+
         // Membership (sharing) is owner-only; a member editing content must not re-scope who it's shared with.
         if (existing.ownerId !== actorId) delete input.users;
         const merged: Todo = { ...existing, ...input };
+
         for (const field of clear ?? []) delete merged[field];
         const updated = await this.repo.update(todoId, merged);
 
         if (actor && input.users) {
             const previousIds = new Set((existing.users ?? []).map((u) => u.id));
             const newlyAdded = input.users.filter((u) => !previousIds.has(u.id));
+
             if (newlyAdded.length > 0) {
                 void this.notificationService?.notifyTodoShared({ ...updated, users: newlyAdded }, actor);
             }
@@ -135,6 +153,7 @@ export class TodoService {
         if (todo.recurrence && date) {
             const current = todo.completedDates ?? [];
             const completedDates = current.includes(date) ? current.filter((d) => d !== date) : [...current, date];
+
             return this.repo.update(todoId, { ...todo, completedDates });
         }
 

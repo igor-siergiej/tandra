@@ -5,7 +5,9 @@ import { describe, expect, it, vi } from 'vitest';
 import LoginPage from './index';
 
 let isAuthenticated = false;
+
 vi.mock('../../auth', () => ({ useAuth: () => ({ isAuthenticated }) }));
+
 vi.mock('../../components/LoginForm', () => ({ LoginForm: () => <p>login form</p> }));
 
 const renderAtLogin = () =>

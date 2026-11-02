@@ -24,6 +24,7 @@ describe('RecipeDetailsSection', () => {
                 {...noopHandlers}
             />
         );
+
         expect(container).toBeEmptyDOMElement();
     });
 
@@ -61,6 +62,7 @@ describe('RecipeDetailsSection', () => {
                 {...noopHandlers}
             />
         );
+
         expect(container).toBeEmptyDOMElement();
     });
 

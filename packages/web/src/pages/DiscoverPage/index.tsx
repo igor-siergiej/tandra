@@ -88,6 +88,7 @@ const DiscoverPage = () => {
     const [filtersOpen, setFiltersOpen] = useState(false);
 
     let results: React.ReactNode;
+
     if (search.isError) results = <ErrorState search={search} />;
     else if (search.isLoading) results = <ResultsSkeleton />;
     else if (search.hits.length === 0) results = <NoResults search={search} />;

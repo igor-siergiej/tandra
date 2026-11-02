@@ -11,6 +11,7 @@ vi.mock('../../auth', () => ({
 }));
 
 const mockUpdateRecipe = vi.fn();
+
 vi.mock('../../hooks/useRecipeMutations', () => ({
     useRecipeMutations: () => ({ updateRecipe: mockUpdateRecipe, deleteRecipe: vi.fn() }),
 }));
@@ -30,12 +31,19 @@ vi.mock('../../components/ToolBar', () => ({
         </div>
     ),
 }));
+
 vi.mock('../../components/ManageUsersDrawer', () => ({ ManageUsersDrawer: () => null }));
+
 vi.mock('./CoverImageSection', () => ({ CoverImageSection: () => <div data-testid="cover-image" /> }));
+
 vi.mock('./IngredientSelectSection', () => ({ IngredientSelectSection: () => null }));
+
 vi.mock('./IngredientsSection', () => ({ IngredientsSection: () => null }));
+
 vi.mock('./InstructionsSection', () => ({ InstructionsSection: () => null }));
+
 vi.mock('./TagsSection', () => ({ TagsSection: () => null }));
+
 vi.mock('./PublishSection', () => ({ PublishSection: () => null }));
 
 let mockRecipe: Recipe;
@@ -48,6 +56,7 @@ vi.mock('../../api', () => ({
 
 const renderPage = (recipeId = 'recipe-1') => {
     const queryClient = new QueryClient();
+
     return render(
         <QueryClientProvider client={queryClient}>
             <MemoryRouter initialEntries={[`/recipes/${recipeId}`]}>

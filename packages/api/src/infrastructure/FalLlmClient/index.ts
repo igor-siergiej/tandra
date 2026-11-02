@@ -41,9 +41,11 @@ type JsonExtraction = { value: unknown } | { issues: string };
 const extractJsonObject = (output: string): JsonExtraction => {
     const start = output.indexOf('{');
     const end = output.lastIndexOf('}');
+
     if (start === -1 || end === -1 || end <= start) {
         return { issues: 'no JSON object found in the reply' };
     }
+
     try {
         return { value: JSON.parse(output.slice(start, end + 1)) as unknown };
     } catch {
@@ -85,6 +87,7 @@ export class FalLlmClient {
                     : `${opts.prompt}\n\nYour previous reply failed validation: ${lastIssues}. Return only corrected JSON, no prose.`;
 
             let output: string;
+
             try {
                 output = await this.request(model, opts.system, prompt, temperature, timeoutMs);
             } catch (error) {
@@ -99,20 +102,25 @@ export class FalLlmClient {
                 );
                 throw error;
             }
+
             lastOutput = output;
 
             const json = extractJsonObject(output);
+
             if ('issues' in json) {
                 lastIssues = json.issues;
                 continue;
             }
 
             const parsed = opts.schema.safeParse(json.value);
+
             if (parsed.success) {
                 const latencyMs = Date.now() - started;
                 this.log(opts.operation, model, attempt, latencyMs, 'ok', opts.prompt.length, output.length);
+
                 return { value: parsed.data, meta: { operation: opts.operation, model, attempts: attempt, latencyMs } };
             }
+
             lastIssues = flattenZodIssues(parsed.error);
         }
 
@@ -140,6 +148,7 @@ export class FalLlmClient {
 
         try {
             let response: Response;
+
             try {
                 response = await fetch(FAL_ANY_LLM_URL, {
                     method: 'POST',
@@ -156,15 +165,18 @@ export class FalLlmClient {
 
             if (!response.ok) {
                 let detail: string;
+
                 try {
                     detail = (await response.text()).slice(0, 200);
                 } catch {
                     detail = `HTTP ${response.status}`;
                 }
+
                 throw fail(`fal.ai any-llm error: ${detail}`);
             }
 
             let data: { output?: string; error?: string };
+
             try {
                 data = (await response.json()) as { output?: string; error?: string };
             } catch {
@@ -174,6 +186,7 @@ export class FalLlmClient {
             if (data.error) {
                 throw fail(`fal.ai any-llm error: ${String(data.error).slice(0, 200)}`);
             }
+
             return data.output ?? '';
         } finally {
             clearTimeout(timer);

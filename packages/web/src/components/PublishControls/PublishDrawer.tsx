@@ -44,6 +44,7 @@ export const PublishDrawer = ({ open, onOpenChange, recipeId, recipeTitle, isUpd
             setShowName(false);
             publish.reset();
         }
+
         onOpenChange(next);
     };
 

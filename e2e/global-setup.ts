@@ -13,6 +13,7 @@ const STACKS = allStacks();
 const seedUsers = async (client: MongoClient, dbName: string) => {
     const db = client.db(dbName);
     const now = new Date();
+
     for (const user of [MOCK_USER, MOCK_USER_2]) {
         const _id = new ObjectId(user.id);
         await db.collection('user').replaceOne(
@@ -45,8 +46,10 @@ const seedUsers = async (client: MongoClient, dbName: string) => {
 
 export default async function globalSetup(): Promise<() => Promise<void>> {
     const client = new MongoClient(resolveMongoUri());
+
     try {
         await client.connect();
+
         for (const stack of STACKS) await seedUsers(client, stack.dbName);
     } finally {
         await client.close();
@@ -61,8 +64,10 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
         if (E2E_OPENSEARCH_URL) await seedDiscoveryLibrary([], STACKS);
 
         const teardown = new MongoClient(resolveMongoUri());
+
         try {
             await teardown.connect();
+
             for (const stack of STACKS) await teardown.db(stack.dbName).dropDatabase();
         } finally {
             await teardown.close();

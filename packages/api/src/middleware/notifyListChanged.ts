@@ -20,6 +20,7 @@ export const notifyListChanged =
         const listRef = c.req.param('title');
         const listId = listRef ? await resolveListId(listRef) : undefined;
         await next();
+
         if (c.res.status >= 400 || !listId) return;
         onSuccess?.(c, listId);
         hub.notifyChanged(listId);

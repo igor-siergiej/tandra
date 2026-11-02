@@ -24,6 +24,7 @@ const listParam = (c: Context<HonoVars>, name: string, splitCommas = true): stri
         ?.flatMap((v) => (splitCommas ? v.split(',') : [v]))
         .map((v) => v.trim())
         .filter(Boolean);
+
     return values?.length ? values : undefined;
 };
 
@@ -31,16 +32,21 @@ const listParam = (c: Context<HonoVars>, name: string, splitCommas = true): stri
 // fallow-ignore-next-line complexity
 const intParam = (c: Context<HonoVars>, name: string, min: number): number | undefined => {
     const raw = c.req.query(name);
+
     if (raw === undefined || raw === '') return undefined;
     const value = Number(raw);
+
     if (!Number.isInteger(value) || value < min) throw badRequest(`${name} must be an integer >= ${min}`);
+
     return value;
 };
 
 const enumParam = <T extends string>(c: Context<HonoVars>, name: string, allowed: readonly T[]): T[] | undefined => {
     const values = listParam(c, name);
     const invalid = values?.find((v) => !allowed.includes(v as T));
+
     if (invalid) throw badRequest(`${name} must be one of: ${allowed.join(', ')}`);
+
     return values as T[] | undefined;
 };
 
@@ -80,6 +86,7 @@ export const createDiscoveryHandlers = (
 ) => ({
     searchRecipes: async (c: Context<HonoVars>): Promise<Response> => {
         const query = parseSearchQuery(c);
+
         try {
             return c.json(await service.search(query), 200);
         } catch (error) {
@@ -97,6 +104,7 @@ export const createDiscoveryHandlers = (
 
     getSimilarRecipes: async (c: Context<HonoVars>): Promise<Response> => {
         const limit = intParam(c, 'limit', 1);
+
         try {
             return c.json(await service.getSimilar(c.req.param('id') ?? '', limit), 200);
         } catch (error) {
@@ -116,6 +124,7 @@ export const createDiscoveryHandlers = (
     // Publishing is owner-only (checked in the service) and writes a snapshot; the private recipe is never exposed.
     publishRecipe: withAuth(async (c, user) => {
         const body = await c.req.json<DiscoveryPublishRequest>().catch(() => ({}) as DiscoveryPublishRequest);
+
         try {
             return c.json(await publishService.publish(c.req.param('recipeId') ?? '', user, body), 201);
         } catch (error) {
@@ -126,6 +135,7 @@ export const createDiscoveryHandlers = (
     unpublishRecipe: withAuth(async (c, user) => {
         try {
             await publishService.unpublish(c.req.param('id') ?? '', user);
+
             return c.body(null, 204);
         } catch (error) {
             return failWith(logger, 'API: Recipe unpublish failed', error);
@@ -143,8 +153,10 @@ export const createDiscoveryHandlers = (
     reportRecipe: withAuth(async (c, user) => {
         const body = await c.req.json<{ reason?: unknown }>().catch(() => ({}) as { reason?: unknown });
         const reason = typeof body.reason === 'string' ? body.reason : undefined;
+
         try {
             await moderation.report(c.req.param('id') ?? '', user, reason);
+
             return c.body(null, 204);
         } catch (error) {
             return failWith(logger, 'API: Recipe report failed', error);
@@ -162,6 +174,7 @@ export const createDiscoveryHandlers = (
     delistRecipe: withAuth(async (c, user) => {
         try {
             await moderation.delist(c.req.param('id') ?? '', user);
+
             return c.body(null, 204);
         } catch (error) {
             return failWith(logger, 'API: Recipe delist failed', error);

@@ -10,7 +10,9 @@ const mockSharpInstance = {
 };
 
 mockSharpInstance.resize.mockReturnValue(mockSharpInstance);
+
 mockSharpInstance.webp.mockReturnValue(mockSharpInstance);
+
 mockSharpInstance.withMetadata.mockReturnValue(mockSharpInstance);
 
 const mockProcessImage = vi.fn();
@@ -53,6 +55,7 @@ describe('FalImageGenerator', () => {
                 ok: true,
                 json: vi.fn().mockResolvedValue({ images: [{ url: dataUri(Buffer.from('img')) }] }),
             });
+
             global.fetch = fetchMock;
 
             const recipeGenerator = new FalImageGenerator('key', {

@@ -6,6 +6,7 @@
  */
 const detect = (): boolean => {
     if (typeof window === 'undefined' || window.self === window.top) return false;
+
     try {
         // Reading a cross-origin parent's location throws; a same-origin parent is the app framing itself.
         return window.top?.location.origin !== window.location.origin;

@@ -65,6 +65,7 @@ describe('QuantityUnitField', () => {
 
     it('calls onUnitChange when unit select changes', async () => {
         const user = userEvent.setup();
+
         const { container } = render(
             <QuantityUnitField
                 quantity="5"

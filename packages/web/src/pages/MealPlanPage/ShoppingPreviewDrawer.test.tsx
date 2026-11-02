@@ -16,6 +16,7 @@ const rows: ShoppingRow[] = [
     { key: 'a', name: 'spaghetti', quantity: 400, unit: 'g', recipeTitle: 'Pasta' },
     { key: 'b', name: 'garlic', recipeTitle: 'Pasta' },
 ];
+
 const lists = [
     { id: 'l1', title: 'Weekly' },
     { id: 'l2', title: 'Party' },
@@ -33,6 +34,7 @@ const setup = (onConfirm = vi.fn().mockResolvedValue(undefined)) => {
             onOpenChange={onOpenChange}
         />
     );
+
     return { onConfirm, onOpenChange };
 };
 

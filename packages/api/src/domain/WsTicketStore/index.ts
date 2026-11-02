@@ -26,23 +26,28 @@ export class WsTicketStore {
         this.purgeExpired();
         const ticket = crypto.randomUUID();
         this.tickets.set(ticket, { listTitle, user, expiresAt: this.now() + TICKET_TTL_MS });
+
         return ticket;
     }
 
     /** Returns the ticket's user if it is valid for this list; always consumes the ticket. */
     redeem(ticket: string | undefined, listTitle: string): TicketUser | null {
         const entry = this.take(ticket);
+
         return entry && entry.expiresAt > this.now() && entry.listTitle === listTitle ? entry.user : null;
     }
 
     private take(ticket: string | undefined): Ticket | undefined {
         const entry = ticket ? this.tickets.get(ticket) : undefined;
+
         if (ticket) this.tickets.delete(ticket);
+
         return entry;
     }
 
     private purgeExpired(): void {
         const now = this.now();
+
         for (const [ticket, entry] of this.tickets) {
             if (entry.expiresAt <= now) this.tickets.delete(ticket);
         }

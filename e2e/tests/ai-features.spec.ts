@@ -5,6 +5,7 @@ test.describe('AI features endpoint', () => {
         const res = await request.get('/api/features');
         expect(res.status()).toBe(200);
         const body = (await res.json()) as Record<string, boolean>;
+
         // Each flag is a boolean; presence is what the web reads on boot.
         for (const key of [
             'imageGeneration',

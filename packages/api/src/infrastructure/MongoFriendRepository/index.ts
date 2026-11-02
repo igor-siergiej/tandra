@@ -49,6 +49,7 @@ export class MongoFriendRepository implements FriendRepository {
 
     async findPair(userIdA: string, userIdB: string): Promise<Friendship | null> {
         const userIds = canonicalPair(userIdA, userIdB);
+
         return this.friendships().findOne({ userIds });
     }
 

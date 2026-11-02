@@ -44,6 +44,7 @@ export const useSpeechRecognition = ({
 
     const start = useCallback(() => {
         const Ctor = getSpeechRecognition();
+
         if (!Ctor) return;
 
         const recognition = new Ctor();
@@ -55,25 +56,31 @@ export const useSpeechRecognition = ({
                 .map((result) => result[0].transcript)
                 .join(' ')
                 .trim();
+
             const next = [committedRef.current, heard].filter(Boolean).join(' ');
             transcriptRef.current = next;
             setTranscript(next);
         };
+
         recognition.onerror = (event) => {
             stoppedByUserRef.current = true;
             setError(ERROR_MESSAGES[event.error] ?? 'Voice input failed. Try again.');
             setListening(false);
         };
+
         recognition.onend = () => {
             if (keepListening && !stoppedByUserRef.current) {
                 committedRef.current = transcriptRef.current;
+
                 try {
                     recognition.start();
+
                     return;
                 } catch {
                     // Could not restart; fall through and end the session.
                 }
             }
+
             setListening(false);
         };
 

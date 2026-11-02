@@ -13,8 +13,10 @@ const configState: ConfigState = {
 const readCachedConfig = (): AppConfig | null => {
     try {
         const raw = localStorage.getItem(CONFIG_STORAGE_KEY);
+
         if (!raw) return null;
         const cached = JSON.parse(raw);
+
         return cached && typeof cached === 'object' ? (cached as AppConfig) : null;
     } catch {
         return null;
@@ -38,6 +40,7 @@ export const loadConfig = async (): Promise<AppConfig> => {
         const configData = await response.json();
         configState.config = configData as AppConfig;
         configState.isLoading = false;
+
         try {
             localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(configState.config));
         } catch {
@@ -47,9 +50,11 @@ export const loadConfig = async (): Promise<AppConfig> => {
         return configState.config;
     } catch (error) {
         const cached = readCachedConfig();
+
         if (cached) {
             configState.config = cached;
             configState.isLoading = false;
+
             return cached;
         }
 

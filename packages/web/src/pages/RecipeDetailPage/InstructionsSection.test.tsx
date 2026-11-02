@@ -27,6 +27,7 @@ describe('InstructionsSection', () => {
         const { container } = render(
             <InstructionsSection instructions={[]} isOwner={false} isEditing onChange={vi.fn()} />
         );
+
         expect(container).toBeEmptyDOMElement();
     });
 

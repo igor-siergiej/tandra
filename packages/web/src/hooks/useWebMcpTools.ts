@@ -10,6 +10,7 @@ export const useWebMcpTools = () => {
 
     useEffect(() => {
         if (!userId) return;
+
         return registerWebMcpTools(userId);
     }, [userId]);
 };

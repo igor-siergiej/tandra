@@ -92,5 +92,6 @@ export const useListSource = (): ListSource => (useGuest().isGuest ? guestListSo
 // The user the lists page is keyed and ownership-checked by: the signed-in account, or the on-device guest.
 export const useListUser = (): User | undefined => {
     const { user } = useUser();
+
     return useGuest().isGuest ? GUEST_USER : user;
 };

@@ -34,6 +34,7 @@ const searchUntilVisible = async (page: Page, title: string, visible: boolean) =
         await page.goto('/discover');
         await page.getByPlaceholder('Search recipes, e.g. lemon cake').fill('lentil');
         const card = page.getByRole('button', { name: new RegExp(title) });
+
         if (visible) await expect(card).toBeVisible({ timeout: 2000 });
         else {
             await expect(page.getByText(/\d+ recipes?/)).toBeVisible({ timeout: 2000 });

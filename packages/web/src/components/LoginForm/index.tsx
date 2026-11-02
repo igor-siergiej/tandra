@@ -19,6 +19,7 @@ export const LoginForm: React.FC = () => {
     const [searchParams] = useSearchParams();
     // A failed Google round trip lands back here with Better Auth's `?error=<code>`.
     const googleError = searchParams.get('error');
+
     const errorMessage =
         errors.root?.message ??
         (googleError && oauthErrorMessage(googleError, "Couldn't sign in with Google. Please try again."));

@@ -16,6 +16,7 @@ interface ChoiceScreenProps {
 // onCancel the same way the header X used to.
 export const ChoiceScreen = ({ onSelectImport, onSelectManual, onCancel }: ChoiceScreenProps) => {
     const { recipeImport } = useAiFeatures();
+
     return (
         <Drawer open onOpenChange={(open) => !open && onCancel()}>
             <DrawerContent>

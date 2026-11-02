@@ -24,6 +24,7 @@ export const useTodos = () => {
             payload,
             createdAt: Date.now(),
         };
+
         queryClient.setQueryData<Todo[]>(['todos'], (old) => applyTodoIntent(old ?? [], intent as OutboxIntent));
         await outboxStore.enqueue(intent);
         void drainOutbox();

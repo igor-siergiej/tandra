@@ -42,8 +42,10 @@ const ItemCheckBox = ({ item, listTitle, listType, showImage }: ItemCheckBoxProp
     const { imageBlobUrl, hasLoadedImage, hasImageError, onImageLoad, onImageError } = useItemImage(
         showImage ? item.name : null
     );
+
     const { toggleMutation, deleteMutation, updateNameMutation, updateQuantityMutation, updateCategoryMutation } =
         useItemMutations(listTitle, item.id);
+
     const drawerState = useItemEditDrawer();
     const isPending = usePendingItemIds(listTitle).has(item.id);
 
@@ -85,6 +87,7 @@ const ItemCheckBox = ({ item, listTitle, listType, showImage }: ItemCheckBoxProp
         const hasQuantityChange = newQuantity !== item.quantity || newUnit !== item.unit;
 
         if (hasNameChange) updateNameMutation.mutate(values.name.trim());
+
         if (hasQuantityChange) updateQuantityMutation.mutate({ quantity: newQuantity, unit: newUnit });
 
         if (values.category && values.category !== (item.category ?? '')) {

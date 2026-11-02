@@ -30,16 +30,21 @@ const setup = (admins: string[] = [admin.id]) => {
         ['user-2', recipe('user-2', 'user', 'Public Stew')],
         ['wikibooks-1', recipe('wikibooks-1', 'wikibooks', 'Wiki Cake')],
     ]);
+
     const indexed = new Set(library.keys());
     const getRecipesCalls: string[][] = [];
+
     const discovery = {
         getRecipes: async (ids: string[]) => {
             getRecipesCalls.push(ids);
+
             return ids.flatMap((id) => library.get(id) ?? []);
         },
         getRecipe: async (id: string) => {
             const found = library.get(id);
+
             if (!found) throw Object.assign(new Error('Library recipe not found'), { status: 404 });
+
             return found;
         },
         remove: async (id: string) => {
@@ -47,13 +52,16 @@ const setup = (admins: string[] = [admin.id]) => {
             indexed.delete(id);
         },
     };
+
     const reportRows: DiscoveryReport[] = [];
+
     const reports = {
         ensureIndexes: async () => {},
         upsert: async (report: DiscoveryReport) => {
             const at = reportRows.findIndex(
                 (r) => r.recipeId === report.recipeId && r.reporterId === report.reporterId
             );
+
             if (at === -1) reportRows.push(report);
             else reportRows[at] = report;
         },
@@ -63,9 +71,11 @@ const setup = (admins: string[] = [admin.id]) => {
                 if (reportRows[i]?.recipeId === id) reportRows.splice(i, 1);
         },
     };
+
     const rows = new Map<string, DiscoveryPublication>([
         ['r1', { recipeId: 'r1', libraryId: 'user-1', ownerId: alice.id, publishedAt: new Date(0) }],
     ]);
+
     const publications = {
         ensureIndexes: async () => {},
         getByRecipeId: async () => null,
@@ -76,7 +86,9 @@ const setup = (admins: string[] = [admin.id]) => {
             for (const [key, row] of rows) if (row.libraryId === id) rows.delete(key);
         },
     };
+
     let n = 0;
+
     const service = new DiscoveryModerationService(
         discovery,
         reports,
@@ -84,6 +96,7 @@ const setup = (admins: string[] = [admin.id]) => {
         { generate: () => `rep-${++n}` },
         new Set(admins)
     );
+
     return { service, library, indexed, reportRows, rows, getRecipesCalls };
 };
 

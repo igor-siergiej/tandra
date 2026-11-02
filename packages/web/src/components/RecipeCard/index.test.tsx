@@ -81,6 +81,7 @@ describe('RecipeCard', () => {
         const { container } = render(<RecipeCard recipe={mockRecipe} currentUserId="user-1" onClick={mockClick} />);
 
         const card = container.querySelector('[role="button"]');
+
         if (card) {
             card.dispatchEvent(new MouseEvent('click', { bubbles: true }));
         }
@@ -141,6 +142,7 @@ describe('RecipeCard', () => {
             cookTime: 15,
             servings: 4,
         };
+
         render(<RecipeCard recipe={recipeWithTimes} currentUserId="user-1" onClick={vi.fn()} />);
 
         expect(screen.getByText('20m prep')).toBeTruthy();

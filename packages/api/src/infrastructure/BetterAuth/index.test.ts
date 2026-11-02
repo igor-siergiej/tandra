@@ -15,7 +15,9 @@ const makeAuth = (google?: { clientId: string; clientSecret: string }, logger?: 
         verification: [],
         rateLimit: [],
     } as Record<string, unknown[]>;
+
     const memoryAuthDb = memoryAdapter(db) as unknown as AuthDatabase;
+
     const auth = createAuth({
         database: memoryAuthDb,
         secret: 'test-secret-test-secret-test-secret-123',
@@ -24,6 +26,7 @@ const makeAuth = (google?: { clientId: string; clientSecret: string }, logger?: 
         google,
         logger,
     });
+
     return { auth, db };
 };
 
@@ -34,6 +37,7 @@ interface StoredUser {
     username?: string;
     displayUsername?: string;
 }
+
 interface StoredAccount {
     userId: string;
     providerId: string;
@@ -44,6 +48,7 @@ interface StoredAccount {
 describe('createAuth', () => {
     it('stores a placeholder email on password sign-up, ignoring the submitted one', async () => {
         const { auth, db } = makeAuth();
+
         const result = await auth.api.signUpEmail({
             body: {
                 email: 'victim@gmail.com',
@@ -52,6 +57,7 @@ describe('createAuth', () => {
                 username: 'Alice',
             },
         });
+
         expect(result.user.id).toBeString();
         const [user] = db.user as Array<StoredUser>;
         expect(user.email).toMatch(/^[0-9a-f-]{36}@users\.invalid$/);
@@ -69,9 +75,11 @@ describe('createAuth', () => {
     it('logs a registration once, not on later sign-ins', async () => {
         const info = mock();
         const { auth } = makeAuth(undefined, { info } as unknown as Logger);
+
         const { user } = await auth.api.signUpEmail({
             body: { email: 'x@y.z', name: 'x', password: 'password123', username: 'Carol' },
         });
+
         await auth.api.signInUsername({ body: { username: 'carol', password: 'password123' } });
         expect(info).toHaveBeenCalledTimes(1);
         expect(info).toHaveBeenCalledWith('User registered', {
@@ -115,6 +123,7 @@ describe('createAuth', () => {
 
     it('rate-limits sign-in per Cloudflare client IP, not per tunnel address', async () => {
         const { auth } = makeAuth();
+
         // In prod X-Forwarded-For is always the tunnel's address; only CF-Connecting-IP tells clients apart.
         const attempt = (clientIp: string) =>
             auth.handler(
@@ -131,6 +140,7 @@ describe('createAuth', () => {
             );
 
         const attacker = [];
+
         for (let i = 0; i < 11; i++) attacker.push((await attempt('203.0.113.7')).status);
         expect(attacker.at(-1)).toBe(429);
 

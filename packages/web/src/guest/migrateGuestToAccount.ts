@@ -41,6 +41,7 @@ const MAX_RENAME_ATTEMPTS = 100;
 
 const statusOf = (err: unknown): number | undefined => {
     const status = err instanceof Error && 'status' in err ? err.status : undefined;
+
     return typeof status === 'number' ? status : undefined;
 };
 
@@ -62,12 +63,14 @@ const createLiveMigrateAdapter = (user: User): MigrateAdapter => ({
 const uploadListWithRename = async (listTitle: string, listType: ListType, adapter: MigrateAdapter) => {
     let attempt = 0;
     let candidate = listTitle;
+
     // First try the original title; on a 409 the server says the user already
     // has a list of this name, so we append " (1)", " (2)", ... until either
     // it lands or we exhaust the bound.
     while (attempt < MAX_RENAME_ATTEMPTS) {
         try {
             await adapter.addList(candidate, listType);
+
             return { uploadedTitle: candidate, renamed: attempt > 0 };
         } catch (err) {
             if (statusOf(err) !== 409) throw err;
@@ -75,6 +78,7 @@ const uploadListWithRename = async (listTitle: string, listType: ListType, adapt
             candidate = attempt === 1 ? `${listTitle} (1)` : `${listTitle} (${attempt})`;
         }
     }
+
     throw new Error(`Could not find a free title for "${listTitle}" after ${MAX_RENAME_ATTEMPTS} attempts`);
 };
 
@@ -103,6 +107,7 @@ const uploadItems = async (
                 ...(item.quantity !== undefined && { quantity: item.quantity }),
                 ...(item.unit !== undefined && { unit: item.unit }),
             });
+
             if (item.isSelected) await adapter.selectItem({ listTitle, id: item.id });
             result.itemsUploaded += 1;
         } catch (err) {
@@ -124,6 +129,7 @@ export const migrateGuestToAccount = async (
     // guest who reloads straight onto /register would otherwise look empty.
     await store.hydrate();
     const snapshot = store.snapshot();
+
     const result: MigrationResult = {
         listsUploaded: 0,
         itemsUploaded: 0,
@@ -138,6 +144,7 @@ export const migrateGuestToAccount = async (
 
     for (const list of snapshot.lists) {
         let uploaded: { uploadedTitle: string; renamed: boolean };
+
         try {
             uploaded = await uploadListWithRename(list.title, list.listType, adapter);
         } catch (err) {
@@ -150,10 +157,12 @@ export const migrateGuestToAccount = async (
         }
 
         result.listsUploaded += 1;
+
         if (uploaded.renamed) {
             result.listsRenamed += 1;
             logger.info('Renamed guest list during migration', { from: list.title, to: uploaded.uploadedTitle });
         }
+
         await uploadItems(snapshot.itemsByList.get(list.id) ?? [], uploaded.uploadedTitle, adapter, result);
         // Drop it locally right away so a retry after a partial failure
         // doesn't upload it a second time under a "(1)" title.
@@ -161,5 +170,6 @@ export const migrateGuestToAccount = async (
     }
 
     logger.info('Guest data migration finished', { ...result, failures: result.failures.length });
+
     return result;
 };

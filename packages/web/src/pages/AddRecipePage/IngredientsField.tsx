@@ -88,6 +88,7 @@ export const IngredientsField = ({
                     onChange={(e) => setIngredientsPasteText(e.target.value)}
                     onBlur={() => {
                         const parsed = splitIntoSteps(ingredientsPasteText);
+
                         if (parsed.length > 0) {
                             onChange(parsed.map((name) => ({ name })));
                             setShowIngredientsPaste(false);

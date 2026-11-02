@@ -63,6 +63,7 @@ export const useRegisterForm = () => {
                 name: data.username,
                 email: `${crypto.randomUUID()}@users.invalid`,
             });
+
             if (error) throw new Error(authErrorMessage(error, 'Registration failed'));
 
             const user = await refreshSession();

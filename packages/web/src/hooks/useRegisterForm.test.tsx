@@ -14,6 +14,7 @@ describe('registerSchema', () => {
         it('rejects a password shorter than 8 characters', () => {
             const result = registerSchema.safeParse({ ...base, password: 'abc12', repeatPassword: 'abc12' });
             expect(result.success).toBe(false);
+
             if (!result.success) {
                 const passwordIssue = result.error.issues.find((i) => i.path[0] === 'password');
                 expect(passwordIssue?.message).toMatch(/at least 8 characters/i);
@@ -36,12 +37,14 @@ describe('registerSchema', () => {
                 password: 'abcd1234!',
                 repeatPassword: 'abcd1234!',
             });
+
             expect(result.success).toBe(false);
         });
 
         it('rejects an empty password with the required-field message', () => {
             const result = registerSchema.safeParse({ ...base, password: '', repeatPassword: '' });
             expect(result.success).toBe(false);
+
             if (!result.success) {
                 const passwordIssue = result.error.issues.find((i) => i.path[0] === 'password');
                 expect(passwordIssue?.message).toBe('Password is required');
@@ -58,7 +61,9 @@ describe('registerSchema', () => {
                 password: 'passw0rd',
                 repeatPassword: 'passw0rdX',
             });
+
             expect(result.success).toBe(false);
+
             if (!result.success) {
                 const issue = result.error.issues.find((i) => i.path[0] === 'repeatPassword');
                 expect(issue?.message).toBe('Passwords do not match');
@@ -71,6 +76,7 @@ describe('registerSchema', () => {
                 password: 'passw0rd',
                 repeatPassword: 'passw0rd',
             });
+
             expect(result.success).toBe(true);
         });
 
@@ -80,7 +86,9 @@ describe('registerSchema', () => {
                 password: 'passw0rd',
                 repeatPassword: '',
             });
+
             expect(result.success).toBe(false);
+
             if (!result.success) {
                 const issue = result.error.issues.find((i) => i.path[0] === 'repeatPassword');
                 expect(issue?.message).toBe('Please confirm your password');
@@ -104,6 +112,7 @@ describe('registerSchema', () => {
         it('trims whitespace from the username before validation', () => {
             const result = registerSchema.safeParse({ ...valid, username: '  alice  ' });
             expect(result.success).toBe(true);
+
             if (result.success) {
                 expect(result.data.username).toBe('alice');
             }
@@ -116,6 +125,7 @@ describe('registerSchema', () => {
         it.each(['mari-lou', 'mari lou', 'mari@example.com'])('rejects %s, which the server refuses', (username) => {
             const result = registerSchema.safeParse({ ...valid, username });
             expect(result.success).toBe(false);
+
             if (!result.success) {
                 expect(result.error.issues[0].message).toBe('Use only letters, numbers, underscores and dots');
             }

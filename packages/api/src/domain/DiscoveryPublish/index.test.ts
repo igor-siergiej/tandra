@@ -38,10 +38,12 @@ const personal = (overrides: Partial<Recipe> = {}): Recipe => ({
 
 const setup = (initial: Recipe[] = [personal()], seedLibrary: DiscoveryRecipe[] = []) => {
     const recipes = new Map(initial.map((recipe) => [recipe.id, recipe]));
+
     const recipeRepo = {
         getById: async (id: string) => recipes.get(id) ?? null,
         update: async (id: string, recipe: Recipe) => {
             recipes.set(id, recipe);
+
             return recipe;
         },
         deleteById: async (id: string) => {
@@ -50,6 +52,7 @@ const setup = (initial: Recipe[] = [personal()], seedLibrary: DiscoveryRecipe[] 
     };
 
     const library = new Map(seedLibrary.map((recipe) => [recipe.id, recipe]));
+
     const libraryRepo: DiscoveryRecipeRepository = {
         ensureIndexes: async () => {},
         getById: async (id) => library.get(id) ?? null,
@@ -66,8 +69,10 @@ const setup = (initial: Recipe[] = [personal()], seedLibrary: DiscoveryRecipe[] 
         listRevisions: async () => [],
         batches: async function* () {},
     };
+
     const indexed = new Map<string, DiscoveryRecipe>();
     const failIndex = { once: false };
+
     const index: DiscoveryIndex = {
         ensureIndex: async () => {},
         index: async (recipe) => {
@@ -75,6 +80,7 @@ const setup = (initial: Recipe[] = [personal()], seedLibrary: DiscoveryRecipe[] 
                 failIndex.once = false;
                 throw Object.assign(new Error('Recipe discovery is temporarily unavailable'), { status: 503 });
             }
+
             indexed.set(recipe.id, recipe);
         },
         remove: async (id) => {
@@ -86,9 +92,11 @@ const setup = (initial: Recipe[] = [personal()], seedLibrary: DiscoveryRecipe[] 
         similar: async () => [],
         rebuild: async () => 0,
     };
+
     const discovery = new DiscoveryService(libraryRepo, index);
 
     const publicationRows = new Map<string, DiscoveryPublication>();
+
     const publications = {
         ensureIndexes: async () => {},
         getByRecipeId: async (id: string) => publicationRows.get(id) ?? null,
@@ -104,15 +112,20 @@ const setup = (initial: Recipe[] = [personal()], seedLibrary: DiscoveryRecipe[] 
     };
 
     const objects = new Map<string, { buffer: Buffer; contentType: string }>();
+
     const images = {
         getHeadObject: async (name: string) => {
             const object = objects.get(name);
+
             if (!object) throw new Error('not found');
+
             return { metaData: { 'content-type': object.contentType } };
         },
         getObjectStream: async (name: string) => {
             const object = objects.get(name);
+
             if (!object) throw new Error('not found');
+
             return Readable.from([object.buffer]);
         },
         putObject: async (name: string, buffer: Buffer, options?: { contentType: string }) => {
@@ -124,6 +137,7 @@ const setup = (initial: Recipe[] = [personal()], seedLibrary: DiscoveryRecipe[] 
     const ids = { generate: () => `id-${++n}` };
     const recipeService = new RecipeService(recipeRepo as never, ids);
     const publish = new DiscoveryPublishService(discovery, publications, recipeService, images, ids);
+
     return { publish, recipes, recipeService, library, indexed, publicationRows, objects, failIndex, discovery };
 };
 
@@ -187,9 +201,11 @@ describe('DiscoveryPublishService.publish', () => {
         const ref = await publish.publish(RECIPE_ID, owner, agree);
 
         const everything = JSON.stringify([library.get(ref.libraryId), indexed.get(ref.libraryId)]);
+
         for (const secret of ['ownerId', '"users"', RECIPE_ID, owner.id, friend.id, owner.username, friend.username]) {
             expect(everything).not.toContain(secret);
         }
+
         expect(library.get(ref.libraryId)?.publishedBy).toBeUndefined();
         expect(library.get(ref.libraryId)?.attribution).toBe('"Grandma Soup" by a Tandra user, CC BY-SA 4.0');
         // New ingredient ids too: nothing links the copy back to the private ingredients.
@@ -283,6 +299,7 @@ describe('DiscoveryPublishService.publish', () => {
                 [personal()],
                 [existing({ ingredients: [{ id: 'x1', name: 'onion' }] })]
             );
+
             await expect(differentIngredients.publish(RECIPE_ID, owner, agree)).resolves.toBeDefined();
 
             const { publish: differentTitle } = setup([personal()], [existing({ title: 'Winter Soup' })]);
@@ -346,6 +363,7 @@ describe('DiscoveryPublishService.publish', () => {
                 buffer: Buffer.from('cover-bytes'),
                 contentType: 'image/png',
             });
+
             return world;
         };
 
@@ -435,6 +453,7 @@ describe('DiscoveryPublishService.unpublish', () => {
         let fail = true;
         discovery.remove = async (id: string) => {
             await realRemove(id);
+
             if (fail) {
                 fail = false;
                 throw Object.assign(new Error('index down'), { status: 503 });
@@ -456,6 +475,7 @@ describe('DiscoveryPublishService.listMine', () => {
             personal(),
             personal({ id: 'r2', title: 'Other Soup', ownerId: other.id, users: [other] }),
         ]);
+
         const mine = await publish.publish(RECIPE_ID, owner, agree);
         await publish.publish('r2', other, agree);
 

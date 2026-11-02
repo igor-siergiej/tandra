@@ -29,6 +29,7 @@ describe('pairsFromItems', () => {
                 ],
             },
         ];
+
         const pairs = pairsFromItems(items as never);
         expect(pairs.map((p) => p.userIds)).toEqual([
             ['u1', 'u2'],
@@ -49,6 +50,7 @@ describe('migrateFriendsFromExistingShares', () => {
 
     it('creates a friendship for each new pair found across lists and recipes', async () => {
         const inserted: Friendship[] = [];
+
         const result = await migrateFriendsFromExistingShares({
             listRepo: { getAll: async () => [{ ownerId: 'u1', users: [u1, u2] }] },
             recipeRepo: { getAll: async () => [{ ownerId: 'u1', users: [u1, u3] }] },
@@ -75,7 +77,9 @@ describe('migrateFriendsFromExistingShares', () => {
             users: [u1, u2],
             createdAt: new Date(),
         };
+
         const inserted: Friendship[] = [];
+
         const result = await migrateFriendsFromExistingShares({
             listRepo: { getAll: async () => [{ ownerId: 'u1', users: [u1, u2] }] },
             recipeRepo: { getAll: async () => [] },

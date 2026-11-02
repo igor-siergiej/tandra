@@ -41,6 +41,7 @@ describe('DueDateField', () => {
 
         // Calendar should be visible now
         const calendarButton = screen.getAllByRole('button').find((btn) => btn.textContent?.match(/^\d+$/));
+
         if (calendarButton) {
             await user.click(calendarButton);
             expect(mockOnChange).toHaveBeenCalled();

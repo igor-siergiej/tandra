@@ -13,6 +13,7 @@ const LIST_TITLE = 'ReproList';
 
 const swipe = async (page: import('@playwright/test').Page, label: string, dx: number) => {
     const box = await page.getByText(label).boundingBox();
+
     if (!box) throw new Error(`no bounding box for "${label}"`);
     const cx = box.x + box.width / 2;
     const cy = box.y + box.height / 2;

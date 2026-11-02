@@ -20,6 +20,7 @@ const openManualForm = async (page: Page) => {
 
 const swipeRow = async (page: Page, name: string, dx: number) => {
     const box = await page.getByText(name, { exact: true }).first().boundingBox();
+
     if (!box) throw new Error(`Row "${name}" not found`);
     const cx = box.x + box.width / 2;
     const cy = box.y + box.height / 2;
@@ -32,11 +33,14 @@ const swipeRow = async (page: Page, name: string, dx: number) => {
 const addIngredientOneAtATime = async (page: Page, name: string, quantity?: string, unit?: string) => {
     await page.getByRole('button', { name: 'Add ingredient' }).click();
     await page.getByPlaceholder('Enter ingredient name...').fill(name);
+
     if (quantity) await page.getByLabel('Quantity').fill(quantity);
+
     if (unit) {
         await page.getByLabel('Unit').click();
         await page.getByRole('option', { name: unit, exact: true }).click();
     }
+
     await page.getByRole('button', { name: 'Add Ingredient' }).click();
 };
 
@@ -168,6 +172,7 @@ test.describe('Create a recipe manually', () => {
         let uploads = 0;
         await authenticatedPage.route(/\/api\/recipes\/[^/]+\/image\/upload$/, (route) => {
             uploads++;
+
             return route.fulfill({ json: { imageKey: 'recipe-photo' } });
         });
         await openManualForm(authenticatedPage);
@@ -316,6 +321,7 @@ test.describe('Import a recipe from a link', () => {
         let calls = 0;
         await authenticatedPage.route('**/api/recipes/import', (route) => {
             calls++;
+
             return calls === 1
                 ? route.fulfill({ status: 502, json: { error: 'Temporary failure' } })
                 : route.fulfill({

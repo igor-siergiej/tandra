@@ -53,7 +53,9 @@ const RevealedActionButton = ({
 const handleContentClick =
     (swipeState: 'closed' | 'left' | 'right', onCloseSwipe: () => void) => (e: MouseEvent<HTMLElement>) => {
         const target = e.target as HTMLElement;
+
         if (target.closest('button')) return;
+
         if (swipeState !== 'closed') onCloseSwipe();
     };
 

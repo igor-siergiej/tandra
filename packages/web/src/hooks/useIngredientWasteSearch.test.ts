@@ -83,6 +83,7 @@ describe('useIngredientWasteSearch', () => {
 
     it('sorts results by match score, best match first', () => {
         const { result } = renderHook(() => useIngredientWasteSearch(recipes, 'tomato'));
+
         for (let i = 1; i < result.current.length; i++) {
             expect(result.current[i].score).toBeGreaterThanOrEqual(result.current[i - 1].score);
         }

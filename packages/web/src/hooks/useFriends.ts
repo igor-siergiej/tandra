@@ -5,6 +5,7 @@ import { generateFriendCode, getFriendsQuery, redeemFriendCode, unfriend } from 
 
 export const useFriends = () => {
     const { data, isLoading } = useQuery<User[]>(getFriendsQuery());
+
     return { friends: data ?? [], isLoading };
 };
 
@@ -12,6 +13,7 @@ export const useGenerateFriendCode = () => useMutation({ mutationFn: generateFri
 
 export const useRedeemFriendCode = () => {
     const queryClient = useQueryClient();
+
     return useMutation({
         mutationFn: redeemFriendCode,
         onSuccess: () => {
@@ -22,6 +24,7 @@ export const useRedeemFriendCode = () => {
 
 export const useUnfriend = () => {
     const queryClient = useQueryClient();
+
     return useMutation({
         mutationFn: unfriend,
         onSuccess: () => {

@@ -64,6 +64,7 @@ export const aiFeaturesFromEnv = (env: NodeJS.ProcessEnv = process.env): AiFeatu
     const llmKey = env.RECIPE_IMPORT_LLM_API_KEY ?? '';
     const imageGeneration = falKey.length > 0;
     const llm = falKey.length > 0 || llmKey.length > 0;
+
     return {
         imageGeneration,
         recipeImport: llm,

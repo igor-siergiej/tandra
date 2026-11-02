@@ -8,6 +8,7 @@ import AppInitializer from './index';
 const authState = { isAuthenticated: false, isLoading: true, logout: vi.fn(async () => {}) };
 
 const refreshSession = vi.fn(async () => null);
+
 vi.mock('../../auth', () => ({ useAuth: () => authState, useRefreshSession: () => refreshSession }));
 
 vi.mock('../../hooks/usePWA', () => ({

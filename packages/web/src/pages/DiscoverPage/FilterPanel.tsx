@@ -52,6 +52,7 @@ const Group = ({ title, children }: { title: string; children: ReactNode }) => (
 const withSelected = (buckets: DiscoveryFacetBucket[], selected: string[]): DiscoveryFacetBucket[] => {
     const shown = buckets.slice(0, MAX_CHIPS);
     const missing = selected.filter((key) => !shown.some((bucket) => bucket.key === key));
+
     return [...missing.map((key) => ({ key, count: 0 })), ...shown];
 };
 
