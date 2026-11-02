@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+
 import { apiCreateTodo, apiCreateTodoAsOtherUser, apiGetTodos, apiGetTodosAsOtherUser } from '../api-helpers';
 import { seedFriendship } from '../db-helpers';
 import { expect, test } from '../fixtures';
@@ -6,6 +7,7 @@ import { MOCK_USER, MOCK_USER_2 } from '../mocks/data/users';
 
 const isoDay = (d: Date) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
 const addDays = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -82,6 +84,7 @@ test.describe('Calendar: views and navigation', () => {
         for (let n = 1; n <= 10; n++) {
             await apiCreateTodo({ title: `Bulk ${String(n).padStart(2, '0')}`, dueDate: midMonthKey });
         }
+
         await authenticatedPage.goto('/calendar');
 
         await authenticatedPage.getByTestId(`day-${midMonthKey}`).click();
@@ -237,6 +240,7 @@ test.describe('Calendar: todos shared with me', () => {
         await expect(row.getByRole('checkbox')).toBeChecked();
 
         const box = await row.boundingBox();
+
         if (!box) throw new Error('row not found');
         await authenticatedPage.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
         await authenticatedPage.mouse.down();
@@ -257,6 +261,7 @@ test.describe('Calendar: sharing a new todo', () => {
         const friendSwitch = page.getByRole('switch');
         // New todos start private: no friend is switched on until the user picks one.
         await expect(friendSwitch).not.toBeChecked();
+
         if (shareWithFriend) await friendSwitch.click();
         await page.getByRole('button', { name: 'Add Todo' }).click();
         await expect.poll(async () => (await apiGetTodos()).some((t) => t.title === title)).toBe(true);

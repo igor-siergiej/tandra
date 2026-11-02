@@ -2,6 +2,7 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const signOut = vi.fn();
+
 vi.mock('./client', () => ({ authClient: { signOut: (...args: unknown[]) => signOut(...args) } }));
 
 import { AuthRoot, useAuth } from './index';
@@ -12,9 +13,11 @@ const signedIn = () =>
     );
 
 let logoutFromUi: () => Promise<void> = async () => {};
+
 const Probe = () => {
     const { isAuthenticated, isLoading, logout } = useAuth();
     logoutFromUi = logout;
+
     return <p>{isLoading ? 'loading' : isAuthenticated ? 'signed in' : 'signed out'}</p>;
 };
 

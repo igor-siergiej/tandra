@@ -29,7 +29,7 @@ export class MongoDiscoveryPublicationRepository implements DiscoveryPublication
     async listPublishedByOwner(ownerId: string): Promise<DiscoveryPublication[]> {
         return this.collection()
             .find({ ownerId, publishedAt: { $exists: true } }, NO_OBJECT_ID)
-            .toArray() as Promise<DiscoveryPublication[]>;
+            .toArray();
     }
 
     async upsert(publication: DiscoveryPublication): Promise<void> {

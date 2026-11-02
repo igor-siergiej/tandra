@@ -31,15 +31,18 @@ export class MongoMealPlanRepository implements MealPlanRepository {
 
     async insert(entry: MealPlanEntry): Promise<MealPlanEntry> {
         await this.collection().insertOne(entry);
+
         return entry;
     }
 
     async update(entryId: string, entry: MealPlanEntry): Promise<MealPlanEntry> {
         await this.collection().findOneAndReplace({ id: entryId }, entry);
         const updated = await this.getById(entryId);
+
         if (!updated) {
             throw new Error('Meal plan entry not found');
         }
+
         return updated;
     }
 

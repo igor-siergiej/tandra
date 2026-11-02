@@ -1,6 +1,7 @@
 import type { Recipe } from '@tandra/types';
 import { ImageIcon, ImageOff, Sparkles } from 'lucide-react';
 import { useId, useRef, useState } from 'react';
+
 import { revertRecipeAiImage, uploadRecipeImage } from '../../api';
 import { Button } from '../../components/ui/button';
 import { Skeleton } from '../../components/ui/skeleton';
@@ -17,8 +18,9 @@ interface CoverImageSectionProps {
 const useImageAction = (onImageChange?: () => void) => {
     const [isBusy, setIsBusy] = useState(false);
 
-    const run = async (action: () => Promise<unknown>, success: string, fallbackError: string) => {
+    const run = async <T,>(action: () => Promise<T>, success: string, fallbackError: string) => {
         setIsBusy(true);
+
         try {
             await action();
             notifySuccess(success);
@@ -52,12 +54,15 @@ const CoverImagePreview = ({
             </div>
         );
     }
+
     if (imageUrl) {
         return <img src={imageUrl} alt={alt} className="h-full w-full object-cover" />;
     }
+
     if (showSkeleton) {
         return <Skeleton className="absolute inset-0 h-full w-full rounded-none" />;
     }
+
     return null;
 };
 
@@ -65,6 +70,7 @@ type ImageAction = ReturnType<typeof useImageAction>;
 
 const RevertButton = ({ recipe, isBusy, run }: { recipe: Recipe } & ImageAction) => {
     if (!recipe.aiImageKey || recipe.coverImageKey === recipe.aiImageKey) return null;
+
     return (
         <Button
             type="button"
@@ -85,6 +91,7 @@ const UploadButton = ({ recipe, isBusy, run }: { recipe: Recipe } & ImageAction)
 
     const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
+
         if (!file) return;
         await run(() => uploadRecipeImage(recipe.id, file), 'Image uploaded successfully', 'Failed to upload image');
     };
@@ -97,6 +104,7 @@ const UploadButton = ({ recipe, isBusy, run }: { recipe: Recipe } & ImageAction)
                 accept="image/*"
                 onChange={handleImageSelect}
                 onClick={(e) => {
+                    // SAFETY: the handler is attached to the file <input>, so currentTarget is that input.
                     (e.currentTarget as HTMLInputElement).value = '';
                 }}
                 disabled={isBusy}
@@ -119,6 +127,7 @@ const UploadButton = ({ recipe, isBusy, run }: { recipe: Recipe } & ImageAction)
 
 const OwnerControls = ({ recipe, onImageChange }: { recipe: Recipe; onImageChange?: () => void }) => {
     const action = useImageAction(onImageChange);
+
     return (
         <div className="absolute bottom-3 right-3 z-10 flex gap-2">
             <RevertButton recipe={recipe} {...action} />

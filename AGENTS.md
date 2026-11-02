@@ -27,7 +27,6 @@ tandra/
 │   └── types/        # Shared TypeScript types
 ├── .env              # Environment variables
 ├── .bunfig.toml      # Bun registry configuration
-├── biome.json        # Biome linter/formatter config
 ├── commitlint.config.js  # Conventional commit rules
 ├── .releaserc.json   # Semantic-release config (auto changelog & versioning)
 ├── package.json      # Root workspace configuration
@@ -43,8 +42,8 @@ Run these from the root directory:
 - `bun run start:api` - Start only API (port 4001)
 
 ### Code Quality
-- `bun run lint` - Run Biome linter across all packages
-- `bun run lint:fix` - Auto-fix Biome linting issues
+- `bun run lint` - Run Oxlint (with the vendored anti-slop rules) and the Oxfmt check
+- `bun run lint:fix` - Auto-fix with Oxlint, then format with Oxfmt
 - `bun run typecheck` - Type-check the API and web packages (see [Type Checking](#type-checking))
 
 ### Testing
@@ -103,7 +102,7 @@ Common TypeScript interfaces and types shared between frontend and backend.
 
 ## Development Workflow
 1. **Starting development**: Run `bun run start` to start both services
-2. **Code style**: The project uses **Biome** for linting and formatting (not ESLint)
+2. **Code style**: The project uses **Oxlint + Oxfmt** via `@imapps/oxc-config` (`oxlint.config.ts`, `oxfmt.config.ts`), not ESLint/Biome. Fix anti-slop violations (parse input with zod at the boundary, precise types, `// SAFETY:` on unavoidable assertions); never suppress them
 3. **Testing**: API tests run on Bun's test runner, web tests on Vitest, browser tests on Playwright (`e2e/`)
 4. **Linting before commits**: **IMPORTANT** - Run `bun run lint:fix` to fix all linting issues before committing
 5. **Building**: Use `bun run --filter @tandra/web build` for production build
@@ -171,7 +170,7 @@ with a count, so moving code around does not read as a new error.
    This is the single command that tells you the change is good; it stops at the
    first failure and says what to do about it. `bun run verify:fast` runs just lint
    and the type-check.
-2. **Linting**: Run `bun run lint:fix` to auto-fix all Biome linting issues
+2. **Linting**: Run `bun run lint:fix` to auto-fix all Oxlint issues, then format with Oxfmt
 3. **Type check**: Run `bun run typecheck` to verify no new TypeScript errors
 4. **Tests**: Run `bun run --filter @tandra/api test` to verify all API tests pass
 5. **Builds**: Verify `bun run --filter @tandra/web build` and `bun run --filter @tandra/api build` succeed
@@ -202,7 +201,7 @@ Production runs as Dokploy swarm apps (`tandra-web`, `tandra-api`) on the `found
 Three workflows under `.github/workflows/`:
 
 **`pr.yml`** (every pull request) — the merge gates:
-1. **lint**: Biome linting (`bun run lint`) + the e2e suite's own type check (`bun run tsc:e2e`)
+1. **lint**: Oxlint + Oxfmt (`bun run lint`) + the e2e suite's own type check (`bun run tsc:e2e`)
 2. **test**: the type-check gate (`bun run typecheck`), the API tests with a 90% coverage threshold, the web tests, and the script tests
 3. **e2e**: Playwright suite, including visual regression, against seeded Mongo and OpenSearch
 4. **report**: publishes the Playwright report and links it from a sticky PR comment

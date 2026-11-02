@@ -1,11 +1,20 @@
 import type { Logger } from '@imapps/api-utils';
-import type { ZodError, ZodType } from 'zod';
+import { type ZodError, type ZodType, z } from 'zod';
+
+import { caughtErrorSchema } from '../caughtError';
 
 const FAL_ANY_LLM_URL = 'https://fal.run/fal-ai/any-llm';
 const DEFAULT_MODEL = 'google/gemini-2.5-flash-lite';
 const DEFAULT_TEMPERATURE = 0;
 const DEFAULT_TIMEOUT_MS = 15000;
 const DEFAULT_MAX_ATTEMPTS = 2;
+
+const replySchema = z
+    .looseObject({
+        output: z.string().optional().catch(undefined),
+        error: z.unknown().optional(),
+    })
+    .catch({});
 
 const fail = (message: string): Error => Object.assign(new Error(message), { status: 502 });
 
@@ -41,11 +50,13 @@ type JsonExtraction = { value: unknown } | { issues: string };
 const extractJsonObject = (output: string): JsonExtraction => {
     const start = output.indexOf('{');
     const end = output.lastIndexOf('}');
+
     if (start === -1 || end === -1 || end <= start) {
         return { issues: 'no JSON object found in the reply' };
     }
+
     try {
-        return { value: JSON.parse(output.slice(start, end + 1)) as unknown };
+        return { value: JSON.parse(output.slice(start, end + 1)) };
     } catch {
         return { issues: 'the JSON object was malformed' };
     }
@@ -85,6 +96,7 @@ export class FalLlmClient {
                     : `${opts.prompt}\n\nYour previous reply failed validation: ${lastIssues}. Return only corrected JSON, no prose.`;
 
             let output: string;
+
             try {
                 output = await this.request(model, opts.system, prompt, temperature, timeoutMs);
             } catch (error) {
@@ -99,20 +111,25 @@ export class FalLlmClient {
                 );
                 throw error;
             }
+
             lastOutput = output;
 
             const json = extractJsonObject(output);
+
             if ('issues' in json) {
                 lastIssues = json.issues;
                 continue;
             }
 
             const parsed = opts.schema.safeParse(json.value);
+
             if (parsed.success) {
                 const latencyMs = Date.now() - started;
                 this.log(opts.operation, model, attempt, latencyMs, 'ok', opts.prompt.length, output.length);
+
                 return { value: parsed.data, meta: { operation: opts.operation, model, attempts: attempt, latencyMs } };
             }
+
             lastIssues = flattenZodIssues(parsed.error);
         }
 
@@ -140,6 +157,7 @@ export class FalLlmClient {
 
         try {
             let response: Response;
+
             try {
                 response = await fetch(FAL_ANY_LLM_URL, {
                     method: 'POST',
@@ -151,22 +169,25 @@ export class FalLlmClient {
                     body: JSON.stringify({ model, system_prompt: system, prompt, temperature }),
                 });
             } catch (error) {
-                throw fail(`fal.ai any-llm request failed: ${(error as Error).message}`);
+                throw fail(`fal.ai any-llm request failed: ${caughtErrorSchema.parse(error).message}`);
             }
 
             if (!response.ok) {
                 let detail: string;
+
                 try {
                     detail = (await response.text()).slice(0, 200);
                 } catch {
                     detail = `HTTP ${response.status}`;
                 }
+
                 throw fail(`fal.ai any-llm error: ${detail}`);
             }
 
-            let data: { output?: string; error?: string };
+            let data: z.output<typeof replySchema>;
+
             try {
-                data = (await response.json()) as { output?: string; error?: string };
+                data = replySchema.parse(await response.json());
             } catch {
                 throw fail('fal.ai any-llm returned a non-JSON response body');
             }
@@ -174,6 +195,7 @@ export class FalLlmClient {
             if (data.error) {
                 throw fail(`fal.ai any-llm error: ${String(data.error).slice(0, 200)}`);
             }
+
             return data.output ?? '';
         } finally {
             clearTimeout(timer);

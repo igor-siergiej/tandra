@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
+
 import type { MongoDbConnection } from '@imapps/api-utils';
 import type { Item, List } from '@tandra/types';
 
@@ -32,42 +33,51 @@ class MockCollection {
 
     async findOne(query: unknown) {
         this.calls.findOne.push([query]);
+
         if (this.findOneSequence.length > 0) return this.findOneSequence.shift();
+
         return this.resolvedValues.findOne;
     }
 
     find(query: unknown) {
         this.calls.find.push([query]);
+
         return this.resolvedValues.find;
     }
 
     async insertOne(doc: unknown) {
         this.calls.insertOne.push([doc]);
+
         return this.resolvedValues.insertOne;
     }
 
     async deleteOne(query: unknown) {
         this.calls.deleteOne.push([query]);
+
         return this.resolvedValues.deleteOne;
     }
 
     async replaceOne(query: unknown, replacement: unknown) {
         this.calls.replaceOne.push([query, replacement]);
+
         return this.resolvedValues.replaceOne;
     }
 
     async updateOne(query: unknown, update: unknown, options?: unknown) {
         this.calls.updateOne.push(options === undefined ? [query, update] : [query, update, options]);
+
         return this.resolvedValues.updateOne;
     }
 
     async findOneAndReplace(query: unknown, replacement: unknown) {
         this.calls.findOneAndReplace.push([query, replacement]);
+
         return this.resolvedValues.findOneAndReplace;
     }
 
     async findOneAndUpdate(query: unknown, update: unknown) {
         this.calls.findOneAndUpdate.push([query, update]);
+
         return this.resolvedValues.findOneAndUpdate;
     }
 
@@ -75,6 +85,7 @@ class MockCollection {
 
     async createIndex(keys: unknown) {
         this.createIndexCalls.push(keys);
+
         return 'index';
     }
 
@@ -82,6 +93,7 @@ class MockCollection {
 
     async updateMany(query: unknown, update: unknown) {
         this.updateManyCalls.push([query, update]);
+
         return { modifiedCount: 1 };
     }
 
@@ -113,6 +125,7 @@ class MockCollection {
 }
 
 const mockCollection = new MockCollection();
+
 const mockConnection = {
     getCollection: () => mockCollection,
 } as unknown as MongoDbConnection<{ list: List }>;
@@ -200,6 +213,7 @@ describe('MongoListRepository', () => {
                         users: [{ id: 'user-1', username: 'testuser' }],
                     },
                 ];
+
                 const mockCursor = {
                     toArray: async () => mockLists,
                 };

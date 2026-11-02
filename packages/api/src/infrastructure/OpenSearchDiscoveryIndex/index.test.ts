@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'bun:test';
+
 import { errors } from '@opensearch-project/opensearch';
 import type { DiscoveryRecipe } from '@tandra/types';
 
@@ -53,8 +54,10 @@ const fakeApi = (overrides: Partial<Record<string, unknown>> = {}) => {
         bulk: vi.fn().mockResolvedValue({ body: { errors: false, items: [] } }),
         ...overrides,
     };
+
     return api;
 };
+
 const asApi = (api: unknown) => api as OpenSearchApi;
 
 describe('toIndexDocument', () => {

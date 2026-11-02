@@ -12,6 +12,7 @@ test.describe('Discover', () => {
         await authenticatedPage.waitForURL(/\/discover$/);
         await expect(discoverPage.heading).toBeVisible();
         await expect(authenticatedPage.getByText('6 recipes')).toBeVisible();
+
         for (const title of ['Lemon Drizzle Cake', 'Chocolate Brownies', 'Beef Wellington']) {
             await expect(discoverPage.card(title)).toBeVisible();
         }
@@ -111,9 +112,11 @@ test.describe('Discover', () => {
 
         await authenticatedPage.waitForURL(/\/discover\/e2e-library-2$/);
         await expect(authenticatedPage.locator('img[alt="Chocolate Brownies"]')).toBeAttached();
+
         const credit = authenticatedPage.getByRole('link', {
             name: /Photo: Jane Doe, CC BY 2\.0, via Wikimedia Commons/,
         });
+
         await expect(credit).toBeVisible();
         await expect(credit).toHaveAttribute('href', 'https://commons.wikimedia.org/wiki/File:Chocolate_brownies.jpg');
     });

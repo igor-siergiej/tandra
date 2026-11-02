@@ -1,5 +1,6 @@
 import type { ListResponse } from '@tandra/types';
 import { useEffect, useId, useState } from 'react';
+
 import { Button } from '../../components/ui/button';
 import { Drawer, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle } from '../../components/ui/drawer';
 import { Label } from '../../components/ui/label';
@@ -43,13 +44,16 @@ export const ShoppingPreviewDrawer = ({
     const toggle = (key: string) =>
         setDropped((current) => {
             const next = new Set(current);
+
             if (!next.delete(key)) next.add(key);
+
             return next;
         });
 
     const confirm = async () => {
         setBusy(true);
         setError(null);
+
         try {
             await onConfirm(listTitle, kept);
             onOpenChange(false);

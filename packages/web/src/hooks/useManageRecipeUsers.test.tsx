@@ -28,6 +28,7 @@ describe('useManageRecipeUsers', () => {
         mockAddUserToRecipe.mockResolvedValue({ id: 'R1', users: [] });
         const client = new QueryClient();
         const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+
         const { result } = renderHook(() => useManageRecipeUsers({ recipeId: 'R1', userId: 'user-1' }), {
             wrapper: wrap(client),
         });
@@ -42,6 +43,7 @@ describe('useManageRecipeUsers', () => {
         mockRemoveUserFromRecipe.mockResolvedValue({ id: 'R1', users: [] });
         const client = new QueryClient();
         const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+
         const { result } = renderHook(() => useManageRecipeUsers({ recipeId: 'R1', userId: 'user-1' }), {
             wrapper: wrap(client),
         });

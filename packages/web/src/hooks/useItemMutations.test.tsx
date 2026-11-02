@@ -2,6 +2,7 @@ import 'fake-indexeddb/auto';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type * as Api from '../api';
 
 vi.mock('../api', async (importOriginal) => ({

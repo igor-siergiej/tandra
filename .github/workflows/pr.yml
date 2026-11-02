@@ -16,7 +16,7 @@ jobs:
       contents: read
       packages: read
     steps:
-      # The utils submodule holds a second biome.json and its own package tree. Checking it out here
+      # The utils submodule holds its own lint config and package tree. Checking it out here
       # keeps CI's lint and dead-code results identical to a developer's, who has it cloned locally.
       - uses: actions/checkout@v6
         with:

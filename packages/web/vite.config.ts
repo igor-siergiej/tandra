@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+
 import react from '@vitejs/plugin-react';
 import { type Connect, defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -19,9 +20,11 @@ export default defineConfig(({ mode }) => {
 
     // The newest release version is all the app shell needs (for the unread dot); the notes themselves are loaded
     // only when the panel opens.
+    // SAFETY: the file is written by scripts/collect-release-notes.js; only `version` is read, and the build fails on an empty list.
     const releaseNotes = JSON.parse(fs.readFileSync('./src/data/release-notes.json', 'utf8')) as Array<{
         version: string;
     }>;
+
     const latestRelease = releaseNotes[0]?.version ?? '';
 
     return {
@@ -142,16 +145,21 @@ export default defineConfig(({ mode }) => {
 // mirror sits *before* Vite's SPA fallback middleware and short-circuits them.
 function spaNotFoundMirror(paths: string[]): Plugin {
     const exact = new Set(paths);
+
     const middleware: Connect.NextHandleFunction = (req, res, next) => {
         const url = req.url ? req.url.split('?')[0] : '';
+
         if (exact.has(url) || url.startsWith('/.well-known/')) {
             res.statusCode = 404;
             res.setHeader('content-type', 'text/plain');
             res.end('Not Found');
+
             return;
         }
+
         next();
     };
+
     return {
         name: 'spa-not-found-mirror',
         // Run before Vite's built-in SPA fallback.
@@ -174,10 +182,13 @@ function robotsTxtMirror(): Plugin {
             res.statusCode = 200;
             res.setHeader('content-type', 'text/plain');
             res.end('User-agent: *\nDisallow: /\n');
+
             return;
         }
+
         next();
     };
+
     return {
         name: 'robots-txt-mirror',
         configureServer: (server) => {

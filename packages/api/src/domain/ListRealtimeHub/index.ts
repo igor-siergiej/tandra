@@ -1,6 +1,6 @@
 export interface ListSocket {
-    send(data: string): unknown;
-    close(code?: number, reason?: string): unknown;
+    send(data: string): void;
+    close(code?: number, reason?: string): void;
 }
 
 export interface PresenceUser {
@@ -27,11 +27,15 @@ export class ListRealtimeHub {
 
     leave(listTitle: string, socket: ListSocket): void {
         const room = this.rooms.get(listTitle);
+
         if (!room?.delete(socket)) return;
+
         if (room.size === 0) {
             this.rooms.delete(listTitle);
+
             return;
         }
+
         this.broadcastPresence(listTitle);
     }
 
@@ -46,7 +50,9 @@ export class ListRealtimeHub {
     // fallow-ignore-next-line unused-class-member
     kick(listTitle: string, userId: string): void {
         const room = this.rooms.get(listTitle);
+
         if (!room) return;
+
         for (const [socket, user] of [...room]) {
             if (user.id !== userId) continue;
             this.leave(listTitle, socket);
@@ -56,7 +62,9 @@ export class ListRealtimeHub {
 
     presence(listTitle: string): PresenceUser[] {
         const unique = new Map<string, PresenceUser>();
+
         for (const user of this.rooms.get(listTitle)?.values() ?? []) unique.set(user.id, user);
+
         return [...unique.values()];
     }
 
@@ -66,8 +74,10 @@ export class ListRealtimeHub {
 
     private broadcast(listTitle: string, message: ServerMessage): void {
         const room = this.rooms.get(listTitle);
+
         if (!room) return;
         const data = JSON.stringify(message);
+
         for (const socket of [...room.keys()]) {
             try {
                 socket.send(data);

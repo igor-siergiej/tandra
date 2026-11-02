@@ -36,6 +36,7 @@ const makeApp = (discovery: Partial<DiscoveryService>) => {
     const handlers = createPublicDiscoveryHandlers({ discovery: discovery as DiscoveryService }, noopLogger);
     app.get('/api/public/discover/recipes', (c) => handlers.list(c));
     app.get('/api/public/discover/recipes/:slug', (c) => handlers.bySlug(c));
+
     return app;
 };
 
@@ -45,6 +46,7 @@ describe('PublicDiscoveryHandlers.list', () => {
             { ...recipe({ id: 'a' }), _id: { toString: () => '507f1f77bcf86cd799439011' } } as never,
             { ...recipe({ id: 'b' }), _id: { toString: () => '507f1f77bcf86cd799439012' } } as never,
         ]);
+
         const discovery: Partial<DiscoveryService> = { listPublic: list };
         const app = makeApp(discovery);
         const res = await app.request('/api/public/discover/recipes?pageSize=2');
@@ -60,6 +62,7 @@ describe('PublicDiscoveryHandlers.list', () => {
         const list = mock(async () => [
             { ...recipe({ id: 'a' }), _id: { toString: () => '507f1f77bcf86cd799439011' } } as never,
         ]);
+
         const app = makeApp({ listPublic: list });
         const res = await app.request('/api/public/discover/recipes?pageSize=10');
         const body = (await res.json()) as { items: unknown[]; nextCursor?: string };

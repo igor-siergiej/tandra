@@ -12,6 +12,7 @@
  *     [TARGET_TZ='Europe/London'] [DRY_RUN=1] node packages/api/scripts/migrate-duedate-to-day.mjs
  */
 import { MongoClient } from 'mongodb';
+import { z } from 'zod';
 
 const uri = process.env.CONNECTION_URI;
 const dbName = process.env.DATABASE_NAME;
@@ -23,7 +24,8 @@ if (!uri || !dbName) {
     process.exit(1);
 }
 
-const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+const dayString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
 const dayFormatter = new Intl.DateTimeFormat('en-CA', {
     timeZone: tz,
     year: 'numeric',
@@ -33,10 +35,13 @@ const dayFormatter = new Intl.DateTimeFormat('en-CA', {
 
 /** Returns a YYYY-MM-DD string, or null if the value is missing/unparseable/already migrated. */
 const toDay = (value) => {
-    if (value == null) return null;
-    if (typeof value === 'string' && DAY_RE.test(value)) return null; // already a day string
+    if (value === null || value === undefined) return null;
+
+    if (dayString.safeParse(value).success) return null; // already a day string
     const date = value instanceof Date ? value : new Date(value);
+
     if (Number.isNaN(date.getTime())) return null;
+
     return dayFormatter.format(date); // en-CA => YYYY-MM-DD
 };
 
@@ -49,17 +54,21 @@ try {
 
     let scanned = 0;
     let updated = 0;
+
     for await (const todo of cursor) {
         scanned += 1;
         const set = {};
         const nextDue = toDay(todo.dueDate);
+
         if (nextDue) set.dueDate = nextDue;
         const nextUntil = toDay(todo.recurrence?.until);
+
         if (nextUntil) set['recurrence.until'] = nextUntil;
 
         if (Object.keys(set).length === 0) continue;
         updated += 1;
         console.log(`${dryRun ? '[dry] ' : ''}${todo.id}: ${JSON.stringify(set)}`);
+
         if (!dryRun) await todos.updateOne({ _id: todo._id }, { $set: set });
     }
 

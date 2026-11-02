@@ -36,6 +36,7 @@ const LISTS_STORE = 'lists';
 const ITEMS_STORE = 'items';
 
 let dbPromise: Promise<IDBPDatabase<GuestDB>> | null = null;
+
 const getDB = () => {
     if (!dbPromise) {
         dbPromise = openDB<GuestDB>(DB_NAME, 1, {
@@ -46,6 +47,7 @@ const getDB = () => {
             },
         });
     }
+
     return dbPromise;
 };
 
@@ -63,9 +65,12 @@ let nextSeq = 0;
 // other than `ownId`.
 const assertFreeTitle = (title: string, ownId?: string): string => {
     const trimmed = title.trim();
+
     if (!trimmed) throw new Error('List name is required');
     const clash = listsMirror.some((l) => l.id !== ownId && l.title.toLowerCase() === trimmed.toLowerCase());
+
     if (clash) throw new Error('A list with that name already exists');
+
     return trimmed;
 };
 
@@ -76,6 +81,7 @@ const patchItem = async (
 ) => {
     const db = await getDB();
     const existing = await db.get(ITEMS_STORE, itemId);
+
     if (!existing) return;
     const next: GuestItem = { ...existing, ...patch };
     await db.put(ITEMS_STORE, next);
@@ -91,10 +97,12 @@ const deleteListItems = async (listId: string, shouldDelete: (item: GuestItem) =
     const db = await getDB();
     const tx = db.transaction(ITEMS_STORE, 'readwrite');
     let cursor = await tx.store.index('by-list').openCursor(listId);
+
     while (cursor) {
         if (shouldDelete(cursor.value)) await cursor.delete();
         cursor = await cursor.continue();
     }
+
     await tx.done;
     const bucket = itemsByListMirror.get(listId) ?? [];
     itemsByListMirror.set(
@@ -102,6 +110,11 @@ const deleteListItems = async (listId: string, shouldDelete: (item: GuestItem) =
         bucket.filter((it) => !shouldDelete(it))
     );
 };
+
+export interface GuestSnapshot {
+    lists: GuestList[];
+    itemsByList: Map<string, GuestItem[]>;
+}
 
 export const guestStore = {
     /** Loads everything from IndexedDB into the in-memory mirror. Guest queries call it on every fetch. */
@@ -112,15 +125,19 @@ export const guestStore = {
         const items = await db.getAll(ITEMS_STORE);
         itemsByListMirror.clear();
         let maxSeq = 0;
+
         for (const item of items) {
             const bucket = itemsByListMirror.get(item.listId) ?? [];
             bucket.push(item);
             itemsByListMirror.set(item.listId, bucket);
+
             if (item.seq > maxSeq) maxSeq = item.seq;
         }
+
         for (const bucket of itemsByListMirror.values()) {
             bucket.sort(sortItems);
         }
+
         // Resume the in-memory counter past any persisted items so freshly-added
         // items don't tie with — and reorder — ones already in IDB.
         if (maxSeq > nextSeq) nextSeq = maxSeq;
@@ -141,7 +158,9 @@ export const guestStore = {
 
     itemCount(): number {
         let total = 0;
+
         for (const bucket of itemsByListMirror.values()) total += bucket.length;
+
         return total;
     },
 
@@ -153,15 +172,18 @@ export const guestStore = {
             listType: input.listType ?? ListType.SHOPPING,
             createdAt: Date.now(),
         };
+
         const db = await getDB();
         await db.put(LISTS_STORE, list);
         listsMirror = [...listsMirror, list].sort(sortLists);
+
         return list;
     },
 
     /** Renames in place: the id, position and items (with their ticks) are untouched. */
     async renameList(listId: string, title: string): Promise<void> {
         const existing = listsMirror.find((l) => l.id === listId);
+
         if (!existing) throw new Error('List not found');
         const next: GuestList = { ...existing, title: assertFreeTitle(title, listId) };
         const db = await getDB();
@@ -175,10 +197,12 @@ export const guestStore = {
         await tx.objectStore(LISTS_STORE).delete(listId);
         const index = tx.objectStore(ITEMS_STORE).index('by-list');
         let cursor = await index.openCursor(listId);
+
         while (cursor) {
             await cursor.delete();
             cursor = await cursor.continue();
         }
+
         await tx.done;
         listsMirror = listsMirror.filter((l) => l.id !== listId);
         itemsByListMirror.delete(listId);
@@ -193,9 +217,12 @@ export const guestStore = {
         unit?: string;
     }): Promise<GuestItem> {
         const name = input.name.trim();
+
         if (!name) throw new Error('Item name is required');
         const list = listsMirror.find((l) => l.id === input.listId);
+
         if (!list) throw new Error('List not found');
+
         const item: GuestItem = {
             id: input.id ?? crypto.randomUUID(),
             listId: input.listId,
@@ -206,10 +233,12 @@ export const guestStore = {
             createdAt: Date.now(),
             seq: ++nextSeq,
         };
+
         const db = await getDB();
         await db.put(ITEMS_STORE, item);
         const bucket = itemsByListMirror.get(input.listId) ?? [];
         itemsByListMirror.set(input.listId, [...bucket, item].sort(sortItems));
+
         return item;
     },
 
@@ -219,6 +248,7 @@ export const guestStore = {
 
     async updateItemName(itemId: string, name: string): Promise<void> {
         const trimmed = name.trim();
+
         if (!trimmed) throw new Error('Item name is required');
         await patchItem(itemId, { name: trimmed });
     },
@@ -238,6 +268,7 @@ export const guestStore = {
     async deleteItem(itemId: string): Promise<void> {
         const db = await getDB();
         const existing = await db.get(ITEMS_STORE, itemId);
+
         if (!existing) return;
         await db.delete(ITEMS_STORE, itemId);
         const bucket = itemsByListMirror.get(existing.listId) ?? [];
@@ -267,11 +298,13 @@ export const guestStore = {
     },
 
     /** Snapshots the current state so the migration can iterate without reacting to live writes. */
-    snapshot(): { lists: GuestList[]; itemsByList: Map<string, GuestItem[]> } {
+    snapshot(): GuestSnapshot {
         const itemsByList = new Map<string, GuestItem[]>();
+
         for (const list of listsMirror) {
             itemsByList.set(list.id, [...(itemsByListMirror.get(list.id) ?? [])]);
         }
+
         return { lists: [...listsMirror], itemsByList };
     },
 };

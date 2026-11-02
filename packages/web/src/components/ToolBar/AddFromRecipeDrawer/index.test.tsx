@@ -1,9 +1,11 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { AddFromRecipeDrawer } from './index';
 
 let mockRecipes: unknown[] = [];
+
 vi.mock('@tanstack/react-query', () => ({
     useQuery: () => ({ data: mockRecipes }),
     useQueryClient: () => ({ invalidateQueries: vi.fn() }),
@@ -24,10 +26,12 @@ vi.mock('../../../hooks/useItemImage', () => ({
 }));
 
 const mockAddItemsBulk = vi.fn().mockResolvedValue({ added: 1, skipped: 0 });
+
 vi.mock('../../../api', () => ({
     getRecipesQuery: () => ({ queryKey: ['recipes'], queryFn: async () => [] }),
     addItemsBulk: (...args: unknown[]) => mockAddItemsBulk(...args),
 }));
+
 describe('AddFromRecipeDrawer', () => {
     const noop = () => {};
 

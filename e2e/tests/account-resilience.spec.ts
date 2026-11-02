@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+
 import { apiCreateList } from '../api-helpers';
 import { expect, test } from '../fixtures';
 import { installFakePush } from '../mocks/push';
@@ -158,6 +159,7 @@ test.describe('Push notifications toggle', () => {
         await installFakePush(authenticatedPage, { permission: 'default', requestResult: 'granted' });
         await authenticatedPage.goto('/');
         await authenticatedPage.getByRole('button', { name: 'Menu' }).click();
+
         const subscribed = authenticatedPage.waitForRequest(
             (req) => req.url().endsWith('/api/push/subscribe') && req.method() === 'POST'
         );
@@ -172,6 +174,7 @@ test.describe('Push notifications toggle', () => {
         await authenticatedPage.goto('/');
         await authenticatedPage.getByRole('button', { name: 'Menu' }).click();
         await expect(notificationsToggle(authenticatedPage)).toBeChecked();
+
         const unsubscribed = authenticatedPage.waitForRequest(
             (req) => req.url().endsWith('/api/push/subscribe') && req.method() === 'DELETE'
         );
@@ -235,6 +238,7 @@ test.describe('Errors and connectivity', () => {
         const synced = authenticatedPage.waitForResponse(
             (r) => r.url().endsWith('/api/lists') && r.request().method() === 'PUT'
         );
+
         await authenticatedPage.context().setOffline(false);
         await synced;
 
@@ -257,6 +261,7 @@ test.describe('Errors and connectivity', () => {
         const synced = authenticatedPage.waitForResponse(
             (r) => /\/api\/recipes\/[^/]+$/.test(r.url()) && r.request().method() === 'PUT'
         );
+
         await authenticatedPage.context().setOffline(false);
         await synced;
 
@@ -274,6 +279,7 @@ test.describe('Errors and connectivity', () => {
         await authenticatedPage.route(/\/api\/lists\/[^/]+\/items$/, (route) => {
             if (route.request().method() !== 'PUT') return route.continue();
             attempts++;
+
             return route.fulfill({
                 status: 409,
                 json: { error: 'An item with that name already exists in this list' },

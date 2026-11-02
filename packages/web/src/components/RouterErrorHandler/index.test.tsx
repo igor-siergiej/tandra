@@ -1,5 +1,6 @@
 import { render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import RouterErrorHandler from './index';
 
 // Mock ErrorPage to avoid rendering it
@@ -10,6 +11,7 @@ vi.mock('../ErrorPage', () => ({
 // Mock useRouteError
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
+
     return {
         ...actual,
         useRouteError: vi.fn(),

@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const isUsernameAvailable = vi.fn();
 const updateUser = vi.fn();
+
 vi.mock('../../auth/client', () => ({
     authClient: {
         isUsernameAvailable: (...args: unknown[]) => isUsernameAvailable(...args),
@@ -18,7 +19,9 @@ const session = {
     needsUsername: true,
     isLoading: false,
 };
+
 const refreshSession = vi.fn();
+
 vi.mock('../../auth', () => ({
     useUser: () => ({ user: session.user, needsUsername: session.needsUsername }),
     useAuth: () => ({
@@ -30,6 +33,7 @@ vi.mock('../../auth', () => ({
 }));
 
 const migrateAfterAuth = vi.fn();
+
 vi.mock('../../guest/useMigration', () => ({ useMigration: () => ({ migrateAfterAuth }) }));
 
 import ChooseUsernamePage from './index';
@@ -55,6 +59,7 @@ describe('ChooseUsernamePage', () => {
         refreshSession.mockReset().mockImplementation(async () => {
             const user = { id: 'u1', username: 'NewName' };
             Object.assign(session, { user, needsUsername: false });
+
             return user;
         });
         migrateAfterAuth.mockReset().mockResolvedValue(undefined);

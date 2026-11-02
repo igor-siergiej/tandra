@@ -99,6 +99,7 @@ describe('parseWikibooksPage', () => {
         const page = parseWikibooksPage(
             '==Ingredients:==\n* 2 kg cassava\n==Procedure (brief)==\n1. Peel the cassava.\n2. Boil it.'
         );
+
         expect(page?.instructions).toEqual(['Peel the cassava.', 'Boil it.']);
         expect(page?.ingredientLines).toEqual(['2 kg cassava']);
     });
@@ -145,6 +146,7 @@ describe('ingredient lines from real pages become structured ingredients', () =>
                 'Liquid smoke (optional)'
             )
         );
+
         expect(structured).toEqual([
             { name: 'lemons, juiced', quantity: 1.5, unit: 'pcs' },
             { name: 'brown sugar', quantity: 0.667, unit: 'cup' },
@@ -194,6 +196,7 @@ describe('cover picture', () => {
 * 2 cups water
 ==Procedure==
 # Boil it.`;
+
         expect(parseWikibooksPage(text)?.image).toBeUndefined();
     });
 });

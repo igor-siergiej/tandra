@@ -16,6 +16,7 @@ export const useRecipeSearch = (recipes: Recipe[], query: string): Recipe[] => {
 
     return useMemo(() => {
         if (!trimmed) return recipes;
+
         return fuse.search(trimmed).map((r) => r.item);
     }, [fuse, trimmed, recipes]);
 };

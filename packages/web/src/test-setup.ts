@@ -14,6 +14,7 @@ afterEach(() => {
 beforeEach(() => {
     globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
         const url = typeof input === 'string' ? input : input.toString();
+
         if (url.endsWith('/api/features')) {
             return new Response(
                 JSON.stringify({
@@ -27,6 +28,7 @@ beforeEach(() => {
                 { status: 200, headers: { 'Content-Type': 'application/json' } }
             );
         }
+
         return new Response('', { status: 404 });
     }) as unknown as typeof fetch;
 });

@@ -19,6 +19,7 @@ describe('HttpPageFetcher', () => {
         let sentHeaders: Headers | undefined;
         stubFetch(async (_url, init) => {
             sentHeaders = new Headers(init?.headers);
+
             return new Response('<html><body>ok</body></html>', {
                 headers: { 'content-type': 'text/html; charset=utf-8' },
             });

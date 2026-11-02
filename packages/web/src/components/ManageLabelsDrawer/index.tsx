@@ -1,5 +1,6 @@
 import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
+
 import { useLabels } from '../../hooks/useLabels';
 import { Button } from '../ui/button';
 import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from '../ui/drawer';
@@ -20,8 +21,10 @@ export const ManageLabelsDrawer = ({ open, onOpenChange }: ManageLabelsDrawerPro
 
     const handleCreate = async () => {
         const trimmed = name.trim();
+
         if (!trimmed || isCreating) return;
         setIsCreating(true);
+
         try {
             await createLabel({ name: trimmed, color });
             setName('');

@@ -29,6 +29,8 @@
  * of its own (it reads `location.href`), so the rewrite wraps `fetch` for those
  * two endpoints only.
  */
+import { z } from 'zod';
+
 import { readGuestFlag } from '../guest/guestFlag';
 import { isHeatmapPreview } from '../heatmapPreview/isHeatmapPreview';
 import { getConfig } from './config';
@@ -56,6 +58,7 @@ let pending: Array<[string, EventPayload]> = [];
 const flushPending = (): void => {
     const queued = pending;
     pending = [];
+
     for (const [event, data] of queued) window.umami?.track(event, data);
 };
 
@@ -65,6 +68,7 @@ const appendScript = (src: string, websiteId: string, onLoad?: () => void): void
     script.defer = true;
     script.dataset.websiteId = websiteId;
     script.src = src;
+
     if (onLoad) script.addEventListener('load', onLoad);
     document.head.appendChild(script);
 };
@@ -89,18 +93,21 @@ const LIST_PATH = /\/list\/[^/?#"\\\s]+(?:\/[^/?#"\\\s]+)?/g;
 const redactListPaths = (text: string): string => text.replace(LIST_PATH, '/list/:list');
 
 const redactAnalyticsRequests = (base: string): void => {
-    const endpoints: Record<string, true> = { [`${base}/p`]: true, [`${base}/api/record`]: true };
+    const endpoints = new Set([`${base}/p`, `${base}/api/record`]);
     const realFetch = window.fetch.bind(window);
     window.fetch = (input, init) => {
         // Both scripts post a JSON string to a string URL; a Request stringifies to `[object Request]` and is left alone.
-        const body = init?.body;
-        if (!endpoints[String(input)] || typeof body !== 'string') return realFetch(input, init);
-        return realFetch(input, { ...init, body: redactListPaths(body) });
+        const body = z.string().safeParse(init?.body);
+
+        if (!endpoints.has(String(input)) || !body.success) return realFetch(input, init);
+
+        return realFetch(input, { ...init, body: redactListPaths(body.data) });
     };
 };
 
 const injectScript = (host: string, websiteId: string): void => {
     if (injected || injectStarted) return;
+
     if (typeof document === 'undefined') return;
 
     injectStarted = true;
@@ -111,11 +118,12 @@ const injectScript = (host: string, websiteId: string): void => {
     appendScript(`${base}/p.js`, websiteId, () => {
         injected = true;
         flushPending();
+
         if (!optedOut()) appendScript(`${base}/recorder.js`, websiteId);
     });
 };
 
-const HTTP_PROTOCOLS: Record<string, true> = { 'http:': true, 'https:': true };
+const HTTP_PROTOCOLS = new Set(['http:', 'https:']);
 
 /** The tracker settings when analytics is on and the host is http(s); otherwise null. */
 // One guard per config field; each is covered in analytics.test.ts.
@@ -123,10 +131,13 @@ const HTTP_PROTOCOLS: Record<string, true> = { 'http:': true, 'https:': true };
 const trackerConfig = (): { host: string; websiteId: string } | null => {
     // The dashboard's heatmap preview frame is the analyst, not a visitor: record nothing from it.
     if (isHeatmapPreview) return null;
+
     try {
         const a = getConfig().analytics;
+
         if (a?.enabled === false || !a?.host || !a.websiteId) return null;
-        return HTTP_PROTOCOLS[new URL(a.host).protocol] ? { host: a.host, websiteId: a.websiteId } : null;
+
+        return HTTP_PROTOCOLS.has(new URL(a.host).protocol) ? { host: a.host, websiteId: a.websiteId } : null;
     } catch {
         // Config not loaded yet, or a malformed host.
         return null;
@@ -136,8 +147,10 @@ const trackerConfig = (): { host: string; websiteId: string } | null => {
 const ensureInjected = (): boolean => {
     if (injected) return true;
     const c = trackerConfig();
+
     if (!c) return false;
     injectScript(c.host, c.websiteId);
+
     return true;
 };
 

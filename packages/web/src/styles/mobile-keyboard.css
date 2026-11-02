@@ -26,8 +26,8 @@
 
 /* Prevent zoom on input focus on iOS */
 @media screen and (max-width: 768px) {
-    input[type="text"],
-    input[type="search"],
+    input[type='text'],
+    input[type='search'],
     textarea {
         font-size: 16px;
     }

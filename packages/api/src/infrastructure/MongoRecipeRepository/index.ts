@@ -33,15 +33,18 @@ export class MongoRecipeRepository implements RecipeRepository {
 
     async insert(recipe: Recipe): Promise<Recipe> {
         await this.collection().insertOne(recipe);
+
         return recipe;
     }
 
     async update(recipeId: string, recipe: Recipe): Promise<Recipe> {
         await this.collection().findOneAndReplace({ id: recipeId }, recipe);
         const updated = await this.getById(recipeId);
+
         if (!updated) {
             throw new Error('Recipe not found');
         }
+
         return updated;
     }
 
@@ -52,18 +55,22 @@ export class MongoRecipeRepository implements RecipeRepository {
     async addUser(recipeId: string, user: User): Promise<Recipe> {
         await this.collection().findOneAndUpdate({ id: recipeId }, { $push: { users: user } });
         const updated = await this.getById(recipeId);
+
         if (!updated) {
             throw new Error('Recipe not found');
         }
+
         return updated;
     }
 
     async removeUser(recipeId: string, userId: string): Promise<Recipe> {
         await this.collection().findOneAndUpdate({ id: recipeId }, { $pull: { users: { id: userId } } });
         const updated = await this.getById(recipeId);
+
         if (!updated) {
             throw new Error('Recipe not found');
         }
+
         return updated;
     }
 

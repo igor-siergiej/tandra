@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const listAccounts = vi.fn();
 const linkSocial = vi.fn();
+
 vi.mock('../../auth/client', () => ({
     authClient: {
         listAccounts: (...args: unknown[]) => listAccounts(...args),
@@ -14,9 +15,11 @@ vi.mock('../../auth/client', () => ({
 }));
 
 const session = { user: { id: 'u1', username: 'Igor' } as { id: string; username: string } | null };
+
 vi.mock('../../auth', () => ({ useUser: () => ({ user: session.user, needsUsername: false }) }));
 
 const features = { googleSignIn: true };
+
 vi.mock('../../utils/useAiFeatures', () => ({ useAuthFeatures: () => features }));
 
 import { AccountSection } from './AccountSection';

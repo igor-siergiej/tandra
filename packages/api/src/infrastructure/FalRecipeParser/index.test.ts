@@ -25,8 +25,10 @@ describe('FalRecipeParser', () => {
 
     it('calls the client with operation recipe.parse, the parsed-recipe schema and the source in the prompt', async () => {
         let seen: CompleteArgs | undefined;
+
         const client = fakeClient(async (args) => {
             seen = args;
+
             return result({
                 title: 'Carbonara',
                 ingredients: [{ name: 'spaghetti', quantity: 350, unit: 'g' }],
@@ -57,8 +59,10 @@ describe('FalRecipeParser', () => {
 
     it('passes an explicit model and timeout through to the client', async () => {
         let seen: CompleteArgs | undefined;
+
         const client = fakeClient(async (args) => {
             seen = args;
+
             return result({ title: 'X', ingredients: [{ name: 'salt' }], instructions: [] });
         });
 

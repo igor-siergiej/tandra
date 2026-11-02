@@ -7,28 +7,28 @@
 // on the web side and out of scope here).
 
 // Descriptive/size words stripped before comparing two ingredient names.
-const DESCRIPTOR_WORDS: Record<string, true> = {
-    large: true,
-    small: true,
-    medium: true,
-    extra: true,
-    jumbo: true,
-    mini: true,
-    fresh: true,
-    frozen: true,
-    raw: true,
-    cooked: true,
-    ripe: true,
-    whole: true,
-    ground: true,
-    chopped: true,
-    diced: true,
-    minced: true,
-    sliced: true,
-    grated: true,
-    plain: true,
-    organic: true,
-};
+const DESCRIPTOR_WORDS = new Set([
+    'large',
+    'small',
+    'medium',
+    'extra',
+    'jumbo',
+    'mini',
+    'fresh',
+    'frozen',
+    'raw',
+    'cooked',
+    'ripe',
+    'whole',
+    'ground',
+    'chopped',
+    'diced',
+    'minced',
+    'sliced',
+    'grated',
+    'plain',
+    'organic',
+]);
 
 // Naive plural -> singular: strips a trailing "s" (but not "ss", to keep words like
 // "swiss"/"cress" alone). Good enough for the short, mostly-English ingredient names
@@ -41,28 +41,19 @@ export const normalizeIngredientName = (name: string): string =>
         .toLowerCase()
         .trim()
         .split(/\s+/)
-        .filter((word) => word.length > 0 && !DESCRIPTOR_WORDS[word])
+        .filter((word) => word.length > 0 && !DESCRIPTOR_WORDS.has(word))
         .map(singularize)
         .join(' ');
 
 // Unit strings that all mean "a bare count" — interchangeable with no unit at all for
 // merge purposes (e.g. a recipe's "2 pcs" and a hand-typed "3" with no unit are the
 // same 5-item quantity).
-const COUNT_UNIT_SYNONYMS: Record<string, true> = {
-    pcs: true,
-    pc: true,
-    piece: true,
-    pieces: true,
-    ea: true,
-    each: true,
-    unit: true,
-    units: true,
-    x: true,
-};
+const COUNT_UNIT_SYNONYMS = new Set(['pcs', 'pc', 'piece', 'pieces', 'ea', 'each', 'unit', 'units', 'x']);
 
 const normalizeUnitForMerge = (unit?: string): string => {
     const trimmed = (unit ?? '').trim().toLowerCase();
-    return COUNT_UNIT_SYNONYMS[trimmed] ? '' : trimmed;
+
+    return COUNT_UNIT_SYNONYMS.has(trimmed) ? '' : trimmed;
 };
 
 export interface MergeableIngredient {
@@ -81,6 +72,7 @@ export const isMergeableIngredient = (a: MergeableIngredient, b: MergeableIngred
 // Sums two optional quantities, staying undefined only when neither side tracked one.
 export const resolveMergedQuantity = (existing?: number, incoming?: number): number | undefined => {
     if (existing === undefined && incoming === undefined) return undefined;
+
     return (existing ?? 0) + (incoming ?? 0);
 };
 

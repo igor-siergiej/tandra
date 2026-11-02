@@ -31,12 +31,10 @@ export class RuleIngredientStructurer implements IngredientStructurer {
     private structureLine(line: string): ParsedIngredient {
         const [parsed] = parseIngredient(line);
         const name = cleanName(parsed?.description ?? '') || line;
-        const hasQuantity = typeof parsed?.quantity === 'number';
+        const quantity = parsed?.quantity;
 
-        return {
-            name,
-            ...(hasQuantity && { quantity: parsed.quantity as number }),
-            ...(hasQuantity && { unit: parsed?.unitOfMeasure || 'pcs' }),
-        };
+        if (quantity === undefined || quantity === null) return { name };
+
+        return { name, quantity, unit: parsed?.unitOfMeasure || 'pcs' };
     }
 }

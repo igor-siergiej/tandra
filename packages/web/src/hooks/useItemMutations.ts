@@ -1,6 +1,7 @@
 import type { Item, ItemCategory, ListType } from '@tandra/types';
 import type { QueryClient, UseMutationOptions } from '@tanstack/react-query';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+
 import { useListSource } from './useListSource';
 
 interface OptimisticMutationContext {
@@ -10,9 +11,9 @@ interface OptimisticMutationContext {
 function createOptimisticMutation<TVariables>(
     queryClient: QueryClient,
     listTitle: string,
-    mutationFn: (vars: TVariables) => Promise<unknown>,
+    mutationFn: (vars: TVariables) => Promise<void>,
     applyOptimisticUpdate: (items: Item[], vars: TVariables) => Item[]
-) {
+): UseMutationOptions<void, Error, TVariables, OptimisticMutationContext> {
     return {
         mutationFn,
         onMutate: async (variables: TVariables) => {
@@ -30,7 +31,7 @@ function createOptimisticMutation<TVariables>(
 
             return { previousData };
         },
-        onError: (_err: unknown, _variables: TVariables, context?: OptimisticMutationContext) => {
+        onError: (_err: Error, _variables: TVariables, context?: OptimisticMutationContext) => {
             if (context?.previousData) {
                 queryClient.setQueryData([listTitle], context.previousData);
             }
@@ -51,16 +52,16 @@ export function useItemMutations(listTitle: string, itemId: string) {
             listTitle,
             (isSelected: boolean) => source.toggleItem(listTitle, itemId, isSelected),
             (items, isSelected) => items.map((i) => (i.id === itemId ? { ...i, isSelected } : i))
-        ) as UseMutationOptions<unknown, unknown, boolean, OptimisticMutationContext>
+        )
     );
 
     const deleteMutation = useMutation(
-        createOptimisticMutation(
+        createOptimisticMutation<undefined>(
             queryClient,
             listTitle,
             () => source.deleteItem(listTitle, itemId),
             (items) => items.filter((i) => i.id !== itemId)
-        ) as UseMutationOptions<unknown, unknown, undefined, OptimisticMutationContext>
+        )
     );
 
     const updateNameMutation = useMutation(
@@ -69,7 +70,7 @@ export function useItemMutations(listTitle: string, itemId: string) {
             listTitle,
             (newName: string) => source.renameItem(listTitle, itemId, newName),
             (items, newName) => items.map((i) => (i.id === itemId ? { ...i, name: newName } : i))
-        ) as UseMutationOptions<unknown, unknown, string, OptimisticMutationContext>
+        )
     );
 
     const updateQuantityMutation = useMutation(
@@ -88,7 +89,7 @@ export function useItemMutations(listTitle: string, itemId: string) {
                           }
                         : i
                 )
-        ) as UseMutationOptions<unknown, unknown, { quantity?: number; unit?: string }, OptimisticMutationContext>
+        )
     );
 
     const updateCategoryMutation = useMutation(
@@ -97,7 +98,7 @@ export function useItemMutations(listTitle: string, itemId: string) {
             listTitle,
             (category: ItemCategory) => source.setItemCategory(listTitle, itemId, category),
             (items, category) => items.map((i) => (i.id === itemId ? { ...i, category } : i))
-        ) as UseMutationOptions<unknown, unknown, ItemCategory, OptimisticMutationContext>
+        )
     );
 
     return {

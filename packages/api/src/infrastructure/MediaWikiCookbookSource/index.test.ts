@@ -9,16 +9,22 @@ const setup = (responses: Array<Response | Error>) => {
     const queue = [...responses];
     const calls: URL[] = [];
     const headers: Array<Record<string, string>> = [];
+
     const fetchImpl = vi.fn(async (input: URL | string, init?: RequestInit) => {
         calls.push(new URL(String(input)));
         headers.push(init?.headers as Record<string, string>);
         const next = queue.shift();
+
         if (next instanceof Error) throw next;
+
         if (!next) throw new Error('unexpected request');
+
         return next;
     });
+
     const sleep = vi.fn(async (_ms: number) => {});
     const source = new MediaWikiCookbookSource(undefined, { fetchImpl: fetchImpl as never, sleep, minIntervalMs: 250 });
+
     return { source, calls, headers, sleep };
 };
 
@@ -90,6 +96,7 @@ describe('MediaWikiCookbookSource', () => {
             title: `Cookbook:R${i + 1}`,
             revisionId: 1,
         }));
+
         const { source, calls } = setup([
             json({
                 query: {
@@ -200,6 +207,7 @@ describe('MediaWikiCookbookSource', () => {
                 new Response('slow', { status: 429, headers: { 'retry-after': '2' } }),
                 new Response(new Uint8Array([9]), { headers: { 'content-type': 'image/png' } }),
             ]);
+
             expect((await ok.source.downloadImage('https://x/y.png')).contentType).toBe('image/png');
             expect(ok.sleep).toHaveBeenCalledWith(2000);
 
@@ -218,13 +226,16 @@ describe('MediaWikiCookbookSource', () => {
         it('never has two wiki requests in flight at once, whoever asks', async () => {
             let inFlight = 0;
             let peak = 0;
+
             const fetchImpl = vi.fn(async () => {
                 inFlight += 1;
                 peak = Math.max(peak, inFlight);
                 await new Promise((resolve) => setTimeout(resolve, 5));
                 inFlight -= 1;
+
                 return new Response(new Uint8Array([1]), { headers: { 'content-type': 'image/jpeg' } });
             });
+
             const source = new MediaWikiCookbookSource(undefined, {
                 fetchImpl: fetchImpl as never,
                 sleep: async () => {},

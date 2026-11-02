@@ -17,18 +17,23 @@ const sortPair = (a: User, b: User): FriendPair =>
 export const pairsFromItems = (items: SharedItem[]): FriendPair[] => {
     const seen = new Set<string>();
     const out: FriendPair[] = [];
+
     for (const item of items) {
         const owner = item.users.find((u) => u.id === item.ownerId) ?? item.users[0];
+
         if (!owner) continue;
+
         for (const member of item.users) {
             if (member.id === owner.id) continue;
             const pair = sortPair(owner, member);
             const key = pair.userIds.join('|');
+
             if (seen.has(key)) continue;
             seen.add(key);
             out.push(pair);
         }
     }
+
     return out;
 };
 
@@ -46,10 +51,12 @@ export const migrateFriendsFromExistingShares = async (deps: MigrationDeps): Pro
     const items = [...(await deps.listRepo.getAll()), ...(await deps.recipeRepo.getAll())];
     const pairs = pairsFromItems(items);
     let created = 0;
+
     for (const pair of pairs) {
         if (await deps.friendRepo.findPair(pair.userIds[0], pair.userIds[1])) continue; // idempotent
         await deps.friendRepo.insertFriendship({ id: deps.idGenerator.generate(), ...pair, createdAt: new Date() });
         created += 1;
     }
+
     return { created };
 };

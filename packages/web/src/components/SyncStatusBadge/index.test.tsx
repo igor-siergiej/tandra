@@ -3,7 +3,9 @@ import { describe, expect, it, vi } from 'vitest';
 
 const count = { value: 0 };
 const isOnline = { value: true };
+
 vi.mock('../../hooks/useOutboxCount', () => ({ useOutboxCount: () => count.value }));
+
 vi.mock('../../hooks/useOnlineStatus', () => ({ useOnlineStatus: () => isOnline.value }));
 
 import { SyncStatusBadge } from './index';

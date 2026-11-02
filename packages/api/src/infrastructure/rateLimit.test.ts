@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
+
 import { IpRateLimiter, SlidingWindowLimiter } from './rateLimit';
 
 describe('IpRateLimiter', () => {

@@ -1,4 +1,5 @@
 import type { Browser, Page } from '@playwright/test';
+
 import {
     apiAddItem,
     apiCreateList,
@@ -23,6 +24,7 @@ const generateCode = async (page: Page): Promise<string> => {
     await page.getByRole('button', { name: 'Generate invite code' }).click();
     const code = page.locator('p.font-mono');
     await expect(code).toHaveText(/^[A-Z0-9]{6}$/);
+
     return code.innerText();
 };
 
@@ -40,6 +42,7 @@ test.describe('Friend invites between two users', () => {
         browser,
     }) => {
         const pageB = await asSecondUser(browser);
+
         try {
             const code = await generateCode(authenticatedPage);
 
@@ -55,6 +58,7 @@ test.describe('Friend invites between two users', () => {
 
     test('a code works once: a second attempt is refused', async ({ authenticatedPage, browser }) => {
         const pageB = await asSecondUser(browser);
+
         try {
             const code = await generateCode(authenticatedPage);
             await redeemCode(pageB, code);
@@ -70,6 +74,7 @@ test.describe('Friend invites between two users', () => {
 
     test('an expired code is refused', async ({ authenticatedPage, browser }) => {
         const pageB = await asSecondUser(browser);
+
         try {
             const code = await generateCode(authenticatedPage);
             await expireFriendCodes();
@@ -90,6 +95,7 @@ test.describe('Friend invites between two users', () => {
     }) => {
         await seedFriendship(MOCK_USER, MOCK_USER_2);
         const pageB = await asSecondUser(browser);
+
         try {
             const code = await generateCode(authenticatedPage);
 
@@ -138,6 +144,7 @@ test.describe('Removing a friend', () => {
         await seedFriendship(MOCK_USER, MOCK_USER_2);
         await apiCreateList('Shared Shop', 'shopping', [MOCK_USER_2.id]);
         const pageB = await asSecondUser(browser);
+
         try {
             await pageB.goto('/');
             await expect(pageB.getByRole('button', { name: 'Shared Shop' })).toBeVisible();
@@ -160,6 +167,7 @@ test.describe('Removing a friend', () => {
 test.describe('A list shared with me', () => {
     const shareWithMe = async (title: string) => {
         await seedFriendship(MOCK_USER, MOCK_USER_2);
+
         return apiCreateListAsOtherUser(title, [MOCK_USER.id]);
     };
 

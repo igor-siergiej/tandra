@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
+
 import { useRefreshSession } from '../auth';
 import { authClient } from '../auth/client';
 import { authErrorMessage } from '../auth/errors';
@@ -27,7 +28,7 @@ interface ReturnLocation {
 const redirectTarget = ({ pathname, search = '', hash = '' }: ReturnLocation = {}): string =>
     pathname ? `${pathname}${search}${hash}` : '/';
 
-type LoginFormData = z.infer<typeof loginSchema>;
+export type LoginFormData = z.infer<typeof loginSchema>;
 
 export const useLoginForm = () => {
     const navigate = useNavigate();
@@ -48,11 +49,13 @@ export const useLoginForm = () => {
     // fallow-ignore-next-line complexity
     const onSubmit = async (data: LoginFormData) => {
         logger.info('Login attempt', { username: data.username });
+
         try {
             const { error } = await authClient.signIn.username({
                 username: data.username,
                 password: data.password,
             });
+
             if (error) throw new Error(authErrorMessage(error, 'Login failed'));
 
             const user = await refreshSession();

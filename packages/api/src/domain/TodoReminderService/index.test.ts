@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test';
+
 import type { PushSubscription, Todo } from '@tandra/types';
+
 import { formatDueBody, TodoReminderService } from './index';
 
 const NOW = new Date('2026-06-25T07:30:00.000Z'); // 08:30 BST

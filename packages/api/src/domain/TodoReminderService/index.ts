@@ -1,6 +1,8 @@
 import type { Logger } from '@imapps/api-utils';
 import type { PushSubscription, Todo } from '@tandra/types';
 import { isoDay, occursOn } from '@tandra/types';
+
+import { caughtErrorSchema } from '../../infrastructure/caughtError';
 import type { WebPushSender } from '../../infrastructure/WebPushSender';
 import type { PushSubscriptionRepository } from '../PushSubscriptionRepository';
 import type { TodoRepository } from '../TodoRepository';
@@ -12,6 +14,7 @@ const MAX_TITLES_SHOWN = 3;
 export const formatDueBody = (titles: string[]): string => {
     const shown = titles.slice(0, MAX_TITLES_SHOWN).join(', ');
     const extra = titles.length - MAX_TITLES_SHOWN;
+
     return extra > 0 ? `${shown} and ${extra} more` : shown;
 };
 
@@ -20,6 +23,7 @@ const recipientsOf = (todo: Todo): string[] => [todo.ownerId, ...(todo.users ?? 
 
 const groupByRecipient = (todos: Todo[]): Map<string, Todo[]> => {
     const byRecipient = new Map<string, Todo[]>();
+
     for (const todo of todos) {
         for (const recipientId of recipientsOf(todo)) {
             const list = byRecipient.get(recipientId) ?? [];
@@ -27,6 +31,7 @@ const groupByRecipient = (todos: Todo[]): Map<string, Todo[]> => {
             byRecipient.set(recipientId, list);
         }
     }
+
     return byRecipient;
 };
 
@@ -67,12 +72,14 @@ export class TodoReminderService {
 
     async sendDailyReminders(now: Date): Promise<ReminderSummary> {
         const configured = this.sender.isConfigured();
+
         if (!configured) {
             return emptySummary(configured);
         }
 
         const candidates = await this.todoRepo.findDueCandidates(isoDay(now));
         const due = candidates.filter((todo) => occursOn(todo, now));
+
         if (due.length === 0) {
             return emptySummary(configured);
         }
@@ -98,6 +105,7 @@ export class TodoReminderService {
     ): Promise<{ subscriptions: number; sent: number }> {
         try {
             const subs = await this.pushRepo.findByUserIds([recipientId]);
+
             if (subs.length === 0) {
                 return { subscriptions: 0, sent: 0 };
             }
@@ -110,6 +118,7 @@ export class TodoReminderService {
 
             const results = await Promise.all(subs.map((sub: PushSubscription) => this.sender.send(sub, payload)));
             const dead = subs.filter((_, i) => results[i] === 'gone').map((s) => s.endpoint);
+
             if (dead.length > 0) {
                 await this.pushRepo.deleteByEndpoints(dead);
             }
@@ -118,8 +127,9 @@ export class TodoReminderService {
         } catch (error) {
             this.logger?.error('Todo reminder fan-out failed', {
                 recipientId,
-                error: (error as Error).message,
+                error: caughtErrorSchema.parse(error).message,
             });
+
             return { subscriptions: 0, sent: 0 };
         }
     }

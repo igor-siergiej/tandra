@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+
 import { useUser } from '../../auth';
 import { authClient } from '../../auth/client';
 import { oauthErrorMessage } from '../../auth/errors';
@@ -24,7 +25,9 @@ export const AccountSection = () => {
         queryKey: ['auth', 'accounts', user?.id],
         queryFn: async () => {
             const { data, error } = await authClient.listAccounts();
+
             if (error) throw new Error(error.message ?? 'Could not load linked accounts');
+
             return data;
         },
         enabled: Boolean(user) && googleSignIn,
@@ -38,9 +41,11 @@ export const AccountSection = () => {
     const handleLink = async () => {
         setLinking(true);
         setLinkFailed(false);
+
         const { error } = await authClient
             .linkSocial({ provider: 'google', callbackURL: '/settings', errorCallbackURL: '/settings' })
             .catch(() => ({ error: true }));
+
         if (error) {
             setLinking(false);
             setLinkFailed(true);

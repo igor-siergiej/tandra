@@ -2,6 +2,7 @@ import type { Logger } from '@imapps/api-utils';
 import { type BetterAuthOptions, betterAuth } from 'better-auth';
 import { APIError, createAuthMiddleware } from 'better-auth/api';
 import { username } from 'better-auth/plugins';
+import { z } from 'zod';
 
 // Reserved TLD that never routes (RFC 2606). Password users get `<uuid>@<this>` so Better
 // Auth's `user.email` constraint is satisfied without ever accepting a real address:
@@ -18,10 +19,7 @@ const rejectEmailSignIn = (path: string) => {
     if (path === '/sign-in/email') throw new APIError('NOT_FOUND');
 };
 
-const usernameFromBody = (body: unknown): string => {
-    const candidate = (body as { username?: unknown })?.username;
-    return typeof candidate === 'string' ? candidate.trim() : '';
-};
+const signUpBodySchema = z.looseObject({ username: z.string().catch('') }).catch({ username: '' });
 
 export interface AuthOptions {
     database: BetterAuthOptions['database'];
@@ -74,16 +72,20 @@ export const createAuth = ({ database, secret, baseURL, trustedOrigins, google, 
         hooks: {
             before: createAuthMiddleware(async (ctx) => {
                 rejectEmailSignIn(ctx.path);
+
                 if (ctx.path !== '/sign-up/email') return;
-                const name = usernameFromBody(ctx.body);
+                const body = signUpBodySchema.parse(ctx.body);
+                const name = body.username.trim();
+
                 if (!name) throw new APIError('BAD_REQUEST', { message: 'Username is required' });
+
                 // Never store a client-supplied email: an unverified real address would squat it and block that
                 // person's later Google sign-in (account_not_linked).
                 return {
                     context: {
                         ...ctx,
                         body: {
-                            ...(ctx.body as Record<string, unknown>),
+                            ...body,
                             email: `${crypto.randomUUID()}@${PLACEHOLDER_EMAIL_DOMAIN}`,
                             name,
                         },

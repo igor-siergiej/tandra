@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+
 import { addUserToRecipe, removeUserFromRecipe } from '../api';
 import { notifyError, notifySuccess } from '../utils/toast';
 
@@ -20,9 +21,8 @@ export const useManageRecipeUsers = ({ recipeId, userId }: ManageRecipeUsersHook
             invalidateRecipesList();
             notifySuccess('User added successfully');
         },
-        onError: (error: unknown) => {
-            const err = error as { message?: string };
-            notifyError(err.message || 'Failed to add user');
+        onError: (error: Error) => {
+            notifyError(error.message || 'Failed to add user');
         },
     });
 
@@ -32,9 +32,8 @@ export const useManageRecipeUsers = ({ recipeId, userId }: ManageRecipeUsersHook
             invalidateRecipesList();
             notifySuccess('User removed successfully');
         },
-        onError: (error: unknown) => {
-            const err = error as { message?: string };
-            notifyError(err.message || 'Failed to remove user');
+        onError: (error: Error) => {
+            notifyError(error.message || 'Failed to remove user');
         },
     });
 

@@ -5,6 +5,7 @@ import { type ReactNode, type RefObject, useLayoutEffect, useRef, useState } fro
 const STRIKE_PATH = 'M1 12 C 22 8, 48 14, 70 10 S 92 9, 99 11';
 const DRAW_TRANSITION = { duration: 0.45, ease: [0.6, 0, 0.3, 1] } as const;
 const INSTANT = { duration: 0 } as const;
+
 const STATIC_STRIKE_PROPS = {
     'data-testid': 'strike-static',
     className: 'line-through decoration-primary decoration-2',
@@ -15,13 +16,16 @@ const useIsMultiLine = (textRef: RefObject<HTMLSpanElement | null>) => {
 
     useLayoutEffect(() => {
         const el = textRef.current;
+
         if (!el) return;
         // An inline span yields one client rect per rendered line.
         const measure = () => setIsMultiLine(el.getClientRects().length > 1);
         measure();
+
         if (typeof ResizeObserver === 'undefined' || !el.parentElement) return;
         const observer = new ResizeObserver(measure);
         observer.observe(el.parentElement);
+
         return () => observer.disconnect();
     }, [textRef]);
 

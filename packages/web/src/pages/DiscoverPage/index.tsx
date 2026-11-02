@@ -1,6 +1,7 @@
 import { AlertTriangle, Search, SlidersHorizontal } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { PinnedSearchField } from '../../components/PinnedSearchField';
 import ToolBar from '../../components/ToolBar';
 import { Button } from '../../components/ui/button';
@@ -87,6 +88,7 @@ const DiscoverPage = () => {
     const [filtersOpen, setFiltersOpen] = useState(false);
 
     let results: React.ReactNode;
+
     if (search.isError) results = <ErrorState search={search} />;
     else if (search.isLoading) results = <ResultsSkeleton />;
     else if (search.hits.length === 0) results = <NoResults search={search} />;

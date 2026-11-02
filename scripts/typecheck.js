@@ -37,31 +37,39 @@ const ERROR_WITHOUT_POSITION = /^(.+?): error (TS\d+): (.*)$/;
 /** Parses `tsc --pretty false` output into one entry per error. */
 export const parseErrors = (output) => {
     const errors = [];
+
     for (const line of output.split('\n')) {
         const withPosition = ERROR_WITH_POSITION.exec(line);
+
         if (withPosition) {
             const [, file, lineNumber, column, code, message] = withPosition;
             errors.push({ file, line: Number(lineNumber), column: Number(column), code, message });
             continue;
         }
+
         const withoutPosition = ERROR_WITHOUT_POSITION.exec(line);
+
         if (withoutPosition) {
             const [, file, code, message] = withoutPosition;
             errors.push({ file, line: 0, column: 0, code, message });
         }
     }
+
     return errors;
 };
 
 /** Groups errors by `file::code` so the baseline can hold a count per pair. */
 export const tally = (errors) => {
     const counts = new Map();
+
     for (const error of errors) {
         const key = `${error.file}::${error.code}`;
         const existing = counts.get(key);
+
         if (existing) existing.push(error);
         else counts.set(key, [error]);
     }
+
     return counts;
 };
 
@@ -74,14 +82,19 @@ export const tally = (errors) => {
 export const diff = (current, baseline) => {
     const added = [];
     const fixed = [];
+
     for (const [key, errors] of current) {
         const allowed = baseline[key] ?? 0;
+
         if (errors.length > allowed) added.push({ key, allowed, errors: errors.slice(allowed) });
     }
+
     for (const [key, allowed] of Object.entries(baseline)) {
         const actual = current.get(key)?.length ?? 0;
+
         if (actual < allowed) fixed.push({ key, allowed, actual });
     }
+
     return { added, fixed };
 };
 
@@ -92,29 +105,36 @@ export const checkProject = (project) => {
         encoding: 'utf8',
         maxBuffer: 64 * 1024 * 1024,
     });
+
     if (result.error) throw result.error;
+
     // tsc exits non-zero when it finds errors; that is the normal case here.
     if (result.status !== 0 && result.status !== 1 && result.status !== 2) {
         throw new Error(`tsc failed for ${project.name} (exit ${result.status}): ${result.stderr}`);
     }
+
     return parseErrors(`${result.stdout}\n${result.stderr}`);
 };
 
 export const loadBaseline = (path = BASELINE_PATH) => {
     if (!existsSync(path)) return {};
+
     return JSON.parse(readFileSync(path, 'utf8'));
 };
 
 export const saveBaseline = (counts, path = BASELINE_PATH) => {
     const baseline = {};
+
     for (const key of [...counts.keys()].sort()) baseline[key] = counts.get(key).length;
     writeFileSync(path, `${JSON.stringify(baseline, null, 2)}\n`);
+
     return baseline;
 };
 
 if (import.meta.main) {
     const update = process.argv.includes('--update');
     const allErrors = [];
+
     for (const project of PROJECTS) {
         const errors = checkProject(project);
         allErrors.push(...errors);
@@ -139,6 +159,7 @@ if (import.meta.main) {
 
     for (const { key, allowed, errors } of added) {
         console.error(`\n❌ New type error in ${key} (baseline allows ${allowed})`);
+
         for (const error of errors) {
             const where = error.line ? `:${error.line}:${error.column}` : '';
             console.error(`   ${error.file}${where} ${error.code}: ${error.message}`);

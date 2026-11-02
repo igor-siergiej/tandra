@@ -13,27 +13,30 @@ const ingredientSchema = z
     // fallow-ignore-next-line complexity
     .transform((raw, ctx) => {
         const name = raw.name.trim();
+
         if (!name) {
             ctx.addIssue({ code: 'custom', message: 'ingredient has no name' });
+
             return z.NEVER;
         }
+
         if (raw.quantity === undefined) {
             return { name };
         }
+
         const unit = raw.unit?.trim() || 'pcs';
+
         return { name, quantity: raw.quantity, unit };
     });
 
 export const parsedRecipeSchema: z.ZodType<ParsedRecipe> = z
     .object({
-        title: z.preprocess((value) => (typeof value === 'string' ? value.trim() : ''), z.string()),
+        title: z.string().trim().catch(''),
         ingredients: z.array(ingredientSchema).min(1),
         instructions: stringArrayField(),
     })
-    .transform(
-        (recipe): ParsedRecipe => ({
-            title: recipe.title,
-            ingredients: recipe.ingredients,
-            instructions: recipe.instructions,
-        })
-    );
+    .transform((recipe): ParsedRecipe => ({
+        title: recipe.title,
+        ingredients: recipe.ingredients,
+        instructions: recipe.instructions,
+    }));

@@ -13,6 +13,7 @@ import { resetPassword } from './lib';
 
 const fromStdin = process.argv.includes('--password-stdin');
 const username = process.argv.slice(2).find((arg) => !arg.startsWith('--'));
+
 if (!username) {
     console.error('Usage: bun run auth:reset-password <username> [--password-stdin]');
     process.exit(1);
@@ -24,38 +25,49 @@ const readPiped = async () => (await new Response(Bun.stdin.stream()).text()).re
 const readHidden = (label: string) =>
     new Promise<string>((resolve, reject) => {
         const { stdin, stdout } = process;
+
         if (!stdin.isTTY) {
             reject(new Error('No terminal to prompt on; pipe the password in with --password-stdin'));
+
             return;
         }
+
         stdout.write(label);
         stdin.setRawMode(true);
         stdin.resume();
         stdin.setEncoding('utf8');
         let value = '';
+
         const finish = (error?: Error) => {
             stdin.setRawMode(false);
             stdin.pause();
             stdin.off('data', onData);
             stdout.write('\n');
+
             if (error) reject(error);
             else resolve(value);
         };
+
         const onData = (chunk: string) => {
             for (const char of chunk) {
                 if (char === '\r' || char === '\n') return finish();
+
                 if (char === '\u0003') return finish(new Error('Cancelled'));
+
                 if (char === '\u007f' || char === '\b') value = value.slice(0, -1);
                 else value += char;
             }
         };
+
         stdin.on('data', onData);
     });
 
 const readPassword = async () => {
     if (fromStdin) return readPiped();
     const first = await readHidden('New password: ');
+
     if (first !== (await readHidden('Repeat it: '))) throw new Error('Passwords do not match');
+
     return first;
 };
 
@@ -66,6 +78,6 @@ try {
     console.log(`Password reset for ${username}; their existing sessions are signed out.`);
     process.exit(0);
 } catch (error) {
-    console.error((error as Error).message);
+    console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);
 }

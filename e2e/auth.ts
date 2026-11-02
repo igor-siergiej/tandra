@@ -17,9 +17,11 @@ const WEB_ORIGIN = currentStack.webOrigin;
 // in the worker, so the addresses stay unique for the whole run.
 const counterKey = Symbol.for('tandra.e2e.ipCounter');
 const globalCounter = globalThis as unknown as Record<symbol, number>;
+
 const nextClientIp = () => {
     globalCounter[counterKey] = (globalCounter[counterKey] ?? 0) + 1;
     const ipCounter = globalCounter[counterKey];
+
     return `10.${(ipCounter >> 16) & 255}.${(ipCounter >> 8) & 255}.${ipCounter & 255}`;
 };
 
@@ -36,13 +38,17 @@ const signInCookie = async (user: User = MOCK_USER): Promise<{ name: string; val
         headers: { 'Content-Type': 'application/json', Origin: WEB_ORIGIN, 'X-Forwarded-For': nextClientIp() },
         body: JSON.stringify({ username: user.username, password: PASSWORDS[user.username] }),
     });
+
     if (!res.ok) throw new Error(`sign-in as ${user.username} failed: ${res.status} ${await res.text()}`);
+
     const cookie = res.headers
         .getSetCookie()
         .map((line) => line.split(';')[0])
         .find((pair) => pair.startsWith('better-auth.session_token='));
+
     if (!cookie) throw new Error(`sign-in as ${user.username} set no session cookie`);
     const separator = cookie.indexOf('=');
+
     return { name: cookie.slice(0, separator), value: cookie.slice(separator + 1) };
 };
 
@@ -59,6 +65,7 @@ export const openPageAs = async (browser: Browser, user: User): Promise<Page> =>
     await page.route(/\/api\/image\//, (route) =>
         route.fulfill({ status: 200, contentType: 'image/gif', body: Buffer.from('GIF89a', 'ascii') })
     );
+
     return page;
 };
 
@@ -68,6 +75,7 @@ const sessions = new Map<string, Promise<{ name: string; value: string }>>();
 export const sessionHeaders = async (user: User = MOCK_USER): Promise<Record<string, string>> => {
     if (!sessions.has(user.id)) sessions.set(user.id, signInCookie(user));
     const { name, value } = await (sessions.get(user.id) as Promise<{ name: string; value: string }>);
+
     return { 'Content-Type': 'application/json', Origin: WEB_ORIGIN, Cookie: `${name}=${value}` };
 };
 

@@ -37,6 +37,7 @@ type HonoVars = { Variables: { user: { id: string; username: string } } };
 
 const createMockContext = (params: Record<string, string> = {}, user?: { id: string; username: string }) => {
     const vars: Record<string, unknown> = {};
+
     if (user) vars.user = user;
 
     return {
@@ -65,9 +66,13 @@ describe('ImageHandlers', () => {
         vi.clearAllMocks();
         mockDependencyContainer.resolve.mockImplementation((token: string) => {
             if (token === 'ImageService') return mockImageService;
+
             if (token === 'Logger') return mockLogger;
+
             if (token === 'ImageStore') return mockBucketStore;
+
             if (token === 'RecipeService') return mockRecipeService;
+
             return null;
         });
     });

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { Readable } from 'node:stream';
+
 import type { DiscoveryRecipe, Recipe, User } from '@tandra/types';
 
 import { RecipeService } from '../RecipeService';
@@ -30,20 +31,25 @@ const library: DiscoveryRecipe = {
 
 const setup = (existing: Recipe[] = []) => {
     const store = new Map(existing.map((recipe) => [recipe.id, recipe]));
+
     const repo = {
         insert: async (recipe: Recipe) => {
             store.set(recipe.id, recipe);
+
             return recipe;
         },
         getById: async (id: string) => store.get(id) ?? null,
         update: async (id: string, recipe: Recipe) => {
             store.set(id, recipe);
+
             return recipe;
         },
         findByUserId: async (userId: string) =>
             [...store.values()].filter((recipe) => recipe.users.some((user) => user.id === userId)),
     };
+
     let n = 0;
+
     // The real RecipeService, with a friend list that would auto-share a recipe if the copy did not opt out.
     const recipes = new RecipeService(
         repo as never,
@@ -54,31 +60,40 @@ const setup = (existing: Recipe[] = []) => {
         undefined,
         { listFriends: async () => [friend] } as never
     );
+
     const discovery = {
         getRecipe: async (id: string) => {
             if (id !== library.id) throw Object.assign(new Error('Library recipe not found'), { status: 404 });
+
             return library;
         },
     };
+
     // An in-memory object store holding the library recipe's cover.
     const objects = new Map<string, { buffer: Buffer; contentType: string }>([
         ['library-owned-cover.png', { buffer: Buffer.from('cover-bytes'), contentType: 'image/png' }],
     ]);
+
     const images = {
         getHeadObject: async (name: string) => {
             const object = objects.get(name);
+
             if (!object) throw new Error('not found');
+
             return { metaData: { 'content-type': object.contentType } };
         },
         getObjectStream: async (name: string) => {
             const object = objects.get(name);
+
             if (!object) throw new Error('not found');
+
             return Readable.from([object.buffer]);
         },
         putObject: async (name: string, buffer: Buffer, options?: { contentType: string }) => {
             objects.set(name, { buffer, contentType: options?.contentType ?? 'application/octet-stream' });
         },
     };
+
     return { copy: new DiscoveryCopyService(discovery, recipes, images, undefined), store, objects };
 };
 

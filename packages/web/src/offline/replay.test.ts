@@ -5,6 +5,7 @@ const { addRecipe, updateRecipe, createTodo } = vi.hoisted(() => ({
     updateRecipe: vi.fn(),
     createTodo: vi.fn(),
 }));
+
 vi.mock('../api', () => ({ addRecipe, updateRecipe, createTodo }));
 
 import type { OutboxIntent } from './outboxStore';

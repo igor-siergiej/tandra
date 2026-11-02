@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+
 import { check } from './check-release-notes.js';
 
 describe('check', () => {

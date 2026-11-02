@@ -1,5 +1,6 @@
 import { addDays, format } from 'date-fns';
 import { CalendarRange, ChevronLeft, ChevronRight } from 'lucide-react';
+
 import { Button } from '../../components/ui/button';
 
 interface WeekNavigationProps {
@@ -12,6 +13,7 @@ interface WeekNavigationProps {
 
 export const WeekNavigation = ({ start, isOnCurrentWeek, onPrev, onNext, onToday }: WeekNavigationProps) => {
     const rangeLabel = `${format(start, 'd MMM')} – ${format(addDays(start, 6), 'd MMM')}`;
+
     return (
         <>
             <div className="flex items-center justify-between gap-2">

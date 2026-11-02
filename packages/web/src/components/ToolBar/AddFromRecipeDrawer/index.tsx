@@ -4,6 +4,7 @@ import type { Item, Recipe } from '@tandra/types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, BookOpen, Plus } from 'lucide-react';
 import { useState } from 'react';
+
 import { addItemsBulk, getRecipesQuery } from '../../../api';
 import { useUser } from '../../../auth';
 import { Button } from '../../../components/ui/button';
@@ -42,9 +43,11 @@ export const AddFromRecipeDrawer = ({
     const { data: allRecipes = [] } = useQuery(
         user?.id ? getRecipesQuery(user.id) : { queryKey: [], queryFn: async () => [] }
     );
+
     const recipes = useRecipeSearch(allRecipes, recipeSearch);
 
     const existingItemNames = new Set(listItems.map((item) => item.name.toLowerCase()));
+
     const {
         selectedIds,
         toggleIngredient,
@@ -66,6 +69,7 @@ export const AddFromRecipeDrawer = ({
 
         try {
             setIsLoading(true);
+
             const result = await addItemsBulk(
                 listTitle,
                 selectedScaledIngredients.map((ingredient) => ({
@@ -80,8 +84,7 @@ export const AddFromRecipeDrawer = ({
             await queryClient.invalidateQueries({ queryKey: [listTitle] });
             handleClose();
         } catch (error) {
-            const err = error as { message?: string };
-            notifyError(err.message || 'Failed to add ingredients');
+            notifyError(error.message || 'Failed to add ingredients');
         } finally {
             setIsLoading(false);
         }

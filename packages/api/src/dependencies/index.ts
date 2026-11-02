@@ -65,27 +65,29 @@ import { type Dependencies, DependencyToken } from './types';
 
 export { dependencyContainer };
 
-// The container instantiates `new ctor()`. A function declaration that returns an object is a valid constructor for
-// that (the returned object wins), so factories need no class that returns from its constructor. It must stay a
-// declaration: an arrow function cannot be constructed.
+// The container instantiates `new ctor()`. A class whose constructor returns an object is a valid constructor for
+// that (the returned object wins), so a factory function can be registered without writing a class per dependency.
 const register = <K extends keyof Dependencies & string>(token: K, make: () => Dependencies[K]) => {
-    function Factory() {
-        return make();
-    }
-    dependencyContainer.registerSingleton(
-        token,
-        Factory as unknown as Parameters<typeof dependencyContainer.registerSingleton<K>>[1]
-    );
+    // SAFETY: a constructor that returns an object yields that object from `new`, so the class is constructed as the Dependencies[K] that make() returns.
+    const Factory = class {
+        constructor() {
+            return make();
+        }
+    } as new () => Dependencies[K];
+
+    dependencyContainer.registerSingleton(token, Factory);
 };
 
 const googleConfig = (): { clientId: string; clientSecret: string } | undefined => {
     const clientId = config.get('googleClientId');
     const clientSecret = config.get('googleClientSecret');
+
     return clientId && clientSecret ? { clientId, clientSecret } : undefined;
 };
 
 const buildBetterAuth = () => {
     const db = new MongoClient(config.get('connectionUri')).db(config.get('databaseName'));
+
     return createAuth({
         database: mongodbAdapter(db, { transaction: false }),
         secret: config.get('betterAuthSecret'),
@@ -379,10 +381,12 @@ export const registerDepdendencies = () => {
         const llmExtractor = config.get('recipeImportLlmEnabled')
             ? dependencyContainer.resolve(DependencyToken.RecipeTextExtractor)
             : undefined;
+
         // LLM-first is opt-in: injecting the parser makes it win over the three tiers.
         const llmParser = config.get('recipeImportLlmFirst')
             ? dependencyContainer.resolve(DependencyToken.RecipeParser)
             : undefined;
+
         return new RecipeImportService(
             dependencyContainer.resolve(DependencyToken.PageFetcher),
             dependencyContainer.resolve(DependencyToken.IdGenerator),
@@ -422,8 +426,12 @@ export const registerDepdendencies = () => {
         const url = config.get('opensearchUrl');
         // Fail fast rather than queue requests behind a dead engine: discovery is optional, the rest of the API is not.
         const client = url ? new Client({ node: url, requestTimeout: 5000, maxRetries: 1 }) : null;
+
+        // SAFETY: OpenSearchApi is the slice of the opensearch Client that the index calls (see its declaration); the Client's stricter generics are what keep it from being assignable.
+        const api = client as OpenSearchApi | null;
+
         return new OpenSearchDiscoveryIndex(
-            client as unknown as OpenSearchApi | null,
+            api,
             dependencyContainer.resolve(DependencyToken.Logger),
             config.get('opensearchIndex') || undefined
         );
@@ -479,6 +487,7 @@ export const registerDepdendencies = () => {
             .split(',')
             .map((id) => id.trim())
             .filter(Boolean);
+
         return new DiscoveryModerationService(
             dependencyContainer.resolve(DependencyToken.DiscoveryService),
             dependencyContainer.resolve(DependencyToken.DiscoveryReportRepository),

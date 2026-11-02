@@ -75,6 +75,7 @@ export class RecipeDetailPage {
     async swipeIngredientLeft(ingredientName: string) {
         const item = this.ingredientRow(ingredientName);
         const box = await item.boundingBox();
+
         if (!box) throw new Error(`Ingredient "${ingredientName}" not found`);
         const cx = box.x + box.width / 2;
         const cy = box.y + box.height / 2;

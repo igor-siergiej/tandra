@@ -3,6 +3,7 @@ import type { Context } from 'hono';
 
 import { dependencyContainer } from '../../dependencies';
 import { DependencyToken } from '../../dependencies/types';
+import { caughtErrorSchema } from '../../infrastructure/caughtError';
 import type { HonoVars } from '../handlerUtils';
 
 const MAX_TRANSCRIPT_CHARS = 500;
@@ -19,10 +20,12 @@ export const parseSpokenItems = async (c: Context<HonoVars>) => {
         const items = await dependencyContainer
             .resolve(DependencyToken.ItemTextParser)
             .parse(transcript.trim().slice(0, MAX_TRANSCRIPT_CHARS));
+
         logger.info('API: Spoken items parsed', { userId: user?.id, itemCount: items.length });
+
         return c.json({ items: items.slice(0, MAX_ITEMS) }, 200);
     } catch (error: unknown) {
-        const err = error as { status?: number; message?: string };
+        const err = caughtErrorSchema.parse(error);
         logger.error('API: Failed to parse spoken items', { userId: user?.id, error: err.message });
         throw new APIError('Could not understand that request', err.status ?? 502);
     }

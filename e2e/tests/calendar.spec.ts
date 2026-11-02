@@ -7,6 +7,7 @@ function isoDay(d: Date): string {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
+
     return `${y}-${m}-${day}`;
 }
 
@@ -222,6 +223,7 @@ test.describe('Calendar page', () => {
         await expect(row).toBeVisible();
 
         const box = await row.boundingBox();
+
         if (box) {
             const cx = box.x + box.width / 2;
             const cy = box.y + box.height / 2;
@@ -249,6 +251,7 @@ test.describe('Calendar page', () => {
         await expect(row).toBeVisible();
 
         const box = await row.boundingBox();
+
         if (box) {
             const cx = box.x + box.width / 2;
             const cy = box.y + box.height / 2;

@@ -2,6 +2,7 @@ import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { replayIntent } = vi.hoisted(() => ({ replayIntent: vi.fn() }));
+
 vi.mock('./replay', () => ({ replayIntent }));
 
 import { drainOutbox, onIntentsDiscarded } from './drainer';

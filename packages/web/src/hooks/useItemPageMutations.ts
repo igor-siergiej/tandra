@@ -1,5 +1,6 @@
 import type { Item, ListType } from '@tandra/types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+
 import { track } from '../utils/analytics';
 import { logger } from '../utils/logger';
 import { useListSource } from './useListSource';
@@ -23,6 +24,7 @@ export const useItemPageMutations = (listTitle?: string) => {
             unit?: string;
         }) => {
             await source.addItem(listTitle ?? '', { id, name: itemName, quantity, unit });
+
             return id;
         },
         onMutate: async ({ id, itemName, quantity, unit }) => {
@@ -37,6 +39,7 @@ export const useItemPageMutations = (listTitle?: string) => {
                 ...(quantity !== undefined && { quantity }),
                 ...(unit !== undefined && { unit }),
             };
+
             queryClient.setQueryData<{ listType: ListType; items: Item[] }>([listTitle], (old) =>
                 old ? { ...old, items: [...(old.items ?? []), optimisticItem] } : old
             );
@@ -55,6 +58,7 @@ export const useItemPageMutations = (listTitle?: string) => {
         onError: (error, variables, context) => {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             logger.error('Failed to add item', { listTitle, itemName: variables.itemName, error: errorMessage });
+
             if (context?.previousData) {
                 queryClient.setQueryData([listTitle], context.previousData);
             }
@@ -78,6 +82,7 @@ export const useItemPageMutations = (listTitle?: string) => {
         },
         onError: (_err, _variables, context) => {
             logger.warn('Failed to clear selected items', { listTitle });
+
             if (context?.previousData) {
                 queryClient.setQueryData([listTitle], context.previousData);
             }
@@ -108,6 +113,7 @@ export const useItemPageMutations = (listTitle?: string) => {
         },
         onError: (_err, _variables, context) => {
             logger.warn('Failed to clear all items', { listTitle });
+
             if (context?.previousData) {
                 queryClient.setQueryData([listTitle], context.previousData);
             }

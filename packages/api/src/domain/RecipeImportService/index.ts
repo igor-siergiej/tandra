@@ -1,7 +1,9 @@
 import type { Logger } from '@imapps/api-utils';
 import type { RecipeImportResult } from '@tandra/types';
 import * as cheerio from 'cheerio';
+import { z } from 'zod';
 
+import { caughtErrorSchema } from '../../infrastructure/caughtError';
 import type { IdGenerator } from '../IdGenerator';
 import type { IngredientStructurer } from '../IngredientStructurer/types';
 import type { ImageFetcher, PageFetcher, ParsedRecipe, RecipeDraft, RecipeParser, RecipeTextExtractor } from './types';
@@ -9,24 +11,50 @@ import type { ImageFetcher, PageFetcher, ParsedRecipe, RecipeDraft, RecipeParser
 const MIN_INGREDIENTS = 2;
 const MAX_ITEMS = 100;
 const LLM_TEXT_LIMIT = 6000;
+
 // A serialized JSON-LD recipe node is sent whole: truncating it would hand the model broken JSON.
 // Past this cap the node is pathological, so fall back to page text instead.
 const LLM_JSON_LIMIT = 24000;
 
 const collapse = (text: string): string => text.replace(/\s+/g, ' ').trim();
 
+const jsonSchema = z.json();
+const jsonObjectSchema = z.record(z.string(), jsonSchema);
+
+type Json = z.infer<typeof jsonSchema>;
+
+type JsonObject = z.infer<typeof jsonObjectSchema>;
+
+// JSON-LD is third-party input: every value is decoded through a schema before it is branched on.
+const asString = (value: Json | undefined): string | undefined => {
+    const parsed = z.string().safeParse(value);
+
+    return parsed.success ? parsed.data : undefined;
+};
+
+const asObject = (value: Json | undefined): JsonObject | undefined => {
+    const parsed = jsonObjectSchema.safeParse(value);
+
+    return parsed.success ? parsed.data : undefined;
+};
+
 const cleanList = (values: Array<string | undefined | null>): string[] => {
     const seen = new Set<string>();
     const out: string[] = [];
+
     for (const raw of values) {
-        if (typeof raw !== 'string') continue;
+        if (raw === undefined || raw === null) continue;
         const value = collapse(raw);
+
         if (value.length < 2 || value.length > 500) continue;
+
         if (seen.has(value)) continue;
         seen.add(value);
         out.push(value);
+
         if (out.length >= MAX_ITEMS) break;
     }
+
     return out;
 };
 
@@ -49,7 +77,7 @@ export class RecipeImportService {
 
         // LLM-first: injection of a parser IS the flag. The three tiers never run.
         if (this.llmParser) {
-            return this.importViaLlm(html, parsed);
+            return this.importViaLlm(this.llmParser, html, parsed);
         }
 
         const draft: RecipeDraft = {
@@ -97,29 +125,34 @@ export class RecipeImportService {
     // fallow-ignore-next-line unused-class-member
     async importImage(url: string): Promise<{ buffer: Buffer; contentType: string }> {
         const parsed = this.parseUrl(url);
+
         if (!this.imageFetcher) {
             throw Object.assign(new Error('Image proxy not configured'), { status: 501 });
         }
+
         return this.imageFetcher.fetchImage(parsed);
     }
 
     private parseUrl(url: string): string {
         let parsed: URL;
+
         try {
             parsed = new URL(url);
         } catch {
             throw Object.assign(new Error('Invalid URL'), { status: 400 });
         }
+
         if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
             throw Object.assign(new Error('URL must be http or https'), { status: 400 });
         }
+
         return parsed.toString();
     }
 
-    private async importViaLlm(html: string, link: string): Promise<RecipeImportResult> {
+    private async importViaLlm(llmParser: RecipeParser, html: string, link: string): Promise<RecipeImportResult> {
         const source = this.llmSource(html);
         const started = Date.now();
-        const parsed: ParsedRecipe = await (this.llmParser as RecipeParser).parse(source);
+        const parsed: ParsedRecipe = await llmParser.parse(source);
         this.logger?.info('Recipe import parsed with LLM', {
             strategy: 'llm-first',
             ingredientCount: parsed.ingredients.length,
@@ -141,20 +174,26 @@ export class RecipeImportService {
     // Prefer the page's own JSON-LD recipe node; fall back to page text so the flag never silently no-ops.
     private llmSource(html: string): string {
         const $ = cheerio.load(html);
+
         for (const block of $('script[type="application/ld+json"]').toArray()) {
             const raw = $(block).text();
+
             if (!raw.trim()) continue;
 
             const parsed = this.parseJsonLoosely(raw);
+
             if (parsed === undefined) continue;
 
             const node = this.findRecipeNode(parsed);
+
             if (node) {
                 const serialized = JSON.stringify(node);
+
                 if (serialized.length <= LLM_JSON_LIMIT) return serialized;
                 break;
             }
         }
+
         return this.htmlToText(html).slice(0, LLM_TEXT_LIMIT);
     }
 
@@ -182,15 +221,21 @@ export class RecipeImportService {
     // Fill only what's still missing/weaker, so cheaper tiers win when they already succeeded.
     private mergeDraft(draft: RecipeDraft, next: Partial<RecipeDraft>): void {
         if (!draft.title && next.title) draft.title = next.title;
+
         if (next.ingredients && next.ingredients.length > draft.ingredients.length) {
             draft.ingredients = next.ingredients;
         }
+
         if (next.instructions && next.instructions.length > draft.instructions.length) {
             draft.instructions = next.instructions;
         }
+
         if (!draft.image && next.image) draft.image = next.image;
+
         if (!draft.prepTime && next.prepTime) draft.prepTime = next.prepTime;
+
         if (!draft.cookTime && next.cookTime) draft.cookTime = next.cookTime;
+
         if (!draft.recipeYield && next.recipeYield) draft.recipeYield = next.recipeYield;
     }
 
@@ -200,16 +245,20 @@ export class RecipeImportService {
 
         for (const block of blocks) {
             const raw = $(block).text();
+
             if (!raw.trim()) continue;
 
             const parsed = this.parseJsonLoosely(raw);
+
             if (parsed === undefined) continue;
 
             const recipe = this.findRecipeNode(parsed);
+
             if (recipe) {
                 return this.draftFromRecipeNode(recipe);
             }
         }
+
         return {};
     }
 
@@ -218,16 +267,18 @@ export class RecipeImportService {
     // JSON. A strict JSON.parse throws on the whole block, silently discarding an
     // otherwise-complete recipe and falling through to much cruder extraction tiers.
     // Retry with control characters escaped only where they appear inside a string.
-    private parseJsonLoosely(raw: string): unknown {
-        try {
-            return JSON.parse(raw);
-        } catch {
+    private parseJsonLoosely(raw: string): Json | undefined {
+        const decode = (text: string): Json | undefined => {
             try {
-                return JSON.parse(this.sanitizeJsonControlChars(raw));
+                const parsed = jsonSchema.safeParse(JSON.parse(text));
+
+                return parsed.success ? parsed.data : undefined;
             } catch {
                 return undefined;
             }
-        }
+        };
+
+        return decode(raw) ?? decode(this.sanitizeJsonControlChars(raw));
     }
 
     private sanitizeJsonControlChars(raw: string): string {
@@ -243,6 +294,7 @@ export class RecipeImportService {
             }
 
             const code = ch.charCodeAt(0);
+
             if (escaped) {
                 out += ch;
                 escaped = false;
@@ -266,43 +318,56 @@ export class RecipeImportService {
     }
 
     // JSON-LD may be a single object, an array of nodes, or wrap nodes in a top-level @graph.
-    private findRecipeNode(node: unknown): Record<string, unknown> | null {
+    private findRecipeNode(node: Json | undefined): JsonObject | null {
         if (Array.isArray(node)) {
             for (const item of node) {
                 const found = this.findRecipeNode(item);
+
                 if (found) return found;
             }
+
             return null;
         }
-        if (!node || typeof node !== 'object') return null;
 
-        const obj = node as Record<string, unknown>;
-        if (Array.isArray(obj['@graph'])) {
-            const found = this.findRecipeNode(obj['@graph']);
+        const obj = asObject(node);
+
+        if (!obj) return null;
+
+        const graph = obj['@graph'];
+
+        if (Array.isArray(graph)) {
+            const found = this.findRecipeNode(graph);
+
             if (found) return found;
         }
 
         const type = obj['@type'];
         const types = Array.isArray(type) ? type : [type];
-        if (types.some((t) => typeof t === 'string' && t.toLowerCase() === 'recipe')) {
+
+        if (types.some((t) => asString(t)?.toLowerCase() === 'recipe')) {
             return obj;
         }
+
         return null;
     }
 
-    private draftFromRecipeNode(recipe: Record<string, unknown>): Partial<RecipeDraft> {
+    private draftFromRecipeNode(recipe: JsonObject): Partial<RecipeDraft> {
         const draft: Partial<RecipeDraft> = {};
 
-        const name = recipe.name ?? recipe.headline;
-        if (typeof name === 'string' && collapse(name)) draft.title = collapse(name);
+        const name = asString(recipe.name ?? recipe.headline);
+
+        if (name !== undefined && collapse(name)) draft.title = collapse(name);
 
         const ingredients = cleanList(this.toStringArray(recipe.recipeIngredient));
+
         if (ingredients.length) draft.ingredients = ingredients;
 
         const instructions = cleanList(this.flattenInstructions(recipe.recipeInstructions));
+
         if (instructions.length) draft.instructions = instructions;
 
         const image = this.extractImage(recipe.image);
+
         if (image) draft.image = image;
 
         for (const [field, key] of [
@@ -311,55 +376,89 @@ export class RecipeImportService {
             ['recipeYield', 'recipeYield'],
         ] as const) {
             const value = recipe[key];
-            if (typeof value === 'string' && value.trim()) draft[field] = value.trim();
-            else if (Array.isArray(value) && typeof value[0] === 'string') draft[field] = value[0].trim();
+            const text = asString(value);
+
+            if (text !== undefined && text.trim()) {
+                draft[field] = text.trim();
+            } else if (Array.isArray(value)) {
+                const first = asString(value[0]);
+
+                if (first !== undefined) draft[field] = first.trim();
+            }
         }
 
         return draft;
     }
 
-    private toStringArray(value: unknown): string[] {
-        if (typeof value === 'string') return [value];
-        if (Array.isArray(value)) return value.filter((v): v is string => typeof v === 'string');
+    private toStringArray(value: Json | undefined): string[] {
+        const text = asString(value);
+
+        if (text !== undefined) return [text];
+
+        if (Array.isArray(value)) {
+            return value.flatMap((entry) => {
+                const item = asString(entry);
+
+                return item === undefined ? [] : [item];
+            });
+        }
+
         return [];
     }
 
     // recipeInstructions may be a string, string[], HowToStep[], or HowToSection[] (with nested steps).
-    private flattenInstructions(value: unknown): string[] {
+    private flattenInstructions(value: Json | undefined): string[] {
         if (!value) return [];
-        if (typeof value === 'string') {
-            return value.split('\n');
+
+        const text = asString(value);
+
+        if (text !== undefined) {
+            return text.split('\n');
         }
+
         if (Array.isArray(value)) {
             return value.flatMap((item) => this.flattenInstructions(item));
         }
-        if (typeof value === 'object') {
-            const obj = value as Record<string, unknown>;
-            const type = typeof obj['@type'] === 'string' ? (obj['@type'] as string).toLowerCase() : '';
+
+        const obj = asObject(value);
+
+        if (obj) {
+            const type = asString(obj['@type'])?.toLowerCase() ?? '';
+
             if (type === 'howtosection' || Array.isArray(obj.itemListElement)) {
                 return this.flattenInstructions(obj.itemListElement);
             }
-            if (typeof obj.text === 'string') return [obj.text];
-            if (typeof obj.name === 'string') return [obj.name];
+
+            const objText = asString(obj.text);
+
+            if (objText !== undefined) return [objText];
+
+            const objName = asString(obj.name);
+
+            if (objName !== undefined) return [objName];
         }
+
         return [];
     }
 
-    private extractImage(value: unknown): string | undefined {
+    private extractImage(value: Json | undefined): string | undefined {
         if (!value) return undefined;
-        if (typeof value === 'string') return value;
+
+        const text = asString(value);
+
+        if (text !== undefined) return text;
+
         if (Array.isArray(value)) {
             for (const item of value) {
                 const found = this.extractImage(item);
+
                 if (found) return found;
             }
+
             return undefined;
         }
-        if (typeof value === 'object') {
-            const url = (value as Record<string, unknown>).url;
-            if (typeof url === 'string') return url;
-        }
-        return undefined;
+
+        return asString(asObject(value)?.url);
     }
 
     private parseHtml(html: string): Partial<RecipeDraft> {
@@ -372,6 +471,7 @@ export class RecipeImportService {
                 .toArray()
                 .map((el) => $(el).text())
         );
+
         if (ingredients.length < MIN_INGREDIENTS) {
             ingredients = cleanList(
                 $('[class*="ingredient" i] li, [id*="ingredient" i] li')
@@ -379,6 +479,7 @@ export class RecipeImportService {
                     .map((el) => $(el).text())
             );
         }
+
         if (ingredients.length) draft.ingredients = ingredients;
 
         // Instructions: microdata first, then ordered-list items inside instruction/direction/step containers.
@@ -387,6 +488,7 @@ export class RecipeImportService {
                 .toArray()
                 .map((el) => $(el).text())
         );
+
         if (instructions.length < 1) {
             instructions = cleanList(
                 $(
@@ -396,12 +498,15 @@ export class RecipeImportService {
                     .map((el) => $(el).text())
             );
         }
+
         if (instructions.length) draft.instructions = instructions;
 
         const title = $('meta[property="og:title"]').attr('content') ?? $('title').first().text();
+
         if (title && collapse(title)) draft.title = collapse(title);
 
         const image = $('meta[property="og:image"]').attr('content');
+
         if (image) draft.image = image;
 
         return draft;
@@ -411,6 +516,7 @@ export class RecipeImportService {
         try {
             const text = this.htmlToText(html).slice(0, LLM_TEXT_LIMIT);
             const extracted = await this.llmExtractor?.extract(text);
+
             if (!extracted) return;
             this.mergeDraft(draft, {
                 title: extracted.title ? collapse(extracted.title) : undefined,
@@ -419,13 +525,14 @@ export class RecipeImportService {
             });
         } catch (error) {
             // Tier 3 is best-effort: never fail the whole import on an LLM error.
-            this.logger?.warn('Recipe import LLM fallback failed', { error: (error as Error)?.message });
+            this.logger?.warn('Recipe import LLM fallback failed', { error: caughtErrorSchema.parse(error).message });
         }
     }
 
     private htmlToText(html: string): string {
         const $ = cheerio.load(html);
         $('script, style, nav, header, footer, noscript, svg').remove();
+
         return collapse($('body').text() || $.root().text());
     }
 }

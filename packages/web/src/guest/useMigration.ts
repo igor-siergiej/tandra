@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+
 import type { SessionUser } from '../auth';
 import { track } from '../utils/analytics';
 import { logger } from '../utils/logger';
@@ -33,6 +34,7 @@ export const useMigration = () => {
             try {
                 if (!user) {
                     logger.warn('Cannot migrate guest data: no signed-in user after authentication');
+
                     return;
                 }
 

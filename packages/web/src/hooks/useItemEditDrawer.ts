@@ -17,12 +17,14 @@ interface EditItemData {
 
 export const useItemEditDrawer = () => {
     const [isOpen, setIsOpen] = useState(false);
+
     const [values, setValues] = useState<EditValues>({
         name: '',
         quantity: '',
         unit: '',
         category: '',
     });
+
     const [originalValues, setOriginalValues] = useState<EditValues>({
         name: '',
         quantity: '',
@@ -37,6 +39,7 @@ export const useItemEditDrawer = () => {
             unit: item.unit ?? '',
             category: item.category ?? '',
         };
+
         setValues(newValues);
         setOriginalValues(newValues);
         setIsOpen(true);

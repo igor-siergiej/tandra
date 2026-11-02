@@ -53,14 +53,17 @@ if (import.meta.main) {
     const steps = flag('--fast') ? STEPS.filter((step) => !step.name.includes('tests')) : STEPS;
 
     console.log(`Verifying the change (${steps.length} checks)\n`);
+
     for (const [index, step] of steps.entries()) {
         console.log(`── ${index + 1}/${steps.length} ${step.name} ${'─'.repeat(Math.max(0, 40 - step.name.length))}`);
         const result = run(step.command);
+
         if (result.status !== 0) {
             console.error(`\n❌ ${step.name} failed (exit ${result.status}).`);
             console.error(`   ${step.hint}`);
             process.exit(result.status ?? 1);
         }
+
         console.log('');
     }
 

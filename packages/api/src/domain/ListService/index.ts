@@ -1,7 +1,7 @@
 import type { Logger } from '@imapps/api-utils';
-
 import type { Item, ItemCategory, List, ListType, User } from '@tandra/types';
 import { ITEM_CATEGORIES, ListType as ListTypeEnum } from '@tandra/types';
+
 import { AuthorizationService } from '../AuthorizationService';
 import type { FriendService } from '../FriendService';
 import type { IdGenerator } from '../IdGenerator';
@@ -45,15 +45,20 @@ export class ListService {
     private async categoriseInBackground(ref: string): Promise<void> {
         if (!this.itemCategoryService || this.categorising.has(ref)) return;
         this.categorising.add(ref);
+
         try {
             const list = await this.repo.getByRef(ref);
+
             if (!list) return;
             const pending = list.items.filter((item) => !item.category).slice(0, MAX_CATEGORISE_PER_PASS);
             let changed = false;
+
             for (const item of pending) {
                 const category = await this.itemCategoryService.categorise(item.name);
+
                 if (category && (await this.repo.setCategoryIfUnset(list.id, item.id, category))) changed = true;
             }
+
             if (changed) this.onListChanged?.(list.id);
         } catch (error) {
             this.logger?.warn('Background item categorisation failed', { listRef: ref, error });
@@ -66,6 +71,7 @@ export class ListService {
     private backfillCategories(list: List): void {
         if (!this.itemCategoryService || list.items.every((item) => item.category)) return;
         const now = Date.now();
+
         if (now - (this.lastBackfill.get(list.id) ?? 0) < BACKFILL_COOLDOWN_MS) return;
         this.lastBackfill.set(list.id, now);
         void this.categoriseInBackground(list.id);
@@ -75,11 +81,13 @@ export class ListService {
         if (!ITEM_CATEGORIES.includes(category)) {
             throw Object.assign(new Error('Unknown item category'), { status: 400 });
         }
+
         await this.modifyList(title, (list) => {
             this.findItem(list, itemId);
             list.items = list.items.map((item) => (item.id === itemId ? { ...item, category } : item));
         });
         this.logger?.info('Item category set by user', { listTitle: title, itemId, category });
+
         return { message: 'Category updated successfully' };
     }
 
@@ -115,6 +123,7 @@ export class ListService {
 
             if (revision !== null) {
                 list.revision = revision;
+
                 return { list, result };
             }
         }
@@ -196,6 +205,7 @@ export class ListService {
     ) {
         try {
             const replay = id ? await this.repo.getByRef(id) : null;
+
             if (replay && replay.id === id) {
                 return replay; // idempotent replay
             }
@@ -255,6 +265,7 @@ export class ListService {
 
             if (id) {
                 const already = list.items.find((i) => i.id === id);
+
                 if (already) return already;
             }
 
@@ -411,6 +422,7 @@ export class ListService {
             const { list, result: selectedCount } = await this.modifyList(title, (current) => {
                 const selected = current.items.filter((item) => item.isSelected).length;
                 current.items = current.items.filter((item) => !item.isSelected);
+
                 return selected;
             });
 
@@ -487,6 +499,7 @@ export class ListService {
     async deleteList(title: string) {
         try {
             const list = await this.repo.getByRef(title);
+
             if (list) await this.repo.deleteById(list.id);
 
             this.logger?.info('List deleted', { listTitle: title });
@@ -503,6 +516,7 @@ export class ListService {
             const { list, result: clearedCount } = await this.modifyList(title, (current) => {
                 const count = current.items.length;
                 current.items = [];
+
                 return count;
             });
 
@@ -527,10 +541,13 @@ export class ListService {
             if (current.ownerId !== ownerId) {
                 throw Object.assign(new Error('List not found'), { status: 404 });
             }
+
             if (current.users.some((u) => u.id === claimer.id)) {
                 throw Object.assign(new Error('User is already in this list'), { status: 400 });
             }
+
             current.users.push(claimer);
+
             return claimer;
         });
 
@@ -569,6 +586,7 @@ export class ListService {
             );
 
             current.users.push(newMember);
+
             return newMember;
         });
 
@@ -594,6 +612,7 @@ export class ListService {
 
             // Cannot remove the owner
             const effectiveOwnerId = this.authorizationService.getEffectiveOwnerId(current);
+
             if (userIdToRemove === effectiveOwnerId) {
                 throw Object.assign(new Error('Cannot remove the list owner'), { status: 400 });
             }
@@ -605,6 +624,7 @@ export class ListService {
 
             // Check if user is in the list
             const userExists = current.users.some((u) => u.id === userIdToRemove);
+
             if (!userExists) {
                 throw Object.assign(new Error('User is not in this list'), { status: 400 });
             }
@@ -654,6 +674,7 @@ export class ListService {
                             ...(raw.quantity !== undefined && { quantity: raw.quantity }),
                             ...(raw.unit !== undefined && { unit: raw.unit }),
                         };
+
                         items.push(item);
                         names.push(item.name);
                         addedCount++;
@@ -671,6 +692,7 @@ export class ListService {
                 }
 
                 current.items = items;
+
                 return { added: addedCount, skipped: skippedCount, addedNames: names };
             });
 

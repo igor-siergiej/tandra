@@ -15,6 +15,7 @@ export const installFakePush = async (page: Page, opts: FakePushOptions) => {
         opts.vapidPublicKey === undefined
             ? 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBxXhU_E'
             : opts.vapidPublicKey;
+
     await page.route('**/api/push/vapid-public-key', (route) => route.fulfill({ json: { publicKey: vapid } }));
     await page.route('**/api/push/subscribe', (route) => route.fulfill({ json: { ok: true } }));
 
@@ -22,6 +23,7 @@ export const installFakePush = async (page: Page, opts: FakePushOptions) => {
         let subscription: object | null = o.subscribed
             ? { endpoint: 'https://push.example/fake', unsubscribe: async () => true, toJSON: () => ({}) }
             : null;
+
         const pushManager = {
             getSubscription: async () => subscription,
             subscribe: async () => {
@@ -29,28 +31,36 @@ export const installFakePush = async (page: Page, opts: FakePushOptions) => {
                     endpoint: 'https://push.example/fake',
                     unsubscribe: async () => {
                         subscription = null;
+
                         return true;
                     },
                     toJSON: () => ({ endpoint: 'https://push.example/fake', keys: { p256dh: 'p', auth: 'a' } }),
                 };
+
                 return subscription;
             },
         };
+
         Object.defineProperty(navigator.serviceWorker, 'ready', {
             configurable: true,
             get: () => Promise.resolve({ pushManager }),
         });
         (window as unknown as { PushManager: unknown }).PushManager = function PushManager() {};
+
         let permission = o.permission;
+
         const FakeNotification = function Notification() {} as unknown as {
             permission: NotificationPermission;
             requestPermission: () => Promise<NotificationPermission>;
         };
+
         Object.defineProperty(FakeNotification, 'permission', { get: () => permission });
         FakeNotification.requestPermission = async () => {
             permission = o.requestResult ?? o.permission;
+
             return permission;
         };
+
         (window as unknown as { Notification: unknown }).Notification = FakeNotification;
     }, opts);
 };

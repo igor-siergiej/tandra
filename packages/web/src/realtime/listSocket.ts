@@ -1,9 +1,23 @@
+import { z } from 'zod';
+
+import { caughtErrorSchema } from '../utils/caughtError';
+
 export interface Viewer {
     id: string;
     username: string;
 }
 
-type ServerMessage = { type: 'changed' } | { type: 'presence'; users: Viewer[] };
+const serverMessageSchema = z
+    .object({
+        type: z.enum(['changed', 'presence']).optional().catch(undefined),
+        users: z
+            .array(z.object({ id: z.string(), username: z.string() }))
+            .optional()
+            .catch(undefined),
+    })
+    .catch({});
+
+type ServerMessage = z.output<typeof serverMessageSchema>;
 
 interface ListSocketOptions {
     listTitle: string;
@@ -17,25 +31,28 @@ interface ListSocketOptions {
 
 const BASE_DELAY_MS = 1000;
 const MAX_DELAY_MS = 30_000;
+
 /** Sent by the API when the user is no longer a member of the list: reconnecting is pointless. */
 const CLOSE_REMOVED = 4403;
+
 /** Ticket request answers that mean "this user may not watch this list"; retrying cannot help. */
 const FORBIDDEN_STATUSES = new Set([403, 404]);
 
 const socketUrl = (listTitle: string, ticket: string) => {
     const origin = window.location.origin.replace(/^http/, 'ws');
+
     return `${origin}/api/ws/lists/${encodeURIComponent(listTitle)}?ticket=${encodeURIComponent(ticket)}`;
 };
 
-const parse = (data: unknown): Partial<ServerMessage> => {
+const parse = (data: string): Partial<ServerMessage> => {
     try {
-        return JSON.parse(String(data)) ?? {};
+        return serverMessageSchema.parse(JSON.parse(data));
     } catch {
         return {};
     }
 };
 
-const isForbidden = (err: unknown) => FORBIDDEN_STATUSES.has((err as { status?: number } | null)?.status ?? 0);
+const isForbidden = (cause: unknown) => FORBIDDEN_STATUSES.has(caughtErrorSchema.parse(cause).status ?? 0);
 
 class ListSocketConnection {
     private socket: WebSocket | null = null;
@@ -89,10 +106,13 @@ class ListSocketConnection {
 
     private async connect() {
         if (!this.idle) return;
+
         const ticket = await this.options.getTicket(this.options.listTitle).catch((err) => {
             if (!isForbidden(err)) this.scheduleReconnect();
+
             return null;
         });
+
         if (ticket && !this.disposed) this.attach(this.options.createSocket(socketUrl(this.options.listTitle, ticket)));
     }
 
@@ -103,16 +123,19 @@ class ListSocketConnection {
             this.failures = 0;
             this.options.onChanged();
         };
-        socket.onmessage = (event) => this.handle(parse(event.data));
+
+        socket.onmessage = (event) => this.handle(parse(String(event.data)));
         socket.onclose = (event) => {
             if (this.socket === socket) this.socket = null;
             this.options.onPresence([]);
+
             if (event.code !== CLOSE_REMOVED) this.scheduleReconnect();
         };
     }
 
     private handle(message: Partial<ServerMessage>) {
         if (message.type === 'changed') this.options.onChanged();
+
         if (message.type === 'presence') this.options.onPresence(message.users ?? []);
     }
 }

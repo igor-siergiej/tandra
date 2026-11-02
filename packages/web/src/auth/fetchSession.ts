@@ -20,6 +20,7 @@ interface SessionBody {
 
 const offlineSnapshot = (): SessionSnapshot => {
     const cached = sessionCache.read();
+
     return cached ? { user: cached, needsUsername: false } : SIGNED_OUT;
 };
 
@@ -31,25 +32,34 @@ const offlineSnapshot = (): SessionSnapshot => {
 // fallow-ignore-next-line complexity
 export const fetchSession = async (): Promise<SessionSnapshot> => {
     let response: Response;
+
     try {
         response = await fetch('/api/auth/get-session', { credentials: 'same-origin' });
     } catch {
         return offlineSnapshot();
     }
+
     // A server error or a rate limit says nothing about the session: keep what we knew.
     if (response.status >= 500 || response.status === 429) return offlineSnapshot();
 
     const body: SessionBody | null = response.ok ? await response.json().catch((): null => null) : null;
+
     if (!body?.user) {
         sessionCache.clear();
+
         return SIGNED_OUT;
     }
+
     const username = body.user.displayUsername ?? body.user.username;
+
     if (!username) {
         sessionCache.clear();
+
         return { user: null, needsUsername: true };
     }
+
     const user = { id: body.user.id, username };
     sessionCache.write(user);
+
     return { user, needsUsername: false };
 };

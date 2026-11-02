@@ -1,19 +1,18 @@
 import { APIError } from '@imapps/api-utils/hono';
 import type { ListType } from '@tandra/types';
 import type { Context } from 'hono';
+import { z } from 'zod';
+
 import { dependencyContainer } from '../../dependencies';
 import { DependencyToken } from '../../dependencies/types';
 import type { AuthorizationService } from '../../domain/AuthorizationService';
 import type { ListService } from '../../domain/ListService';
-import type { HonoVars } from '../handlerUtils';
-
-interface HttpError {
-    status?: number;
-    [key: string]: unknown;
-}
+import { caughtErrorSchema } from '../../infrastructure/caughtError';
+import type { HonoVars, LogFields } from '../handlerUtils';
 
 const getListService = (): ListService => dependencyContainer.resolve(DependencyToken.ListService);
 const getLogger = () => dependencyContainer.resolve(DependencyToken.Logger);
+
 const getAuthorizationService = (): AuthorizationService =>
     dependencyContainer.resolve(DependencyToken.AuthorizationService);
 
@@ -23,11 +22,16 @@ const verifyListAccess = async (
 ): Promise<boolean> => {
     try {
         const list = await getListService().getList(title);
+
         return list.users?.some((u: { id: string; username: string }) => u.id === authenticatedUser.id) || false;
     } catch {
         return false;
     }
 };
+
+type UpdatedList = Awaited<
+    ReturnType<ListService['updateItemName'] | ListService['setItemSelected'] | ListService['updateItemQuantity']>
+>;
 
 const resolveItemOperation = (body: {
     isSelected?: boolean;
@@ -36,7 +40,7 @@ const resolveItemOperation = (body: {
     unit?: string;
 }): {
     type: 'name' | 'selection' | 'quantity';
-    execute: (service: ReturnType<typeof getListService>, title: string, itemId: string) => Promise<unknown>;
+    execute: (service: ReturnType<typeof getListService>, title: string, itemId: string) => Promise<UpdatedList>;
 } | null => {
     if (body.newItemName !== undefined) {
         return {
@@ -45,10 +49,12 @@ const resolveItemOperation = (body: {
         };
     }
 
-    if (typeof body.isSelected === 'boolean') {
+    const isSelected = z.boolean().safeParse(body.isSelected);
+
+    if (isSelected.success) {
         return {
             type: 'selection',
-            execute: (service, title, itemId) => service.setItemSelected(title, itemId, body.isSelected),
+            execute: (service, title, itemId) => service.setItemSelected(title, itemId, isSelected.data),
         };
     }
 
@@ -69,23 +75,21 @@ const ensureListAccess = async (
     logger: ReturnType<typeof getLogger>
 ): Promise<Response | null> => {
     const hasAccess = await verifyListAccess(title, authenticatedUser);
+
     if (!hasAccess) {
         logger.warn('Unauthorized list access attempt', {
             authenticatedUserId: authenticatedUser.id,
             listTitle: title,
         });
+
         return c.json({ error: 'Forbidden' }, 403);
     }
+
     return null;
 };
 
-const failWith = (
-    error: unknown,
-    logger: ReturnType<typeof getLogger>,
-    message: string,
-    meta: Record<string, unknown>
-): never => {
-    const err = error as { status?: number; message?: string };
+const failWith = (cause: unknown, logger: ReturnType<typeof getLogger>, message: string, meta: LogFields): never => {
+    const err = caughtErrorSchema.parse(cause);
     logger.error(message, { ...meta, error: err.message });
     throw new APIError(err.message ?? 'Internal Server Error', err.status ?? 500);
 };
@@ -97,6 +101,7 @@ export const getList = async (c: Context<HonoVars>) => {
 
     try {
         const denied = await ensureListAccess(c, title, authenticatedUser, logger);
+
         if (denied) return denied;
 
         const list = await getListService().getList(title);
@@ -109,6 +114,7 @@ export const getList = async (c: Context<HonoVars>) => {
         });
 
         c.header('Cache-Control', 'no-store');
+
         return c.json(
             {
                 listType: list.listType,
@@ -133,12 +139,14 @@ export const getLists = async (c: Context<HonoVars>) => {
             authenticatedUserId: authenticatedUser.id,
             requestedUserId: userId,
         });
+
         return c.json({ error: 'Forbidden' }, 403);
     }
 
     try {
         const lists = await getListService().getListsForUser(userId);
         logger.info('User accessed their lists', { userId, listCount: lists.length });
+
         return c.json(lists, 200);
     } catch (error: unknown) {
         return failWith(error, logger, 'Failed to get lists for user', { userId });
@@ -153,6 +161,7 @@ export const addList = async (c: Context<HonoVars>) => {
         listType?: ListType;
         id?: string;
     }>();
+
     const logger = getLogger();
     const authenticatedUser = c.get('user');
 
@@ -179,6 +188,7 @@ export const addList = async (c: Context<HonoVars>) => {
 
 export const addItem = async (c: Context<HonoVars>) => {
     const title = c.req.param('title');
+
     const { itemName, dateAdded, quantity, unit, id } = await c.req.json<{
         itemName: string;
         dateAdded: Date;
@@ -186,11 +196,13 @@ export const addItem = async (c: Context<HonoVars>) => {
         unit?: string;
         id?: string;
     }>();
+
     const logger = getLogger();
     const authenticatedUser = c.get('user');
 
     try {
         const denied = await ensureListAccess(c, title, authenticatedUser, logger);
+
         if (denied) return denied;
 
         const item = await getListService().addItem(title, itemName, dateAdded, quantity, unit, authenticatedUser, id);
@@ -212,26 +224,31 @@ export const addItem = async (c: Context<HonoVars>) => {
 export const updateItem = async (c: Context<HonoVars>) => {
     const title = c.req.param('title');
     const itemId = c.req.param('itemId');
+
     const requestBody = await c.req.json<{
         isSelected?: boolean;
         newItemName?: string;
         quantity?: number;
         unit?: string;
     }>();
+
     const logger = getLogger();
     const authenticatedUser = c.get('user');
 
     try {
         const denied = await ensureListAccess(c, title, authenticatedUser, logger);
+
         if (denied) return denied;
 
         const operation = resolveItemOperation(requestBody);
+
         if (!operation) {
             logger.warn('API: Invalid item update request', {
                 listTitle: title,
                 itemId,
                 providedFields: requestBody,
             });
+
             return c.json(
                 { error: 'Either isSelected (boolean), newItemName (string), or quantity/unit must be provided' },
                 400
@@ -244,6 +261,7 @@ export const updateItem = async (c: Context<HonoVars>) => {
             itemId,
             ...requestBody,
         });
+
         return c.json(result, 200);
     } catch (error: unknown) {
         return failWith(error, logger, 'API: Failed to update item', { listTitle: title, itemId });
@@ -258,6 +276,7 @@ export const deleteItem = async (c: Context<HonoVars>) => {
 
     try {
         const denied = await ensureListAccess(c, title, authenticatedUser, logger);
+
         if (denied) return denied;
 
         const list = await getListService().deleteItem(title, itemId);
@@ -281,6 +300,7 @@ export const deleteList = async (c: Context<HonoVars>) => {
 
     try {
         const denied = await ensureListAccess(c, title, authenticatedUser, logger);
+
         if (denied) return denied;
 
         const list = await getListService().getList(title);
@@ -290,6 +310,7 @@ export const deleteList = async (c: Context<HonoVars>) => {
                 authenticatedUserId: authenticatedUser.id,
                 listTitle: title,
             });
+
             return c.json({ error: 'Only the list owner can delete this list' }, 403);
         }
 
@@ -311,6 +332,7 @@ export const updateList = async (c: Context<HonoVars>) => {
 
     try {
         const denied = await ensureListAccess(c, title, authenticatedUser, logger);
+
         if (denied) return denied;
 
         const result = await getListService().updateListTitle(title, newTitle);
@@ -330,6 +352,7 @@ export const clearList = async (c: Context<HonoVars>) => {
 
     try {
         const denied = await ensureListAccess(c, title, authenticatedUser, logger);
+
         if (denied) return denied;
 
         const list = await getListService().clearList(title);
@@ -352,6 +375,7 @@ export const deleteSelected = async (c: Context<HonoVars>) => {
 
     try {
         const denied = await ensureListAccess(c, title, authenticatedUser, logger);
+
         if (denied) return denied;
 
         const list = await getListService().clearSelectedItems(title);
@@ -374,6 +398,7 @@ export const addUserToList = async (c: Context<HonoVars>) => {
     const logger = getLogger();
 
     const denied = await ensureListAccess(c, title, authenticatedUser, logger);
+
     if (denied) return denied;
 
     try {
@@ -389,7 +414,7 @@ export const addUserToList = async (c: Context<HonoVars>) => {
         return c.json(list, 200);
     } catch (error: unknown) {
         const err = error instanceof Error ? error : new Error(String(error));
-        const status = (error as HttpError)?.status ?? 500;
+        const status = caughtErrorSchema.parse(error).status ?? 500;
         const errorMessage = err.message || 'Internal Server Error';
 
         logger.error('API: Failed to add user to list', {
@@ -412,6 +437,7 @@ export const removeUserFromList = async (c: Context<HonoVars>) => {
     const logger = getLogger();
 
     const denied = await ensureListAccess(c, title, authenticatedUser, logger);
+
     if (denied) return denied;
 
     try {
@@ -427,7 +453,7 @@ export const removeUserFromList = async (c: Context<HonoVars>) => {
         return c.json(list, 200);
     } catch (error: unknown) {
         const err = error instanceof Error ? error : new Error(String(error));
-        const status = (error as HttpError)?.status ?? 500;
+        const status = caughtErrorSchema.parse(error).status ?? 500;
         const errorMessage = err.message || 'Internal Server Error';
 
         logger.error('API: Failed to remove user from list', {
@@ -445,13 +471,16 @@ export const removeUserFromList = async (c: Context<HonoVars>) => {
 
 export const addItems = async (c: Context<HonoVars>) => {
     const title = c.req.param('title');
+
     const { items } = await c.req.json<{
         items: Array<{ itemName: string; quantity?: number; unit?: string; dateAdded: Date }>;
     }>();
+
     const logger = getLogger();
     const authenticatedUser = c.get('user');
 
     const denied = await ensureListAccess(c, title, authenticatedUser, logger);
+
     if (denied) return denied;
 
     try {

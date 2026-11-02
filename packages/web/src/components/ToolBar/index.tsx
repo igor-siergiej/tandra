@@ -20,6 +20,7 @@ import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import useMeasure from 'react-use-measure';
+
 import type { SpokenItem } from '../../api';
 import { useAuth, useUser } from '../../auth';
 import { Card } from '../../components/ui/card';
@@ -222,8 +223,10 @@ const ToolBar = ({
         if (isGuest) {
             exitGuestMode();
             navigate('/');
+
             return;
         }
+
         await logout();
         await clearUserData(queryClient);
         navigate('/login');
@@ -309,6 +312,7 @@ const ToolBar = ({
                                 actionsFab={<ActionsFab actionItems={actionItems} />}
                                 onMenuClick={() => {
                                     setIsMenuOpen(!isMenuOpen);
+
                                     if (!isMenuOpen) {
                                         setMenuActive(1);
                                     } else {

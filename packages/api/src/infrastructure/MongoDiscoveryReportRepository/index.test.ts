@@ -9,7 +9,9 @@ const setup = () => {
         deleteMany: vi.fn(),
         find: vi.fn(() => ({ sort: () => ({ toArray: async () => [] }) })),
     };
+
     const db = { getCollection: vi.fn(() => collection) };
+
     return { repo: new MongoDiscoveryReportRepository(db as never), collection, db };
 };
 

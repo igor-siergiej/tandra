@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'bun:test';
+
 import type { DiscoveryRecipe } from '@tandra/types';
 
 import { RuleIngredientStructurer } from '../RuleIngredientStructurer';
@@ -30,6 +31,7 @@ const ref = ({ pageId, title, revisionId }: WikibooksPage): WikibooksPageRef => 
 
 const setup = (initial: DiscoveryRecipe[] = []) => {
     const store = new Map(initial.map((recipe) => [recipe.id, recipe]));
+
     const discovery: DiscoveryWriter = {
         save: vi.fn(async (recipe: DiscoveryRecipe) => {
             store.set(recipe.id, recipe);
@@ -47,7 +49,9 @@ const setup = (initial: DiscoveryRecipe[] = []) => {
             }))
         ),
     };
+
     const wiki = new Map<number, WikibooksPage>();
+
     const source = {
         listRecipePages: vi.fn(async () => [...wiki.values()].map(ref)),
         fetchPages: vi.fn(async (refs: WikibooksPageRef[]) =>
@@ -56,32 +60,34 @@ const setup = (initial: DiscoveryRecipe[] = []) => {
         fetchImageInfo: vi.fn(async (names: string[]) => new Map(names.map((name) => [name, foundImage()]))),
         downloadImage: vi.fn(),
     };
+
     // The cover service has its own tests; here it stores a cover for any page that names a picture.
-    const cover = vi.fn(
-        async (id: string, file: string | undefined): Promise<CoverOutcome> =>
-            file
-                ? {
-                      fields: {
-                          coverImageKey: `discovery-image/${id}/1.jpg`,
-                          coverImageAttribution: 'Photo: Jane, CC BY 2.0, via Wikimedia Commons',
-                          coverImageSourceUrl: 'https://commons.wikimedia.org/wiki/File:Soup.jpg',
-                      },
-                      decided: true,
-                  }
-                : { fields: {}, decided: true }
+    const cover = vi.fn(async (id: string, file: string | undefined): Promise<CoverOutcome> =>
+        file
+            ? {
+                  fields: {
+                      coverImageKey: `discovery-image/${id}/1.jpg`,
+                      coverImageAttribution: 'Photo: Jane, CC BY 2.0, via Wikimedia Commons',
+                      coverImageSourceUrl: 'https://commons.wikimedia.org/wiki/File:Soup.jpg',
+                  },
+                  decided: true,
+              }
+            : { fields: {}, decided: true }
     );
+
     const tagger = { generateTags: vi.fn(async (_title: string): Promise<string[]> => ['broth']) };
+
     const estimator = {
-        estimate: vi.fn(
-            async (_recipe: unknown, _fields: string[]): Promise<RecipeEstimate> => ({
-                prepTime: 7,
-                cookTime: 40,
-                servings: 3,
-                difficulty: 'hard',
-            })
-        ),
+        estimate: vi.fn(async (_recipe: unknown, _fields: string[]): Promise<RecipeEstimate> => ({
+            prepTime: 7,
+            cookTime: 40,
+            servings: 3,
+            difficulty: 'hard',
+        })),
     };
+
     let n = 0;
+
     const service = new WikibooksIngestService(
         source,
         discovery,
@@ -91,6 +97,7 @@ const setup = (initial: DiscoveryRecipe[] = []) => {
         { generate: () => `ing-${++n}` },
         { resolve: cover }
     );
+
     return { service, store, wiki, source, discovery, tagger, estimator, cover };
 };
 
@@ -163,6 +170,7 @@ describe('WikibooksIngestService', () => {
 
     it('removes a recipe whose page was deleted, and one that stopped being a recipe', async () => {
         const { service, store, wiki } = setup();
+
         for (let id = 1; id <= 10; id += 1) wiki.set(id, page(id, 100 + id));
         await service.run();
         wiki.delete(1);
@@ -178,8 +186,10 @@ describe('WikibooksIngestService', () => {
 
     it('refuses to delete an implausible share of the library when the listing looks broken', async () => {
         const { service, store, wiki, discovery } = setup();
+
         for (let id = 1; id <= 10; id += 1) wiki.set(id, page(id, 100));
         await service.run();
+
         for (let id = 1; id <= 8; id += 1) wiki.delete(id);
 
         const summary = await service.run();
@@ -198,6 +208,7 @@ describe('WikibooksIngestService', () => {
         wiki.set(2, page(2, 201));
         tagger.generateTags.mockImplementation(async (title: string) => {
             if (title === 'Recipe 1') throw new Error('rate limited');
+
             return ['broth'];
         });
 
@@ -238,6 +249,7 @@ describe('WikibooksIngestService', () => {
 
     it('limits a trial run to the first N new or changed pages', async () => {
         const { service, store, wiki } = setup();
+
         for (let id = 1; id <= 5; id += 1) wiki.set(id, page(id, 100));
 
         const summary = await service.run({ limit: 2 });
@@ -330,6 +342,7 @@ describe('WikibooksIngestService', () => {
 
         it('asks the wiki about a whole batch of pictures in one request', async () => {
             const { service, wiki, source } = setup();
+
             for (let id = 1; id <= 5; id += 1) wiki.set(id, withImage(page(id, 100), `Soup ${id}.jpg`));
 
             await service.run();
@@ -437,10 +450,12 @@ describe('WikibooksIngestService', () => {
             wiki.set(1, page(1, 100));
             wiki.set(2, page(2, 200));
             await service.run();
+
             for (const id of ['wikibooks-1', 'wikibooks-2']) {
                 const { imageRevision: _dropped, ...legacy } = store.get(id) as DiscoveryRecipe;
                 store.set(id, legacy as DiscoveryRecipe);
             }
+
             wiki.set(1, withImage(page(1, 100)));
             wiki.set(2, withImage(page(2, 200)));
             (discovery.getRecipe as unknown as MockFn).mockRejectedValueOnce(new Error('mongo hiccup'));

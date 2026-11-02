@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, ChefHat, Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+
 import { generateRecipeAiImage, getRecipesQuery } from '../../api';
 import { useUser } from '../../auth';
 import { ListsSkeleton } from '../../components/LoadingSkeleton';
@@ -28,11 +29,13 @@ const RecipesPage = () => {
     const generatingRef = useRef<Set<string>>(new Set());
     const prevSearchQueryRef = useRef(searchQuery);
     const scrollContainerRef = useScrollContainer();
+
     const { data, isLoading, isError, refetch } = useQuery({
         ...getRecipesQuery(user?.id || ''),
         enabled: !!user?.id,
         refetchInterval: (query) => aiTagPollInterval(query.state.data),
     });
+
     const { registerRefresh } = usePullToRefreshContext();
 
     useEffect(() => {
@@ -62,6 +65,7 @@ const RecipesPage = () => {
     useEffect(() => {
         if (!data || !user?.id) return;
         const missing = data.filter((r) => !r.coverImageKey && r.ownerId === user.id);
+
         for (const recipe of missing) {
             if (generatingRef.current.has(recipe.id)) continue;
             generatingRef.current.add(recipe.id);
@@ -73,6 +77,7 @@ const RecipesPage = () => {
 
     useEffect(() => {
         const url = searchParams.get('sharedUrl');
+
         if (url) {
             navigate(`/recipes/new?sharedUrl=${encodeURIComponent(url)}`, { replace: true });
         }
@@ -85,6 +90,7 @@ const RecipesPage = () => {
             const container = scrollContainerRef?.current;
             container?.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
         }
+
         prevSearchQueryRef.current = searchQuery;
     }, [searchQuery, scrollContainerRef]);
 
@@ -95,6 +101,7 @@ const RecipesPage = () => {
 
     if (!user?.id) {
         logger.warn('Recipes page accessed without user');
+
         return <div>User not available</div>;
     }
 

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -9,9 +10,11 @@ const indexHtml = fs.readFileSync(indexHtmlPath, 'utf-8');
 
 const extractBootScript = (): string => {
     const match = indexHtml.match(/<script>\s*(\(function\(\) \{[\s\S]*?\}\)\(\);)\s*<\/script>/);
+
     if (!match) {
         throw new Error('Could not find boot theme IIFE in index.html');
     }
+
     return match[1];
 };
 

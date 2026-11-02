@@ -3,10 +3,13 @@
  * Logs are then collected by Promtail and sent to Loki
  */
 
+/** Values a log line carries; structured values are flattened by the caller so the API never sees an unchecked shape. */
+export type LogContext = Record<string, string | number | boolean | null | undefined>;
+
 interface LogEntry {
     level: 'debug' | 'info' | 'warn' | 'error';
     message: string;
-    context?: Record<string, unknown>;
+    context?: LogContext;
     timestamp: string;
     userAgent: string;
     url: string;
@@ -20,11 +23,11 @@ class FrontendLogger {
     private apiUrl = '/api/logs';
 
     // The session cookie rides along with the same-origin request; no header needed.
-    private getAuthHeaders(): Record<string, string> {
+    private getAuthHeaders() {
         return { 'Content-Type': 'application/json' };
     }
 
-    private createLogEntry(level: LogEntry['level'], message: string, context?: Record<string, unknown>): LogEntry {
+    private createLogEntry(level: LogEntry['level'], message: string, context?: LogContext): LogEntry {
         return {
             level,
             message,
@@ -93,19 +96,19 @@ class FrontendLogger {
         }
     }
 
-    debug(message: string, context?: Record<string, unknown>) {
+    debug(message: string, context?: LogContext) {
         this.addToQueue(this.createLogEntry('debug', message, context));
     }
 
-    info(message: string, context?: Record<string, unknown>) {
+    info(message: string, context?: LogContext) {
         this.addToQueue(this.createLogEntry('info', message, context));
     }
 
-    warn(message: string, context?: Record<string, unknown>) {
+    warn(message: string, context?: LogContext) {
         this.addToQueue(this.createLogEntry('warn', message, context));
     }
 
-    error(message: string, context?: Record<string, unknown>) {
+    error(message: string, context?: LogContext) {
         this.addToQueue(this.createLogEntry('error', message, context));
     }
 

@@ -24,6 +24,7 @@ export class DiscoverPage {
         const scope = group
             ? this.page.getByTestId('discover-filters').getByRole('group', { name: group })
             : this.page.getByTestId('discover-filters');
+
         return scope.getByRole('button', { name });
     }
 

@@ -1,5 +1,6 @@
 import type { MealPlanEntry } from '@tandra/types';
 import { ImageOff, Utensils, X } from 'lucide-react';
+
 import { PortionsStepper } from '../../components/PortionsStepper';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
@@ -16,7 +17,9 @@ interface PlannedRecipeRowProps {
 
 const RecipeImage = ({ imageKey, alt }: { imageKey: string; alt: string }) => {
     const { imageUrl } = useAuthedImage(imageKey);
+
     if (!imageUrl) return <RecipeThumbFallback hasError />;
+
     return (
         <img src={imageUrl} alt={alt} role="presentation" className="h-12 w-12 flex-shrink-0 rounded-md object-cover" />
     );
@@ -25,6 +28,7 @@ const RecipeImage = ({ imageKey, alt }: { imageKey: string; alt: string }) => {
 const RecipeThumbFallback = ({ hasError = false }: { hasError?: boolean }) => {
     const Icon = hasError ? ImageOff : Utensils;
     const tone = hasError ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary';
+
     return (
         <div
             className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md ${tone}`}

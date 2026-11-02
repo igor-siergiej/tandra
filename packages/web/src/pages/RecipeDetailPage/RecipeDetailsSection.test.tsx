@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+
 import { RecipeDetailsSection } from './RecipeDetailsSection';
 
 const noopHandlers = {
@@ -23,6 +24,7 @@ describe('RecipeDetailsSection', () => {
                 {...noopHandlers}
             />
         );
+
         expect(container).toBeEmptyDOMElement();
     });
 
@@ -60,6 +62,7 @@ describe('RecipeDetailsSection', () => {
                 {...noopHandlers}
             />
         );
+
         expect(container).toBeEmptyDOMElement();
     });
 

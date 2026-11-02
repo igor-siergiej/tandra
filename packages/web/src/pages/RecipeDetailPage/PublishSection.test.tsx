@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import * as api from '../../api';
 import { PublishSection } from './PublishSection';
 
@@ -24,6 +25,7 @@ const renderSection = (r: Recipe, mine: PublishedRecipeRef[] = []) => {
         queryKey: ['discover-published'],
         queryFn: async () => mine,
     } as never);
+
     return render(
         <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
             <PublishSection recipe={r} />
@@ -65,6 +67,7 @@ describe('PublishSection', () => {
     describe('licence step', () => {
         const openDrawer = async () => {
             await userEvent.click(await screen.findByRole('button', { name: 'Make public' }));
+
             return screen.findByRole('dialog');
         };
 

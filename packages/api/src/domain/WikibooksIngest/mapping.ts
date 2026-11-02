@@ -13,11 +13,16 @@ const MAX_SERVINGS = 100;
 // fallow-ignore-next-line complexity
 export const mapDifficulty = (raw: string | undefined): RecipeDifficulty | undefined => {
     const level = /\d+/.exec(raw ?? '')?.[0];
+
     if (level === undefined) return undefined;
     const value = Number(level);
+
     if (value === 1) return 'easy';
+
     if (value === 2 || value === 3) return 'medium';
+
     if (value === 4 || value === 5) return 'hard';
+
     return undefined;
 };
 
@@ -32,6 +37,7 @@ export const cleanCategory = (raw: string | undefined): string | undefined => {
         .replace(/\s+/g, ' ')
         .trim()
         .toLowerCase();
+
     return cleaned || undefined;
 };
 
@@ -40,8 +46,10 @@ export const cleanCategory = (raw: string | undefined): string | undefined => {
 // fallow-ignore-next-line complexity
 export const parseServings = (raw: string | undefined): number | undefined => {
     const first = /\d+/.exec(raw ?? '')?.[0];
+
     if (first === undefined) return undefined;
     const value = Number(first);
+
     return value >= 1 && value <= MAX_SERVINGS ? value : undefined;
 };
 
@@ -49,31 +57,40 @@ const DURATION_PART = /(\d+(?:\.\d+)?)(?:\s*[-–]\s*(\d+(?:\.\d+)?))?\s*(days?|
 
 const toMinutes = (amount: number, unit: string): number => {
     const first = unit.charAt(0).toLowerCase();
+
     if (first === 'd') return amount * 24 * 60;
+
     if (first === 'h') return amount * 60;
+
     return amount;
 };
 
 /** Sums every `<n> <unit>` in a segment ("1 hour 30 minutes", "8 h, 10 minutes"); a range counts at its upper end. */
 const minutesIn = (segment: string): number => {
     let total = 0;
+
     for (const match of segment.matchAll(DURATION_PART)) {
         const [, low, high, unit] = match;
         total += toMinutes(Number(high ?? low), unit ?? 'm');
     }
+
     return Math.round(total);
 };
 
 const PREP_LABEL = /^\s*prep(?:aration)?\b/i;
 const TOTAL_LABEL = /^\s*total\b/i;
 
-const VULGAR_FRACTIONS: Record<string, string> = { '½': '.5', '¼': '.25', '¾': '.75' };
+const VULGAR_FRACTIONS = new Map([
+    ['½', '.5'],
+    ['¼', '.25'],
+    ['¾', '.75'],
+]);
 
 // "1½ hours" -> "1.5 hours", "½ hour" -> "0.5 hour"
 const withDecimalFractions = (text: string): string =>
     text.replace(
         /(\d?)([½¼¾])/g,
-        (_, whole: string, fraction: string) => `${whole || '0'}${VULGAR_FRACTIONS[fraction]}`
+        (_, whole: string, fraction: string) => `${whole || '0'}${VULGAR_FRACTIONS.get(fraction)}`
     );
 
 export interface SourceTimes {
@@ -92,14 +109,19 @@ export const parseTimes = (raw: string | undefined): SourceTimes => {
     let prep = 0;
     let cook = 0;
     let total = 0;
+
     for (const segment of withDecimalFractions(raw ?? '').split(/[\n;]+/)) {
         const minutes = minutesIn(segment);
+
         if (minutes === 0) continue;
+
         if (PREP_LABEL.test(segment)) prep += minutes;
         else if (TOTAL_LABEL.test(segment)) total += minutes;
         else cook += minutes;
     }
+
     const cookTime = cook > 0 || prep > 0 ? cook : total;
+
     return {
         ...(prep > 0 && prep <= MAX_MINUTES && { prepTime: prep }),
         ...(cookTime > 0 && cookTime <= MAX_MINUTES && { cookTime }),

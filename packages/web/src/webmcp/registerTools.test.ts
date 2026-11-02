@@ -5,6 +5,7 @@ const api = vi.hoisted(() => ({
     getListsQuery: vi.fn(),
     getRecipesQuery: vi.fn(),
 }));
+
 vi.mock('../api', () => api);
 
 import { getModelContext, registerWebMcpTools } from './registerTools';
@@ -24,6 +25,7 @@ const lists = [
     { id: 'l1', title: 'Groceries', items: [{}, {}] },
     { id: 'l2', title: 'Party', items: [] },
 ];
+
 const recipes = [
     {
         id: 'r1',
@@ -48,6 +50,7 @@ describe('registerWebMcpTools', () => {
         setContext({
             registerTool: vi.fn(async (t: Tool, options?: { signal?: AbortSignal }) => {
                 registered.push(t);
+
                 if (options?.signal) signals.push(options.signal);
             }),
         });

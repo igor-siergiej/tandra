@@ -23,8 +23,10 @@ export const useConfirmation = () => {
     const handleConfirm = async () => {
         if (config?.onConfirm) {
             setIsLoading(true);
+
             try {
                 const result = config.onConfirm();
+
                 if (result instanceof Promise) {
                     await result;
                 }

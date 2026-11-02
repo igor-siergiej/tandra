@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+
 import type { ShoppingRow } from '../../utils/mealPlan';
 import { ShoppingPreviewDrawer } from './ShoppingPreviewDrawer';
 
@@ -15,6 +16,7 @@ const rows: ShoppingRow[] = [
     { key: 'a', name: 'spaghetti', quantity: 400, unit: 'g', recipeTitle: 'Pasta' },
     { key: 'b', name: 'garlic', recipeTitle: 'Pasta' },
 ];
+
 const lists = [
     { id: 'l1', title: 'Weekly' },
     { id: 'l2', title: 'Party' },
@@ -32,6 +34,7 @@ const setup = (onConfirm = vi.fn().mockResolvedValue(undefined)) => {
             onOpenChange={onOpenChange}
         />
     );
+
     return { onConfirm, onOpenChange };
 };
 

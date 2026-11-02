@@ -1,6 +1,6 @@
 import 'dotenv/config';
-
 import { createApp } from '@imapps/api-utils/hono';
+
 import { config } from './config';
 import { allowedOrigins } from './config/cors';
 import { dependencyContainer, registerDepdendencies } from './dependencies';
@@ -46,6 +46,7 @@ export const onStartup = async () => {
         // Metrics endpoint — exposed before auth
         app.get('/api/metrics', async (c) => {
             c.header('Content-Type', metricsRegister.contentType);
+
             return c.body(await metricsRegister.metrics());
         });
 
@@ -91,7 +92,7 @@ export const onStartup = async () => {
         dependencyContainer
             .resolve(DependencyToken.DiscoveryService)
             .ensureIndex()
-            .catch((error: unknown) => logger.warn('Discovery index not ready at startup', { error: String(error) }));
+            .catch((cause: unknown) => logger.warn('Discovery index not ready at startup', { error: String(cause) }));
 
         await bucket.connect?.({
             endpoint: config.get('bucketEndpoint'),

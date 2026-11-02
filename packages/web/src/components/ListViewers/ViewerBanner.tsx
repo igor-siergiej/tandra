@@ -2,8 +2,11 @@ import type { Viewer } from '../../realtime/listSocket';
 
 const describeViewers = (viewers: Viewer[]): string => {
     const names = viewers.map((viewer) => viewer.username);
+
     if (names.length === 1) return `${names[0]} is also viewing this list`;
+
     if (names.length === 2) return `${names[0]} and ${names[1]} are also viewing this list`;
+
     return `${names[0]}, ${names[1]} and ${names.length - 2} more are also viewing this list`;
 };
 

@@ -1,5 +1,6 @@
 import type { MongoDbConnection } from '@imapps/api-utils';
 import type { ListInvite } from '@tandra/types';
+
 import { CollectionNames, type Collections } from '../../dependencies/types';
 import type { ListInviteRepository } from '../../domain/ListInviteRepository';
 
@@ -38,6 +39,8 @@ export class MongoListInviteRepository implements ListInviteRepository {
             { $set: { claimedBy: userId, claimedAt: at } },
             { returnDocument: 'after' }
         );
+
+        // SAFETY: `Collections` is a union of every collection's document type, so the update result cannot infer ListInvite; this collection only holds ListInvite documents.
         return (result ?? null) as ListInvite | null;
     }
 
@@ -48,6 +51,7 @@ export class MongoListInviteRepository implements ListInviteRepository {
 
     // fallow-ignore-next-line unused-class-member
     async listOpenByOwner(ownerId: string, now: Date): Promise<ListInvite[]> {
+        // SAFETY: `Collections` is a union of every collection's document type, so find() cannot infer ListInvite; this collection only holds ListInvite documents and the projection drops nothing the type declares.
         return this.collection()
             .find(
                 {

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { parseDurationMinutes, parseServings, toOptionalNumber } from './parseRecipeMeta';
 
 describe('parseDurationMinutes', () => {

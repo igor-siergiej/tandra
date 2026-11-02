@@ -1,10 +1,11 @@
 import type { Label } from '@tandra/types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+
 import { getLabelsQuery } from '../api';
 import { useUser } from '../auth';
 import { drainOutbox } from '../offline/drainer';
 import { applyLabelIntent } from '../offline/intents';
-import { type OutboxIntent, outboxStore } from '../offline/outboxStore';
+import { type OutboxIntent, type OutboxPayload, outboxStore } from '../offline/outboxStore';
 
 export const useLabels = () => {
     const { user } = useUser();
@@ -13,7 +14,7 @@ export const useLabels = () => {
 
     const { data, isLoading, refetch } = useQuery<Label[]>(getLabelsQuery(userId));
 
-    const enqueueLabel = async (op: OutboxIntent['op'], targetId: string, payload: Record<string, unknown>) => {
+    const enqueueLabel = async (op: OutboxIntent['op'], targetId: string, payload: OutboxPayload) => {
         const intent = {
             id: crypto.randomUUID(),
             entityType: 'label' as const,
@@ -23,6 +24,8 @@ export const useLabels = () => {
             payload,
             createdAt: Date.now(),
         };
+
+        // SAFETY: the optimistic fold never reads `seq`, which the outbox assigns when the intent is stored.
         queryClient.setQueryData<Label[]>(['labels'], (old) => applyLabelIntent(old ?? [], intent as OutboxIntent));
         await outboxStore.enqueue(intent);
         void drainOutbox();
@@ -34,8 +37,7 @@ export const useLabels = () => {
         refetch,
         createLabel: (body: { name: string; color: string }) =>
             enqueueLabel('label.create', crypto.randomUUID(), { ...body, ownerId: userId }),
-        updateLabel: (id: string, body: { name?: string; color?: string }) =>
-            enqueueLabel('label.update', id, body as Record<string, unknown>),
+        updateLabel: (id: string, body: { name?: string; color?: string }) => enqueueLabel('label.update', id, body),
         deleteLabel: (id: string) => enqueueLabel('label.delete', id, {}),
     };
 };

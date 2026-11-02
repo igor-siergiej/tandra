@@ -1,5 +1,6 @@
 import type { User } from '@tandra/types';
 import { useEffect, useState } from 'react';
+
 import { useFriends } from '../../../hooks/useFriends';
 import { FriendPicker } from '../../FriendPicker';
 import { Button } from '../../ui/button';

@@ -13,6 +13,7 @@ test.describe('List invite API', () => {
         const res = await request.get('/api/lists/invites/this-token-does-not-exist', {
             failOnStatusCode: false,
         });
+
         expect(res.status()).toBe(404);
     });
 
@@ -23,16 +24,19 @@ test.describe('List invite API', () => {
             data: { title: 'Invite Test List', dateAdded: new Date().toISOString(), listType: 'shopping' },
             headers: await authA(),
         });
+
         if (!created.ok()) {
             const status = created.status();
             const body = await created.text();
             throw new Error(`PUT /api/lists returned ${status}: ${body}`);
         }
+
         const { title } = (await created.json()) as { title: string };
 
         const issued = await request.post(`/api/lists/${encodeURIComponent(title)}/invites`, {
             headers: await authA(),
         });
+
         expect(issued.status()).toBe(201);
         const { token, ownerId } = (await issued.json()) as { token: string; ownerId: string };
         expect(token).toBeTruthy();
@@ -41,11 +45,13 @@ test.describe('List invite API', () => {
         // Public preview carries the owner's username and an expiry.
         const preview = await request.get(`/api/lists/invites/${token}`);
         expect(preview.status()).toBe(200);
+
         const previewBody = (await preview.json()) as {
             listTitle: string;
             ownerUsername: string;
             isClosed: boolean;
         };
+
         expect(previewBody.listTitle).toBe(title);
         expect(previewBody.ownerUsername).toBe('testuser');
         expect(previewBody.isClosed).toBe(false);
@@ -55,6 +61,7 @@ test.describe('List invite API', () => {
         const claimed = await request.post(`/api/lists/invites/${token}/redeem`, {
             headers: await authB(),
         });
+
         expect(claimed.status()).toBe(200);
 
         // A second redeem by anyone is a 410.
@@ -62,6 +69,7 @@ test.describe('List invite API', () => {
             headers: await authB(),
             failOnStatusCode: false,
         });
+
         expect(second.status()).toBe(410);
     });
 
@@ -72,11 +80,13 @@ test.describe('List invite API', () => {
             data: { title: 'Revocable List', dateAdded: new Date().toISOString(), listType: 'shopping' },
             headers: await authA(),
         });
+
         const { title } = (await created.json()) as { title: string };
 
         const issued = await request.post(`/api/lists/${encodeURIComponent(title)}/invites`, {
             headers: await authA(),
         });
+
         const { token } = (await issued.json()) as { token: string };
 
         const revoked = await request.delete(`/api/lists/invites/${token}`, { headers: await authA() });

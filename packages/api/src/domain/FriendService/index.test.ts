@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'bun:test';
+
 import type { Friendship, PairingCode } from '@tandra/types';
+
 import { FriendService } from './index';
 
 class MockRepo {
@@ -13,6 +15,7 @@ class MockRepo {
     }
     async markCodeUsed(code: string, usedAt: Date) {
         const c = this.codes.get(code);
+
         if (c) c.usedAt = usedAt;
     }
     async insertFriendship(f: Friendship) {
@@ -23,6 +26,7 @@ class MockRepo {
     }
     async findPair(a: string, b: string) {
         const key = [a, b].sort();
+
         return this.friendships.find((f) => f.userIds[0] === key[0] && f.userIds[1] === key[1]) ?? null;
     }
     async deletePair(a: string, b: string) {
@@ -35,6 +39,7 @@ class MockIds {
     private n = 0;
     generate() {
         this.n += 1;
+
         return `id-${this.n}`;
     }
 }
@@ -54,7 +59,6 @@ describe('FriendService.generateCode', () => {
         const before = Date.now();
         const { code, expiresAt } = await svcWith(repo).generateCode('u1', 'alice');
         expect(code).toMatch(/^[A-Z2-9]{6}$/); // readable charset, no 0/O/1/I
-        // biome-ignore lint/style/noNonNullAssertion: lookup is known to be set by generateCode
         const stored = repo.codes.get(code)!;
         expect(stored.creatorId).toBe('u1');
         expect(expiresAt.getTime()).toBeGreaterThanOrEqual(before + 15 * 60 * 1000 - 1000);
@@ -70,7 +74,9 @@ describe('FriendService.redeem', () => {
             expiresAt: new Date(Date.now() + 60_000),
             ...over,
         };
+
         repo.codes.set(c.code, c);
+
         return c;
     };
 
@@ -162,6 +168,7 @@ describe('FriendService.listFriends / unfriend / areFriends / friendIdsOf', () =
         const lists = new MockItemRepo();
         const recipes = new MockItemRepo();
         const todos = new MockItemRepo();
+
         const svc = new FriendService(
             repo as never,
             new MockIds() as never,
@@ -170,7 +177,9 @@ describe('FriendService.listFriends / unfriend / areFriends / friendIdsOf', () =
             recipes as never,
             todos as never
         );
+
         await svc.unfriend('u1', 'u2');
+
         for (const r of [lists, recipes, todos]) {
             expect(r.calls).toEqual(
                 expect.arrayContaining([
@@ -179,6 +188,7 @@ describe('FriendService.listFriends / unfriend / areFriends / friendIdsOf', () =
                 ])
             );
         }
+
         expect(repo.friendships).toHaveLength(0);
     });
 
@@ -187,15 +197,18 @@ describe('FriendService.listFriends / unfriend / areFriends / friendIdsOf', () =
         seedFriendship(repo);
         const started: string[] = [];
         let release: () => void = () => {};
+
         const gate = new Promise<void>((resolve) => {
             release = resolve;
         });
+
         const slowRepo = (name: string) => ({
             removeMemberFromAll: async (memberId: string) => {
                 started.push(`${name}:${memberId}`);
                 await gate;
             },
         });
+
         const svc = new FriendService(
             repo as never,
             new MockIds() as never,

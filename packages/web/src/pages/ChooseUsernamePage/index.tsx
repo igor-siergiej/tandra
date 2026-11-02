@@ -4,6 +4,7 @@ import { useId } from 'react';
 import { useForm } from 'react-hook-form';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
+
 import { useAuth, useRefreshSession, useUser } from '../../auth';
 import { authClient } from '../../auth/client';
 import { authErrorMessage } from '../../auth/errors';
@@ -53,16 +54,20 @@ const ChooseUsernamePage = () => {
     const typed = watch('username').trim();
     const settled = useDebouncedValue(typed, AVAILABILITY_DEBOUNCE_MS);
     const checkable = chooseUsernameSchema.safeParse({ username: settled }).success;
+
     const availability = useQuery({
         queryKey: ['auth', 'username-available', settled.toLowerCase()],
         queryFn: async () => {
             const { data, error } = await authClient.isUsernameAvailable({ username: settled });
+
             if (error) throw new Error(authErrorMessage(error, "Couldn't check that username"));
+
             return data.available;
         },
         enabled: checkable,
         staleTime: 30_000,
     });
+
     // Only describe the name still in the box, never one the person has since edited.
     const describesTyped = checkable && settled === typed;
     const taken = describesTyped && availability.data === false;
@@ -71,10 +76,13 @@ const ChooseUsernamePage = () => {
         try {
             // Better Auth stores `username` lowercased; `displayUsername` keeps the casing they typed.
             const { error } = await authClient.updateUser({ username, displayUsername: username });
+
             if (error) {
                 setError('username', { message: authErrorMessage(error, "Couldn't save that username") });
+
                 return;
             }
+
             const signedIn = await refreshSession();
             // A first-time Google user only becomes a full account here, so this is their sign-up.
             track('sign_up_completed', { method: 'google' });
@@ -92,11 +100,13 @@ const ChooseUsernamePage = () => {
     };
 
     if (isLoading) return <LoadingPage />;
+
     // Mid-submit the session already has the username; the submit itself navigates once guest data is migrated.
     if (!needsUsername && !isSubmitting) return <Navigate to={user ? '/' : '/login'} replace />;
 
     const status = errors.username?.message ?? errors.root?.message;
     let availabilityText: string | null = null;
+
     if (!status && describesTyped) {
         if (availability.isError) availabilityText = availability.error.message;
         else if (availability.data === false) availabilityText = 'That username is taken';

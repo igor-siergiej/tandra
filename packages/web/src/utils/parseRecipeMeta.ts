@@ -9,13 +9,16 @@
 // fallow-ignore-next-line complexity
 export const parseDurationMinutes = (value: string): number | undefined => {
     const iso = /^PT(?:(\d+)H)?(?:(\d+)M)?$/i.exec(value.trim());
+
     if (iso && (iso[1] !== undefined || iso[2] !== undefined)) {
         const hours = Number(iso[1] ?? 0);
         const minutes = Number(iso[2] ?? 0);
+
         return hours * 60 + minutes;
     }
 
     const fallback = /(\d+)/.exec(value);
+
     return fallback ? Number(fallback[1]) : undefined;
 };
 
@@ -23,6 +26,7 @@ export const parseDurationMinutes = (value: string): number | undefined => {
 // first number found — the low end for a range, which is what "servings" should scale from.
 export const parseServings = (value: string): number | undefined => {
     const match = /(\d+)/.exec(value);
+
     return match ? Number(match[1]) : undefined;
 };
 
@@ -32,7 +36,9 @@ export const parseServings = (value: string): number | undefined => {
 // text-input fields (prep time / cook time / servings) into an optional persisted number.
 export const toOptionalNumber = (value: string): number | undefined => {
     const trimmed = value.trim();
+
     if (trimmed === '') return undefined;
     const parsed = Number(trimmed);
+
     return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
 };

@@ -30,6 +30,7 @@ const createMockContext = (overrides: { ip?: string; body?: unknown } = {}) => {
         req: {
             header: (name: string) => {
                 if (name === 'x-forwarded-for') return ip;
+
                 return undefined;
             },
             json: vi.fn().mockResolvedValue(body),

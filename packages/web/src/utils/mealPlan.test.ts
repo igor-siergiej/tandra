@@ -1,5 +1,6 @@
 import type { MealPlanEntry, Recipe } from '@tandra/types';
 import { describe, expect, it } from 'vitest';
+
 import { buildShoppingRows, dayKey, weekDays, weekStart } from './mealPlan';
 
 const entry = (over: Partial<MealPlanEntry>): MealPlanEntry => ({

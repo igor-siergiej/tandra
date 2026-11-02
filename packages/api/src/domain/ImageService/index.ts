@@ -1,4 +1,5 @@
 import type { Logger } from '@imapps/api-utils';
+import { z } from 'zod';
 
 import { imageGenerationFailuresTotal, imagesGeneratedTotal, imagesServedTotal } from '../../infrastructure/metrics';
 import { withImageExtension } from '../../infrastructure/objectKey';
@@ -6,9 +7,17 @@ import type { ImageGenerator, ImageStore } from './types';
 
 const DAILY_GENERATION_CAP = 50;
 
-const isNotFound = (err: unknown): boolean => {
-    const e = err as { code?: string; statusCode?: number } | null;
-    return e?.code === 'NotFound' || e?.code === 'NoSuchKey' || e?.statusCode === 404;
+const storeErrorSchema = z
+    .looseObject({
+        code: z.string().optional().catch(undefined),
+        statusCode: z.number().optional().catch(undefined),
+    })
+    .catch({});
+
+const isNotFound = (cause: unknown): boolean => {
+    const e = storeErrorSchema.parse(cause);
+
+    return e.code === 'NotFound' || e.code === 'NoSuchKey' || e.statusCode === 404;
 };
 
 const httpError = (message: string, status: number) => Object.assign(new Error(message), { status });
@@ -63,6 +72,7 @@ export class ImageService {
                 if (!isNotFound(storeErr)) {
                     throw httpError('Image storage unavailable', 503);
                 }
+
                 this.logger?.warn('Image not found in store, falling back to generator', {
                     itemName: normalisedName,
                 });
@@ -98,6 +108,7 @@ export class ImageService {
 
     private generateOnce(storageKey: string, name: string, userId: string) {
         const existing = this.inFlight.get(storageKey);
+
         if (existing) {
             return existing;
         }
@@ -106,12 +117,14 @@ export class ImageService {
 
         const run = (async () => {
             let result: { buffer: Buffer; contentType: string };
+
             try {
                 result = await this.generator.generateImage(this.generatePrompt(name));
             } catch (genErr) {
                 imageGenerationFailuresTotal.inc({ provider: 'fal' });
                 throw genErr;
             }
+
             imagesGeneratedTotal.inc({ provider: 'fal' });
 
             try {
@@ -119,10 +132,12 @@ export class ImageService {
             } catch (uploadErr) {
                 this.logger?.error('Failed to store generated image', { itemName: name, error: uploadErr });
             }
+
             return result;
         })().finally(() => this.inFlight.delete(storageKey));
 
         this.inFlight.set(storageKey, run);
+
         return run;
     }
 
@@ -130,9 +145,11 @@ export class ImageService {
         const day = new Date().toISOString().slice(0, 10);
         const entry = this.usage.get(userId);
         const count = entry?.day === day ? entry.count : 0;
+
         if (count >= DAILY_GENERATION_CAP) {
             throw httpError('Daily image generation limit reached', 429);
         }
+
         this.usage.set(userId, { day, count: count + 1 });
     }
 

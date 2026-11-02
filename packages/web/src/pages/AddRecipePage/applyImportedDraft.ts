@@ -1,4 +1,5 @@
 import type { RecipeImportResult } from '@tandra/types';
+
 import { importRecipeImage } from '../../api';
 import { convertIngredients, type UnitSystem } from '../../utils/convertUnits';
 import { logger } from '../../utils/logger';
@@ -21,6 +22,7 @@ export interface DraftSetters {
 
 const applyBasicFields = (draft: RecipeImportResult, setters: DraftSetters): void => {
     if (draft.title) setters.setTitle(draft.title);
+
     if (draft.link) setters.setLink(draft.link);
 };
 
@@ -34,6 +36,7 @@ const applyIngredientsAndInstructions = (
         setters.setIngredients(convertIngredients(ingredients, unitSystem));
         setters.setShowIngredientsPaste(false);
     }
+
     if (draft.instructions.length > 0) {
         setters.setSteps(draft.instructions);
         setters.setShowPasteArea(false);
@@ -58,6 +61,7 @@ const fetchCoverImage = async (url: string, signal?: AbortSignal): Promise<File 
         if (signal?.aborted) throw imageErr;
 
         logger.warn('Failed to auto-attach scraped recipe image', { error: String(imageErr) });
+
         return undefined;
     }
 };
@@ -72,6 +76,7 @@ const applyScrapedImage = async (
     options.onImageStart?.();
 
     const file = await fetchCoverImage(draft.image, options.signal);
+
     if (!file) return;
 
     setters.setSelectedFile(file);
@@ -85,14 +90,19 @@ const applyScrapedImage = async (
 const applyTimingAndServings = (draft: RecipeImportResult, setters: DraftSetters): void => {
     if (draft.prepTime !== undefined) {
         const minutes = parseDurationMinutes(draft.prepTime);
+
         if (minutes !== undefined) setters.setPrepTime(String(minutes));
     }
+
     if (draft.cookTime !== undefined) {
         const minutes = parseDurationMinutes(draft.cookTime);
+
         if (minutes !== undefined) setters.setCookTime(String(minutes));
     }
+
     if (draft.recipeYield !== undefined) {
         const servings = parseServings(draft.recipeYield);
+
         if (servings !== undefined) setters.setServings(String(servings));
     }
 };

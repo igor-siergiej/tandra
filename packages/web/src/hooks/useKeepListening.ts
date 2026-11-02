@@ -16,6 +16,7 @@ export const useKeepListening = (): [boolean, (value: boolean) => void] => {
 
     const set = useCallback((value: boolean) => {
         setKeepListening(value);
+
         try {
             localStorage.setItem(STORAGE_KEY, String(value));
         } catch {

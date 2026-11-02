@@ -1,5 +1,6 @@
 import type { DiscoveryEstimatedField, DiscoveryRecipeSummary, RecipeDifficulty } from '@tandra/types';
 import { Clock, Flame, Gauge, type ListChecks } from 'lucide-react';
+
 import { MetaChip, optionalServingsChip, optionalTimeChip } from '../RecipeCard';
 
 /** Prefixed to a value the extractor filled in because the source did not state it. */
@@ -10,6 +11,7 @@ const DIFFICULTY_LABEL: Record<RecipeDifficulty, string> = { easy: 'Easy', mediu
 
 type Chip = { icon: typeof ListChecks; text: string };
 
+// SAFETY: the icon is a lucide component; they share one props shape and typeof ListChecks only names that type.
 const optionalDifficultyChip = (difficulty: RecipeDifficulty | undefined): Chip | null =>
     difficulty ? { icon: Gauge as typeof ListChecks, text: DIFFICULTY_LABEL[difficulty] } : null;
 
@@ -18,12 +20,14 @@ type Meta = Pick<DiscoveryRecipeSummary, 'prepTime' | 'cookTime' | 'servings' | 
 // One chip per stated field, each tagged with whether its value was estimated rather than read from the source.
 const metaChips = (recipe: Meta): Array<{ chip: Chip; estimated: boolean }> => {
     const estimatedFields = new Set<DiscoveryEstimatedField>(recipe.estimated ?? []);
+
     const candidates: Array<[Chip | null, DiscoveryEstimatedField]> = [
         [optionalTimeChip(recipe.prepTime, Clock, 'prep'), 'prepTime'],
         [optionalTimeChip(recipe.cookTime, Flame, 'cook'), 'cookTime'],
         [optionalServingsChip(recipe.servings), 'servings'],
         [optionalDifficultyChip(recipe.difficulty), 'difficulty'],
     ];
+
     return candidates.flatMap(([chip, field]) => (chip ? [{ chip, estimated: estimatedFields.has(field) }] : []));
 };
 
