@@ -80,13 +80,17 @@ const minutesIn = (segment: string): number => {
 const PREP_LABEL = /^\s*prep(?:aration)?\b/i;
 const TOTAL_LABEL = /^\s*total\b/i;
 
-const VULGAR_FRACTIONS: Record<string, string> = { '½': '.5', '¼': '.25', '¾': '.75' };
+const VULGAR_FRACTIONS = new Map([
+    ['½', '.5'],
+    ['¼', '.25'],
+    ['¾', '.75'],
+]);
 
 // "1½ hours" -> "1.5 hours", "½ hour" -> "0.5 hour"
 const withDecimalFractions = (text: string): string =>
     text.replace(
         /(\d?)([½¼¾])/g,
-        (_, whole: string, fraction: string) => `${whole || '0'}${VULGAR_FRACTIONS[fraction]}`
+        (_, whole: string, fraction: string) => `${whole || '0'}${VULGAR_FRACTIONS.get(fraction)}`
     );
 
 export interface SourceTimes {

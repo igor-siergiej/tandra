@@ -1,11 +1,20 @@
 import type { Logger } from '@imapps/api-utils';
-import type { ZodError, ZodType } from 'zod';
+import { type ZodError, type ZodType, z } from 'zod';
+
+import { caughtErrorSchema } from '../caughtError';
 
 const FAL_ANY_LLM_URL = 'https://fal.run/fal-ai/any-llm';
 const DEFAULT_MODEL = 'google/gemini-2.5-flash-lite';
 const DEFAULT_TEMPERATURE = 0;
 const DEFAULT_TIMEOUT_MS = 15000;
 const DEFAULT_MAX_ATTEMPTS = 2;
+
+const replySchema = z
+    .looseObject({
+        output: z.string().optional().catch(undefined),
+        error: z.unknown().optional(),
+    })
+    .catch({});
 
 const fail = (message: string): Error => Object.assign(new Error(message), { status: 502 });
 
@@ -47,7 +56,7 @@ const extractJsonObject = (output: string): JsonExtraction => {
     }
 
     try {
-        return { value: JSON.parse(output.slice(start, end + 1)) as unknown };
+        return { value: JSON.parse(output.slice(start, end + 1)) };
     } catch {
         return { issues: 'the JSON object was malformed' };
     }
@@ -160,7 +169,7 @@ export class FalLlmClient {
                     body: JSON.stringify({ model, system_prompt: system, prompt, temperature }),
                 });
             } catch (error) {
-                throw fail(`fal.ai any-llm request failed: ${(error as Error).message}`);
+                throw fail(`fal.ai any-llm request failed: ${caughtErrorSchema.parse(error).message}`);
             }
 
             if (!response.ok) {
@@ -175,10 +184,10 @@ export class FalLlmClient {
                 throw fail(`fal.ai any-llm error: ${detail}`);
             }
 
-            let data: { output?: string; error?: string };
+            let data: z.output<typeof replySchema>;
 
             try {
-                data = (await response.json()) as { output?: string; error?: string };
+                data = replySchema.parse(await response.json());
             } catch {
                 throw fail('fal.ai any-llm returned a non-JSON response body');
             }

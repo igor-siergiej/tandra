@@ -4,4 +4,4 @@ import { stringArrayField } from '../zodHelpers';
 
 export const substitutesSchema: z.ZodType<{ substitutes: string[] }> = z
     .object({ substitutes: stringArrayField() })
-    .transform((result): { substitutes: string[] } => ({ substitutes: result.substitutes }));
+    .transform((result) => ({ substitutes: result.substitutes }));

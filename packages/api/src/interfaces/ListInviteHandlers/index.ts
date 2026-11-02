@@ -19,7 +19,7 @@ const previewLimiter = new IpRateLimiter(PREVIEW_RATE_LIMIT);
 
 setInterval(() => previewLimiter.reset(), PREVIEW_RATE_WINDOW_MS).unref();
 
-const clampTtl = (raw: unknown): number => {
+const clampTtl = (raw: string | undefined): number => {
     const days = Number(raw);
 
     if (!Number.isFinite(days) || days < 1) return DEFAULT_TTL_DAYS;

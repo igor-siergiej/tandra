@@ -1,18 +1,26 @@
+import type { Logger } from '@imapps/api-utils';
 import type { Context } from 'hono';
+import { z } from 'zod';
 
 import { dependencyContainer } from '../../dependencies';
 import { DependencyToken } from '../../dependencies/types';
 import { clientIpFrom } from '../../infrastructure/clientIp';
 import { IpRateLimiter } from '../../infrastructure/rateLimit';
 
-interface FrontendLog {
-    level: 'debug' | 'info' | 'warn' | 'error';
-    message: string;
-    context?: Record<string, unknown>;
-    timestamp?: string;
-    userAgent?: string;
-    url?: string;
-}
+const LOG_LEVELS = ['debug', 'info', 'warn', 'error'] as const;
+
+// Every field is decoded leniently: the handler answers a bad level or message with its own 400s.
+const frontendLogSchema = z
+    .object({
+        level: z.string().optional().catch(undefined),
+        message: z.string().optional().catch(undefined),
+        context: z.record(z.string(), z.json()).optional().catch(undefined),
+        userAgent: z.string().optional().catch(undefined),
+        url: z.string().optional().catch(undefined),
+    })
+    .catch({});
+
+type LogMethod = (message: string, ...meta: Array<unknown>) => void;
 
 const getLogger = () => dependencyContainer.resolve(DependencyToken.Logger);
 
@@ -40,15 +48,18 @@ export const receiveLogs = async (c: Context) => {
         return c.json({ error: 'Rate limit exceeded' }, 429);
     }
 
-    const log = await c.req.json<FrontendLog>();
+    const body = await c.req.json();
+    const log = frontendLogSchema.parse(body);
 
     if (!log.level || !log.message) {
-        logger.warn('Invalid frontend log received', { clientIp, receivedData: log });
+        logger.warn('Invalid frontend log received', { clientIp, receivedData: body });
 
         return c.json({ error: 'level and message are required' }, 400);
     }
 
-    if (!['debug', 'info', 'warn', 'error'].includes(log.level)) {
+    const level = z.enum(LOG_LEVELS).safeParse(log.level);
+
+    if (!level.success) {
         logger.warn('Invalid log level received', { clientIp, level: log.level });
 
         return c.json({ error: 'Invalid log level' }, 400);
@@ -63,7 +74,10 @@ export const receiveLogs = async (c: Context) => {
             ...log.context,
         };
 
-        (logger as unknown as Record<string, (msg: string, ctx: unknown) => void>)[log.level](log.message, logContext);
+        // SAFETY: the shared Logger only declares info/warn/error; a Logger without `debug` makes the call below throw, which the catch reports as a 500, as before.
+        const sink = logger as Logger & Record<'debug', LogMethod>;
+
+        sink[level.data](log.message, logContext);
 
         return new Response(null, { status: 204 });
     } catch (error) {

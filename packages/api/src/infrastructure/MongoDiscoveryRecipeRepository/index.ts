@@ -87,14 +87,14 @@ export class MongoDiscoveryRecipeRepository implements DiscoveryRecipeRepository
             .find(filter, WITH_OBJECT_ID)
             .sort({ createdAt: -1, _id: -1 })
             .limit(pageSize)
-            .toArray() as Promise<DiscoveryRecipe[]>;
+            .toArray();
     }
 
     async findByTitle(title: string): Promise<DiscoveryRecipe[]> {
         // Case-insensitive equality (collation strength 2); the library is a few thousand documents, so no title index.
         return this.collection()
             .find({ title }, { ...NO_OBJECT_ID, collation: { locale: 'en', strength: 2 } })
-            .toArray() as Promise<DiscoveryRecipe[]>;
+            .toArray();
     }
 
     async hasCoverImageKey(key: string): Promise<boolean> {
@@ -106,9 +106,7 @@ export class MongoDiscoveryRecipeRepository implements DiscoveryRecipeRepository
     ): Promise<Array<Pick<DiscoveryRecipe, 'id' | 'sourceRevision' | 'imageRevision' | 'createdAt'>>> {
         return this.collection()
             .find({ source }, { projection: { _id: 0, id: 1, sourceRevision: 1, imageRevision: 1, createdAt: 1 } })
-            .toArray() as Promise<
-            Array<Pick<DiscoveryRecipe, 'id' | 'sourceRevision' | 'imageRevision' | 'createdAt'>>
-        >;
+            .toArray();
     }
 
     async *batches(size: number): AsyncGenerator<DiscoveryRecipe[]> {
@@ -116,7 +114,7 @@ export class MongoDiscoveryRecipeRepository implements DiscoveryRecipeRepository
         let batch: DiscoveryRecipe[] = [];
 
         for await (const recipe of cursor) {
-            batch.push(recipe as DiscoveryRecipe);
+            batch.push(recipe);
 
             if (batch.length >= size) {
                 yield batch;

@@ -1,5 +1,6 @@
 import type { Logger } from '@imapps/api-utils';
 
+import { caughtErrorSchema } from '../../infrastructure/caughtError';
 import type { TodoReminderService } from '../TodoReminderService';
 
 const TIME_ZONE = 'Europe/London';
@@ -99,7 +100,7 @@ export class DailyReminderScheduler {
     start(): void {
         const from = this.now();
         const delay = Math.max(0, nextRunAt(from).getTime() - from.getTime());
-        this.schedule(() => this.fire() as unknown as undefined, delay);
+        this.schedule(() => this.fire(), delay);
     }
 
     private async fire(): Promise<void> {
@@ -112,7 +113,7 @@ export class DailyReminderScheduler {
                 await this.reminder.sendDailyReminders(now);
             }
         } catch (error) {
-            this.logger?.error('Daily reminder run failed', { error: (error as Error).message });
+            this.logger?.error('Daily reminder run failed', { error: caughtErrorSchema.parse(error).message });
         } finally {
             this.start();
         }

@@ -1,6 +1,7 @@
 import type { Logger } from '@imapps/api-utils';
 import type { Item, List, Todo, User } from '@tandra/types';
 
+import { caughtErrorSchema } from '../../infrastructure/caughtError';
 import type { WebPushSender } from '../../infrastructure/WebPushSender';
 import type { PushSubscriptionRepository } from '../PushSubscriptionRepository';
 
@@ -130,7 +131,7 @@ export class NotificationService {
         } catch (error) {
             this.logger?.error('Notification fan-out failed', {
                 subject,
-                error: (error as Error).message,
+                error: caughtErrorSchema.parse(error).message,
             });
         }
     }

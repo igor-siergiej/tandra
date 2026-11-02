@@ -1,6 +1,7 @@
 import type { Logger } from '@imapps/api-utils';
 import type { DiscoveryRecipe, Ingredient, PublishedRecipeRef, Recipe, User } from '@tandra/types';
 
+import { caughtErrorSchema } from '../../infrastructure/caughtError';
 import type { DiscoveryPublicationRepository } from '../DiscoveryPublicationRepository';
 import type { DiscoveryService } from '../DiscoveryService';
 import type { IdGenerator } from '../IdGenerator';
@@ -177,7 +178,7 @@ export class DiscoveryPublishService {
         } catch (error) {
             this.logger?.warn('Could not allocate a unique slug for published recipe; publishing without one', {
                 title,
-                error: (error as Error).message,
+                error: caughtErrorSchema.parse(error).message,
             });
 
             return undefined;
@@ -193,7 +194,7 @@ export class DiscoveryPublishService {
         } catch (error) {
             this.logger?.warn('Published recipe cover could not be copied; publishing without one', {
                 libraryId,
-                error: (error as Error).message,
+                error: caughtErrorSchema.parse(error).message,
             });
 
             return undefined;

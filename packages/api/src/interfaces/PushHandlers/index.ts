@@ -6,6 +6,7 @@ import { config } from '../../config';
 import { dependencyContainer } from '../../dependencies';
 import { DependencyToken } from '../../dependencies/types';
 import type { PushSubscriptionRepository } from '../../domain/PushSubscriptionRepository';
+import { caughtErrorSchema } from '../../infrastructure/caughtError';
 import type { HonoVars } from '../handlerUtils';
 
 const getRepo = (): PushSubscriptionRepository =>
@@ -13,8 +14,8 @@ const getRepo = (): PushSubscriptionRepository =>
 
 const getLogger = () => dependencyContainer.resolve(DependencyToken.Logger);
 
-const throwApiError = (error: unknown): never => {
-    const err = error as { status?: number; message?: string };
+const throwApiError = (cause: unknown): never => {
+    const err = caughtErrorSchema.parse(cause);
     throw new APIError(err.message ?? 'Internal Server Error', err.status ?? 500);
 };
 
@@ -42,7 +43,10 @@ export const subscribe = async (c: Context<HonoVars>) => {
 
         return c.json({ success: true }, 201);
     } catch (error: unknown) {
-        logger.error('Failed to save push subscription', { userId: user.id, error: (error as Error).message });
+        logger.error('Failed to save push subscription', {
+            userId: user.id,
+            error: caughtErrorSchema.parse(error).message,
+        });
 
         return throwApiError(error);
     }
@@ -59,7 +63,10 @@ export const unsubscribe = async (c: Context<HonoVars>) => {
 
         return c.json({ success: true }, 200);
     } catch (error: unknown) {
-        logger.error('Failed to remove push subscription', { userId: user.id, error: (error as Error).message });
+        logger.error('Failed to remove push subscription', {
+            userId: user.id,
+            error: caughtErrorSchema.parse(error).message,
+        });
 
         return throwApiError(error);
     }

@@ -1,12 +1,12 @@
-const CONTENT_TYPE_EXTENSIONS: Record<string, string> = {
-    'image/webp': 'webp',
-    'image/png': 'png',
-    'image/jpeg': 'jpg',
-    'image/jpg': 'jpg',
-    'image/gif': 'gif',
-    'image/avif': 'avif',
-    'image/svg+xml': 'svg',
-};
+const CONTENT_TYPE_EXTENSIONS = new Map([
+    ['image/webp', 'webp'],
+    ['image/png', 'png'],
+    ['image/jpeg', 'jpg'],
+    ['image/jpg', 'jpg'],
+    ['image/gif', 'gif'],
+    ['image/avif', 'avif'],
+    ['image/svg+xml', 'svg'],
+]);
 
 /** Resolve a file extension (no dot) for a content-type, or undefined if it is not a recognised image type. */
 const extensionForContentType = (contentType?: string): string | undefined => {
@@ -16,8 +16,10 @@ const extensionForContentType = (contentType?: string): string | undefined => {
         return undefined;
     }
 
-    if (CONTENT_TYPE_EXTENSIONS[normalised]) {
-        return CONTENT_TYPE_EXTENSIONS[normalised];
+    const known = CONTENT_TYPE_EXTENSIONS.get(normalised);
+
+    if (known) {
+        return known;
     }
 
     // Fall back to the subtype for other image/* types (e.g. image/heic -> heic).

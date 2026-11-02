@@ -78,6 +78,6 @@ try {
     console.log(`Password reset for ${username}; their existing sessions are signed out.`);
     process.exit(0);
 } catch (error) {
-    console.error((error as Error).message);
+    console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);
 }

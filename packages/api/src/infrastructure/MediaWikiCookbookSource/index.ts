@@ -1,4 +1,5 @@
 import type { Logger } from '@imapps/api-utils';
+import { z } from 'zod';
 
 import type {
     WikibooksImageInfo,
@@ -6,6 +7,7 @@ import type {
     WikibooksPageRef,
     WikibooksSource,
 } from '../../domain/WikibooksIngest/types';
+import { caughtErrorSchema } from '../caughtError';
 
 const API_URL = 'https://en.wikibooks.org/w/api.php';
 
@@ -35,42 +37,54 @@ const MAX_RETRY_SECONDS = 60;
 
 type Params = Record<string, string>;
 
-interface RevisionJson {
-    revid?: number;
-    slots?: { main?: { '*'?: string; content?: string } };
-}
+// The wiki's answer is decoded leniently: any field that is missing or of another type reads as absent.
+const lenient = <T extends z.ZodType>(schema: T) => schema.optional().catch(undefined);
 
-interface PageJson {
-    pageid?: number;
-    title?: string;
-    missing?: boolean;
+const revisionSchema = z.object({
+    revid: lenient(z.number()),
+    slots: lenient(z.object({ main: lenient(z.object({ '*': lenient(z.string()), content: lenient(z.string()) })) })),
+});
+
+const metadataEntrySchema = z.object({ value: lenient(z.string()) });
+const extMetadataSchema = z.record(z.string(), metadataEntrySchema.optional().catch(undefined));
+
+const imageInfoSchema = z.object({
+    url: lenient(z.string()),
+    thumburl: lenient(z.string()),
+    mime: lenient(z.string()),
+    descriptionurl: lenient(z.string()),
+    extmetadata: lenient(extMetadataSchema),
+});
+
+const pageSchema = z.object({
+    pageid: lenient(z.number()),
+    title: lenient(z.string()),
+    missing: lenient(z.boolean()),
     /** Present on a file that lives on Commons: a "missing" local page is then not a missing file. */
-    known?: boolean;
-    revisions?: RevisionJson[];
-    imageinfo?: ImageInfoJson[];
-}
+    known: lenient(z.boolean()),
+    revisions: lenient(z.array(revisionSchema)),
+    imageinfo: lenient(z.array(imageInfoSchema)),
+});
 
-interface ExtMetadata {
-    [key: string]: { value?: string } | undefined;
-}
+const titleMappingSchema = z.array(z.object({ from: z.string(), to: z.string() }));
 
-interface ImageInfoJson {
-    url?: string;
-    thumburl?: string;
-    mime?: string;
-    descriptionurl?: string;
-    extmetadata?: ExtMetadata;
-}
+const apiJsonSchema = z.object({
+    error: lenient(z.object({ code: lenient(z.string()), info: lenient(z.string()) })),
+    continue: lenient(z.record(z.string(), z.string())),
+    query: lenient(
+        z.object({
+            pages: lenient(z.union([z.record(z.string(), pageSchema), z.array(pageSchema)])),
+            normalized: lenient(titleMappingSchema),
+            redirects: lenient(titleMappingSchema),
+        })
+    ),
+});
 
-interface ApiJson {
-    error?: { code?: string; info?: string };
-    continue?: Params;
-    query?: {
-        pages?: Record<string, PageJson> | PageJson[];
-        normalized?: Array<{ from: string; to: string }>;
-        redirects?: Array<{ from: string; to: string }>;
-    };
-}
+type PageJson = z.output<typeof pageSchema>;
+
+type ExtMetadata = z.output<typeof extMetadataSchema>;
+
+type ApiJson = z.output<typeof apiJsonSchema>;
 
 export interface MediaWikiCookbookSourceOptions {
     userAgent?: string;
@@ -199,7 +213,7 @@ export class MediaWikiCookbookSource implements WikibooksSource {
                 // One lost batch must not end the run: its pages are absent from the result and so retried next run.
                 this.logger?.warn('Wikibooks content batch failed', {
                     pages: batch.length,
-                    error: (error as Error).message,
+                    error: caughtErrorSchema.parse(error).message,
                 });
             }
         }
@@ -245,7 +259,7 @@ export class MediaWikiCookbookSource implements WikibooksSource {
                 // A lost batch is simply absent from the result: those pictures are looked up again next run.
                 this.logger?.warn('Wikibooks image info batch failed', {
                     files: batch.length,
-                    error: (error as Error).message,
+                    error: caughtErrorSchema.parse(error).message,
                 });
             }
         }
@@ -347,7 +361,7 @@ export class MediaWikiCookbookSource implements WikibooksSource {
 
             if (!response.ok) throw new Error(`Wikibooks API: HTTP ${response.status}`);
 
-            const json = (await response.json()) as ApiJson;
+            const json = apiJsonSchema.parse(await response.json());
 
             if (json.error?.code === 'maxlag') return { reason: 'replica lag (maxlag)', retryAfterSeconds: retryAfter };
 
@@ -355,7 +369,7 @@ export class MediaWikiCookbookSource implements WikibooksSource {
 
             return { json };
         } catch (error) {
-            if ((error as Error).name === 'AbortError') {
+            if (caughtErrorSchema.parse(error).name === 'AbortError') {
                 return { reason: 'request timed out', retryAfterSeconds: DEFAULT_RETRY_SECONDS };
             }
 

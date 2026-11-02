@@ -12,24 +12,24 @@ export interface ParsedWikibooksPage {
     instructions: string[];
 }
 
-const NAMED_ENTITIES: Record<string, string> = {
-    nbsp: ' ',
-    amp: '&',
-    lt: '<',
-    gt: '>',
-    quot: '"',
-    apos: "'",
-    deg: '°',
-    frac12: '½',
-    frac14: '¼',
-    frac34: '¾',
-    ndash: '–',
-    mdash: '—',
-    times: '×',
-    rsquo: '’',
-    lsquo: '‘',
-    frasl: '⁄',
-};
+const NAMED_ENTITIES = new Map([
+    ['nbsp', ' '],
+    ['amp', '&'],
+    ['lt', '<'],
+    ['gt', '>'],
+    ['quot', '"'],
+    ['apos', "'"],
+    ['deg', '°'],
+    ['frac12', '½'],
+    ['frac14', '¼'],
+    ['frac34', '¾'],
+    ['ndash', '–'],
+    ['mdash', '—'],
+    ['times', '×'],
+    ['rsquo', '’'],
+    ['lsquo', '‘'],
+    ['frasl', '⁄'],
+]);
 
 const INGREDIENTS_HEADING = /^ingredients?:?$/i;
 
@@ -42,7 +42,7 @@ const decodeEntities = (text: string): string =>
     text
         .replace(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number(code)))
         .replace(/&#x([0-9a-f]+);/gi, (_, code: string) => String.fromCodePoint(Number.parseInt(code, 16)))
-        .replace(/&([a-z0-9]+);/gi, (whole, name: string) => NAMED_ENTITIES[name.toLowerCase()] ?? whole);
+        .replace(/&([a-z0-9]+);/gi, (whole, name: string) => NAMED_ENTITIES.get(name.toLowerCase()) ?? whole);
 
 /** Index just past the `}}` that closes the `{{` at `start`, honouring nesting; -1 when unbalanced. */
 // Nesting scan over two-character delimiters.
@@ -212,17 +212,19 @@ const sections = (wikitext: string): Section[] => {
 };
 
 const listItems = (lines: string[], marker: '*' | '#'): string[] =>
-    lines
-        .filter((line) => line.startsWith(marker))
-        .map((line) => plainText(line.replace(/^[*#:;]+/, '')))
-        .filter(Boolean);
+    lines.flatMap((line) => {
+        const text = line.startsWith(marker) ? plainText(line.replace(/^[*#:;]+/, '')) : '';
+
+        return text ? [text] : [];
+    });
 
 // Some pages number their steps by hand ("1. Peel...") instead of using a wiki list.
 const typedSteps = (lines: string[]): string[] =>
-    lines
-        .filter((line) => /^\d+[.)]\s/.test(line))
-        .map((line) => plainText(line.replace(/^\d+[.)]\s+/, '')))
-        .filter(Boolean);
+    lines.flatMap((line) => {
+        const text = /^\d+[.)]\s/.test(line) ? plainText(line.replace(/^\d+[.)]\s+/, '')) : '';
+
+        return text ? [text] : [];
+    });
 
 // A sub-list label such as "For the sauce:" names a group, it is not an ingredient.
 const isGroupLabel = (line: string): boolean => line.endsWith(':');

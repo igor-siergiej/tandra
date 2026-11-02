@@ -1,6 +1,6 @@
 export interface ListSocket {
-    send(data: string): unknown;
-    close(code?: number, reason?: string): unknown;
+    send(data: string): void;
+    close(code?: number, reason?: string): void;
 }
 
 export interface PresenceUser {

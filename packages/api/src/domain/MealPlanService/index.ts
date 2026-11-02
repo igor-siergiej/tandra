@@ -1,5 +1,6 @@
 import type { Logger } from '@imapps/api-utils';
 import type { MealPlanEntry, Recipe } from '@tandra/types';
+import { z } from 'zod';
 
 import type { FriendService } from '../FriendService';
 import type { IdGenerator } from '../IdGenerator';
@@ -25,21 +26,31 @@ const MAX_RANGE_DAYS = 62;
 
 const fail = (message: string, status: number) => Object.assign(new Error(message), { status });
 
-const assertDay = (value: unknown, field: string): string => {
-    if (typeof value !== 'string' || !DAY.test(value) || Number.isNaN(Date.parse(`${value}T00:00:00Z`))) {
+const daySchema = z
+    .string()
+    .regex(DAY)
+    .refine((value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)));
+
+const servingsSchema = z.number().positive().max(MAX_SERVINGS);
+
+const assertDay = (value: string, field: string): string => {
+    const day = daySchema.safeParse(value);
+
+    if (!day.success) {
         throw fail(`${field} must be a YYYY-MM-DD day`, 400);
     }
 
-    return value;
+    return day.data;
 };
 
-// fallow-ignore-next-line complexity
-const assertServings = (value: unknown): number => {
-    if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0 || value > MAX_SERVINGS) {
+const assertServings = (value: number): number => {
+    const servings = servingsSchema.safeParse(value);
+
+    if (!servings.success) {
         throw fail(`servings must be a number between 0 and ${MAX_SERVINGS}`, 400);
     }
 
-    return value;
+    return servings.data;
 };
 
 type RecipeLookup = { getRecipe(recipeId: string): Promise<Recipe> };

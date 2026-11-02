@@ -65,18 +65,17 @@ import { type Dependencies, DependencyToken } from './types';
 
 export { dependencyContainer };
 
-// The container instantiates `new ctor()`. A function declaration that returns an object is a valid constructor for
-// that (the returned object wins), so factories need no class that returns from its constructor. It must stay a
-// declaration: an arrow function cannot be constructed.
+// The container instantiates `new ctor()`. A class whose constructor returns an object is a valid constructor for
+// that (the returned object wins), so a factory function can be registered without writing a class per dependency.
 const register = <K extends keyof Dependencies & string>(token: K, make: () => Dependencies[K]) => {
-    function Factory() {
-        return make();
-    }
+    // SAFETY: a constructor that returns an object yields that object from `new`, so the class is constructed as the Dependencies[K] that make() returns.
+    const Factory = class {
+        constructor() {
+            return make();
+        }
+    } as new () => Dependencies[K];
 
-    dependencyContainer.registerSingleton(
-        token,
-        Factory as unknown as Parameters<typeof dependencyContainer.registerSingleton<K>>[1]
-    );
+    dependencyContainer.registerSingleton(token, Factory);
 };
 
 const googleConfig = (): { clientId: string; clientSecret: string } | undefined => {
@@ -428,8 +427,11 @@ export const registerDepdendencies = () => {
         // Fail fast rather than queue requests behind a dead engine: discovery is optional, the rest of the API is not.
         const client = url ? new Client({ node: url, requestTimeout: 5000, maxRetries: 1 }) : null;
 
+        // SAFETY: OpenSearchApi is the slice of the opensearch Client that the index calls (see its declaration); the Client's stricter generics are what keep it from being assignable.
+        const api = client as OpenSearchApi | null;
+
         return new OpenSearchDiscoveryIndex(
-            client as unknown as OpenSearchApi | null,
+            api,
             dependencyContainer.resolve(DependencyToken.Logger),
             config.get('opensearchIndex') || undefined
         );

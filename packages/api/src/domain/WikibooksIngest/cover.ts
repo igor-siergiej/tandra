@@ -1,5 +1,6 @@
 import type { Logger } from '@imapps/api-utils';
 
+import { caughtErrorSchema } from '../../infrastructure/caughtError';
 import { withImageExtension } from '../../infrastructure/objectKey';
 import type { ImageStore } from '../ImageService/types';
 import { assessImage } from './imageLicence';
@@ -53,9 +54,14 @@ export class WikibooksCoverService {
 
         if (!assessment.ok) return { fields: {}, decided: true, refused: assessment.reason };
 
+        const { thumbUrl, mime } = info;
+
+        // assessImage has already refused a picture without either; this narrows them for the download.
+        if (!(thumbUrl && mime)) return { fields: {}, decided: true, refused: 'no downloadable rendition' };
+
         try {
-            const download = await this.source.downloadImage(info.thumbUrl as string);
-            const contentType = STORED_TYPES.has(download.contentType) ? download.contentType : (info.mime as string);
+            const download = await this.source.downloadImage(thumbUrl);
+            const contentType = STORED_TYPES.has(download.contentType) ? download.contentType : mime;
             // A key of its own per recipe: it names neither a person nor a private recipe, and a rebuilt page gets a fresh one.
             const key = withImageExtension(`${COVER_PREFIX}/${libraryId}/${Date.now()}`, contentType);
             await this.images.putObject(key, download.buffer, { contentType });
@@ -72,7 +78,7 @@ export class WikibooksCoverService {
             this.logger?.warn('Wikibooks cover could not be stored, will retry next run', {
                 libraryId,
                 filename,
-                error: (error as Error).message,
+                error: caughtErrorSchema.parse(error).message,
             });
 
             return { fields: {}, decided: false };

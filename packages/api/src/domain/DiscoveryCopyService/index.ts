@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type { Logger } from '@imapps/api-utils';
 import type { Recipe, User } from '@tandra/types';
 
+import { caughtErrorSchema } from '../../infrastructure/caughtError';
 import { copyImage } from '../DiscoveryPublish/copyImage';
 import type { DiscoveryService } from '../DiscoveryService';
 import type { ImageStore } from '../ImageService/types';
@@ -39,9 +40,10 @@ export class DiscoveryCopyService {
         // The cover is copied first so its credit can travel with it, but only when there really is a cover to credit.
         const id = library.coverImageKey ? randomUUID() : undefined;
 
-        const coverKey = library.coverImageKey
-            ? await this.copyCover(library.coverImageKey, owner, id as string)
-            : undefined;
+        const coverKey =
+            library.coverImageKey && id !== undefined
+                ? await this.copyCover(library.coverImageKey, owner, id)
+                : undefined;
 
         const credit = coverKey && library.coverImageAttribution ? ` ${library.coverImageAttribution}.` : '';
 
@@ -73,7 +75,7 @@ export class DiscoveryCopyService {
         } catch (error) {
             this.logger?.warn('Library cover could not be copied to the new recipe', {
                 recipeId,
-                error: (error as Error).message,
+                error: caughtErrorSchema.parse(error).message,
             });
 
             return undefined;

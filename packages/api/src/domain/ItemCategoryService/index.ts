@@ -9,7 +9,7 @@ export interface ItemClassifier {
 
 const normaliseItemName = (name: string): string => name.trim().toLowerCase().replace(/\s+/g, ' ');
 
-const errorMessage = (error: unknown): string => (error instanceof Error ? error.message : String(error));
+const errorMessage = (cause: unknown): string => (cause instanceof Error ? cause.message : String(cause));
 
 /** Classifies a shopping item name into an aisle, remembering the answer so each name is classified once ever. */
 export class ItemCategoryService {

@@ -11,16 +11,14 @@ export const validateJson =
     // Parse, validate and format errors in one linear flow.
     // fallow-ignore-next-line complexity
     async (c: Context, next: Next) => {
-        let body: unknown;
+        const json = await c.req.json().then(
+            (body) => ({ valid: true as const, body }),
+            () => ({ valid: false as const })
+        );
 
-        try {
-            body = await c.req.json();
-        } catch {
-            if (!options.optional) return c.json({ error: 'Request body must be valid JSON' }, 400);
-            body = {};
-        }
+        if (!json.valid && !options.optional) return c.json({ error: 'Request body must be valid JSON' }, 400);
 
-        const result = schema.safeParse(body);
+        const result = schema.safeParse(json.valid ? json.body : {});
 
         if (!result.success) {
             const fields: Record<string, string> = {};

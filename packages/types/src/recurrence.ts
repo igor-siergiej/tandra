@@ -34,12 +34,12 @@ const ADDERS = {
 
 const step = (date: Date, recurrence: Recurrence): Date => ADDERS[recurrence.freq](date, recurrence.interval);
 
-const expandSingle = (todo: Todo, start: Date, end: Date): Occurrence[] => {
-    const anchor = parseDay(todo.dueDate as string);
+const expandSingle = (dueDate: string, done: boolean, start: Date, end: Date): Occurrence[] => {
+    const anchor = parseDay(dueDate);
 
     if (isBefore(anchor, start) || isAfter(anchor, end)) return [];
 
-    return [{ date: anchor, done: todo.done }];
+    return [{ date: anchor, done }];
 };
 
 const resolveLimit = (recurrence: Recurrence, end: Date): Date => {
@@ -51,12 +51,17 @@ const resolveLimit = (recurrence: Recurrence, end: Date): Date => {
 
 const toDoneSet = (dates: string[] | undefined): Set<string> => new Set(dates ?? []);
 
-const expandRecurring = (todo: Todo, start: Date, end: Date): Occurrence[] => {
-    const rec = todo.recurrence as Recurrence;
-    const completed = toDoneSet(todo.completedDates);
+const expandRecurring = (
+    dueDate: string,
+    rec: Recurrence,
+    completedDates: string[] | undefined,
+    start: Date,
+    end: Date
+): Occurrence[] => {
+    const completed = toDoneSet(completedDates);
     const limit = resolveLimit(rec, end);
     const occurrences: Occurrence[] = [];
-    let cursor = parseDay(todo.dueDate as string);
+    let cursor = parseDay(dueDate);
 
     for (let i = 0; i < 1000 && !isAfter(cursor, limit); i += 1) {
         if (!isBefore(cursor, start)) {
@@ -74,7 +79,9 @@ export const expandOccurrences = (todo: Todo, rangeStart: Date, rangeEnd: Date):
     const start = normalize(rangeStart);
     const end = normalize(rangeEnd);
 
-    return todo.recurrence ? expandRecurring(todo, start, end) : expandSingle(todo, start, end);
+    return todo.recurrence
+        ? expandRecurring(todo.dueDate, todo.recurrence, todo.completedDates, start, end)
+        : expandSingle(todo.dueDate, todo.done, start, end);
 };
 
 /** True if `todo` has an incomplete occurrence on `day` (single or recurring). */

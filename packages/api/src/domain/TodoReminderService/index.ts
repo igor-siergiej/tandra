@@ -2,6 +2,7 @@ import type { Logger } from '@imapps/api-utils';
 import type { PushSubscription, Todo } from '@tandra/types';
 import { isoDay, occursOn } from '@tandra/types';
 
+import { caughtErrorSchema } from '../../infrastructure/caughtError';
 import type { WebPushSender } from '../../infrastructure/WebPushSender';
 import type { PushSubscriptionRepository } from '../PushSubscriptionRepository';
 import type { TodoRepository } from '../TodoRepository';
@@ -126,7 +127,7 @@ export class TodoReminderService {
         } catch (error) {
             this.logger?.error('Todo reminder fan-out failed', {
                 recipientId,
-                error: (error as Error).message,
+                error: caughtErrorSchema.parse(error).message,
             });
 
             return { subscriptions: 0, sent: 0 };

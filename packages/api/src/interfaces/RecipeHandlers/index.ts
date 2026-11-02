@@ -1,14 +1,18 @@
 import { APIError } from '@imapps/api-utils/hono';
 import type { Ingredient, Recipe, RecipeDifficulty } from '@tandra/types';
 import type { Context } from 'hono';
+import { z } from 'zod';
 
 import { dependencyContainer } from '../../dependencies/container';
 import { DependencyToken } from '../../dependencies/types';
 import type { RecipeImportService } from '../../domain/RecipeImportService';
 import type { RecipeService } from '../../domain/RecipeService';
+import { caughtErrorSchema } from '../../infrastructure/caughtError';
 import { normaliseUpload } from '../../infrastructure/imageProcessor';
 import { withImageExtension } from '../../infrastructure/objectKey';
-import type { HonoVars } from '../handlerUtils';
+import { type HonoVars, type LogFields, readLenientJsonBody } from '../handlerUtils';
+
+const friendBodySchema = z.object({ friendId: z.string().catch('') }).catch({ friendId: '' });
 
 const getRecipeService = (): RecipeService => dependencyContainer.resolve(DependencyToken.RecipeService);
 
@@ -25,8 +29,8 @@ const getAuthenticatedUser = (c: Context<HonoVars>): { id: string; username: str
 };
 
 /** Normalise an unknown error, log it, and rethrow as an APIError. */
-const failWithApiError = (error: unknown, logMessage: string, fields: Record<string, unknown>): never => {
-    const e = (error ?? {}) as { message?: string; status?: number };
+const failWithApiError = (cause: unknown, logMessage: string, fields: LogFields): never => {
+    const e = caughtErrorSchema.parse(cause);
     const message = e.message || 'Internal Server Error';
     const status = e.status ?? 500;
     getLogger().error(logMessage, { ...fields, error: message, status });
@@ -34,14 +38,14 @@ const failWithApiError = (error: unknown, logMessage: string, fields: Record<str
 };
 
 /** Log-and-401 for a missing/invalid authenticated user. */
-const unauthorized = (c: Context<HonoVars>, logMessage: string, fields: Record<string, unknown> = {}): Response => {
+const unauthorized = (c: Context<HonoVars>, logMessage: string, fields: LogFields = {}): Response => {
     getLogger().warn(logMessage, { ...fields, ip: c.req.header('x-forwarded-for') });
 
     return c.json({ error: 'Unauthorized' }, 401);
 };
 
 /** Log-and-403 for a user without access to the target recipe. */
-const forbidden = (c: Context<HonoVars>, logMessage: string, fields: Record<string, unknown>): Response => {
+const forbidden = (c: Context<HonoVars>, logMessage: string, fields: LogFields): Response => {
     getLogger().warn(logMessage, fields);
 
     return c.json({ error: 'Forbidden' }, 403);
@@ -332,12 +336,12 @@ export const deleteRecipe = async (c: Context<HonoVars>): Promise<Response> => {
 // fallow-ignore-next-line complexity
 export const addUserToRecipe = async (c: Context<HonoVars>): Promise<Response> => {
     const recipeId = c.req.param('recipeId');
-    const { friendId } = await c.req.json<{ friendId: string }>();
+    const { friendId } = await readLenientJsonBody(c, friendBodySchema);
     const authenticatedUser = getAuthenticatedUser(c);
 
     if (!authenticatedUser) return unauthorized(c, 'Unauthorized user addition attempt', { recipeId });
 
-    if (!friendId || typeof friendId !== 'string' || friendId.trim() === '') {
+    if (!friendId || friendId.trim() === '') {
         return c.json({ error: 'friendId is required' }, 400);
     }
 

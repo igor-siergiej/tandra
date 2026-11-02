@@ -1,6 +1,7 @@
 import type { Logger } from '@imapps/api-utils';
 import type { DiscoveryEstimatedField, DiscoveryRecipe, DiscoverySource } from '@tandra/types';
 
+import { caughtErrorSchema } from '../../infrastructure/caughtError';
 import type { IdGenerator } from '../IdGenerator';
 import type { IngredientStructurer } from '../IngredientStructurer/types';
 import type { CoverOutcome, WikibooksCoverService } from './cover';
@@ -52,17 +53,21 @@ const MAX_REMOVAL_SHARE = 0.2;
 type PageOutcome = 'created' | 'updated' | 'skipped';
 
 const unique = (values: string[]): string[] => [
-    ...new Set(values.map((value) => value.trim().toLowerCase()).filter(Boolean)),
+    ...new Set(
+        values.flatMap((value) => {
+            const normalized = value.trim().toLowerCase();
+
+            return normalized ? [normalized] : [];
+        })
+    ),
 ];
 
 const runPool = async <T>(items: T[], size: number, work: (item: T) => Promise<void>): Promise<void> => {
-    let next = 0;
+    const queue = items.values();
 
     const worker = async () => {
-        while (next < items.length) {
-            const item = items[next];
-            next += 1;
-            await work(item as T);
+        for (let next = queue.next(); !next.done; next = queue.next()) {
+            await work(next.value);
         }
     };
 
@@ -190,7 +195,7 @@ export class WikibooksIngestService {
                 keep.add(id);
                 this.logger?.warn('Wikibooks recipe failed, will retry next run', {
                     title: page.title,
-                    error: (error as Error).message,
+                    error: caughtErrorSchema.parse(error).message,
                 });
             }
         });
@@ -263,7 +268,7 @@ export class WikibooksIngestService {
                 summary.coversFailed += 1;
                 this.logger?.warn('Wikibooks cover pass failed for a recipe, will retry next run', {
                     title: page.title,
-                    error: (error as Error).message,
+                    error: caughtErrorSchema.parse(error).message,
                 });
             }
         }

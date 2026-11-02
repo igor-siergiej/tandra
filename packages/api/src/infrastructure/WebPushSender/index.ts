@@ -1,6 +1,11 @@
 import type { Logger } from '@imapps/api-utils';
 import type { PushSubscription } from '@tandra/types';
 import webpush from 'web-push';
+import { z } from 'zod';
+
+import { caughtErrorSchema } from '../caughtError';
+
+const pushErrorSchema = z.object({ statusCode: z.number().optional().catch(undefined) }).catch({});
 
 export type SendResult = 'ok' | 'gone' | 'error';
 
@@ -36,7 +41,7 @@ export class WebPushSender {
 
             return 'ok';
         } catch (error) {
-            const statusCode = (error as { statusCode?: number }).statusCode;
+            const { statusCode } = pushErrorSchema.parse(error);
 
             if (statusCode === 404 || statusCode === 410) {
                 return 'gone';
@@ -45,7 +50,7 @@ export class WebPushSender {
             this.logger?.error('Failed to send web push', {
                 endpoint: sub.endpoint,
                 statusCode,
-                error: (error as Error).message,
+                error: caughtErrorSchema.parse(error).message,
             });
 
             return 'error';

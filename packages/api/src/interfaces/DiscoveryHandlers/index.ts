@@ -1,16 +1,27 @@
 import type { Logger } from '@imapps/api-utils';
 import { APIError } from '@imapps/api-utils/hono';
-import type { DiscoveryPublishRequest, DiscoverySearchQuery, DiscoverySource, RecipeDifficulty } from '@tandra/types';
+import type { DiscoverySearchQuery, DiscoverySource, RecipeDifficulty } from '@tandra/types';
 import type { Context } from 'hono';
+import { z } from 'zod';
 
 import type { DiscoveryCopyService } from '../../domain/DiscoveryCopyService';
 import type { DiscoveryModerationService } from '../../domain/DiscoveryModeration';
 import type { DiscoveryPublishService } from '../../domain/DiscoveryPublish';
 import type { DiscoveryService } from '../../domain/DiscoveryService';
-import { type HonoVars, withAuth } from '../handlerUtils';
+import { caughtErrorSchema } from '../../infrastructure/caughtError';
+import { type HonoVars, readLenientJsonBody, withAuth } from '../handlerUtils';
 
 const DIFFICULTIES: readonly RecipeDifficulty[] = ['easy', 'medium', 'hard'];
 const SOURCES: readonly DiscoverySource[] = ['wikibooks', 'user'];
+
+const publishBodySchema = z
+    .object({
+        agreeToLicence: z.boolean().optional().catch(undefined),
+        showName: z.boolean().optional().catch(undefined),
+    })
+    .catch({});
+
+const reportBodySchema = z.object({ reason: z.string().optional().catch(undefined) }).catch({});
 
 const badRequest = (message: string) => new APIError(message, 400);
 
@@ -43,11 +54,12 @@ const intParam = (c: Context<HonoVars>, name: string, min: number): number | und
 
 const enumParam = <T extends string>(c: Context<HonoVars>, name: string, allowed: readonly T[]): T[] | undefined => {
     const values = listParam(c, name);
-    const invalid = values?.find((v) => !allowed.includes(v as T));
+    const isAllowed = (value: string): value is T => allowed.some((candidate) => candidate === value);
+    const invalid = values?.find((v) => !isAllowed(v));
 
     if (invalid) throw badRequest(`${name} must be one of: ${allowed.join(', ')}`);
 
-    return values as T[] | undefined;
+    return values?.filter(isAllowed);
 };
 
 const parseSearchQuery = (c: Context<HonoVars>): DiscoverySearchQuery => ({
@@ -65,8 +77,8 @@ const parseSearchQuery = (c: Context<HonoVars>): DiscoverySearchQuery => ({
 /** Errors carrying a 4xx/503 status are meant for the caller; anything else is hidden behind a generic 500. */
 // Status mapping for one error path.
 // fallow-ignore-next-line complexity
-const failWith = (logger: Logger, message: string, error: unknown): never => {
-    const e = (error ?? {}) as { message?: string; status?: number };
+const failWith = (logger: Logger, message: string, cause: unknown): never => {
+    const e = caughtErrorSchema.parse(cause);
     const status = e.status ?? 500;
     logger.error(message, { error: e.message, status });
     throw new APIError(status === 500 ? 'Internal Server Error' : (e.message ?? 'Internal Server Error'), status);
@@ -123,7 +135,7 @@ export const createDiscoveryHandlers = (
 
     // Publishing is owner-only (checked in the service) and writes a snapshot; the private recipe is never exposed.
     publishRecipe: withAuth(async (c, user) => {
-        const body = await c.req.json<DiscoveryPublishRequest>().catch(() => ({}) as DiscoveryPublishRequest);
+        const body = await readLenientJsonBody(c, publishBodySchema);
 
         try {
             return c.json(await publishService.publish(c.req.param('recipeId') ?? '', user, body), 201);
@@ -151,8 +163,7 @@ export const createDiscoveryHandlers = (
     }),
 
     reportRecipe: withAuth(async (c, user) => {
-        const body = await c.req.json<{ reason?: unknown }>().catch(() => ({}) as { reason?: unknown });
-        const reason = typeof body.reason === 'string' ? body.reason : undefined;
+        const { reason } = await readLenientJsonBody(c, reportBodySchema);
 
         try {
             await moderation.report(c.req.param('id') ?? '', user, reason);

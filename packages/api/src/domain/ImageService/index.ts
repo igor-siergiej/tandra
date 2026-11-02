@@ -1,4 +1,5 @@
 import type { Logger } from '@imapps/api-utils';
+import { z } from 'zod';
 
 import { imageGenerationFailuresTotal, imagesGeneratedTotal, imagesServedTotal } from '../../infrastructure/metrics';
 import { withImageExtension } from '../../infrastructure/objectKey';
@@ -6,10 +7,17 @@ import type { ImageGenerator, ImageStore } from './types';
 
 const DAILY_GENERATION_CAP = 50;
 
-const isNotFound = (err: unknown): boolean => {
-    const e = err as { code?: string; statusCode?: number } | null;
+const storeErrorSchema = z
+    .looseObject({
+        code: z.string().optional().catch(undefined),
+        statusCode: z.number().optional().catch(undefined),
+    })
+    .catch({});
 
-    return e?.code === 'NotFound' || e?.code === 'NoSuchKey' || e?.statusCode === 404;
+const isNotFound = (cause: unknown): boolean => {
+    const e = storeErrorSchema.parse(cause);
+
+    return e.code === 'NotFound' || e.code === 'NoSuchKey' || e.statusCode === 404;
 };
 
 const httpError = (message: string, status: number) => Object.assign(new Error(message), { status });

@@ -1,11 +1,28 @@
-import { Readable } from 'node:stream';
-
 import type { Context } from 'hono';
 
 import { dependencyContainer } from '../../dependencies';
 import { DependencyToken } from '../../dependencies/types';
 import type { ImageService } from '../../domain/ImageService';
-import type { HonoVars } from '../handlerUtils';
+import { caughtErrorSchema } from '../../infrastructure/caughtError';
+import { type HonoVars, isErrorStatus } from '../handlerUtils';
+
+// Readable.toWeb returns the node:stream/web ReadableStream, which the global ReadableStream that Hono's body() takes
+// does not accept type-wise, so the object stream is pulled chunk by chunk into a global one.
+const toWebStream = (stream: NodeJS.ReadableStream): ReadableStream<Uint8Array> => {
+    const chunks = stream[Symbol.asyncIterator]();
+
+    return new ReadableStream<Uint8Array>({
+        async pull(controller) {
+            const next = await chunks.next();
+
+            if (next.done) controller.close();
+            else controller.enqueue(Buffer.isBuffer(next.value) ? next.value : Buffer.from(next.value));
+        },
+        async cancel() {
+            await chunks.return?.();
+        },
+    });
+};
 
 const getImageService = (): ImageService => dependencyContainer.resolve(DependencyToken.ImageService);
 const getBucketStore = () => dependencyContainer.resolve(DependencyToken.ImageStore);
@@ -65,7 +82,7 @@ export const getImage = async (c: Context<HonoVars>) => {
                 // private: the key is immutable, but only recipe members may read it, so no shared cache may keep a copy.
                 c.header('Cache-Control', 'private, max-age=31536000, immutable');
 
-                return c.body(Readable.toWeb(stream as Readable) as unknown as ReadableStream);
+                return c.body(toWebStream(stream));
             }
 
             return c.json({ error: 'Image not found' }, 404);
@@ -88,7 +105,7 @@ export const getImage = async (c: Context<HonoVars>) => {
                 c.header('Content-Type', contentType);
                 c.header('Cache-Control', 'private, max-age=3600');
 
-                return c.body(Readable.toWeb(stream as Readable) as unknown as ReadableStream);
+                return c.body(toWebStream(stream));
             } catch {
                 return c.json({ error: 'Image not found' }, 404);
             }
@@ -107,7 +124,7 @@ export const getImage = async (c: Context<HonoVars>) => {
                 c.header('Content-Type', contentType);
                 c.header('Cache-Control', 'public, max-age=31536000, immutable');
 
-                return c.body(Readable.toWeb(stream as Readable) as unknown as ReadableStream);
+                return c.body(toWebStream(stream));
             } catch {
                 return c.json({ error: 'Image not found' }, 404);
             }
@@ -120,12 +137,15 @@ export const getImage = async (c: Context<HonoVars>) => {
         c.header('Content-Type', contentType);
         c.header('Cache-Control', cacheControl);
 
-        return c.body(Readable.toWeb(stream as Readable) as unknown as ReadableStream);
+        return c.body(toWebStream(stream));
     } catch (error: unknown) {
-        const err = error as { status?: number; message?: string };
+        const err = caughtErrorSchema.parse(error);
 
         logger.error('API: Failed to retrieve image', { itemName: name, error: err.message });
 
-        return c.json({ error: err.message ?? 'Internal Server Error' }, (err.status ?? 500) as 500);
+        return c.json(
+            { error: err.message ?? 'Internal Server Error' },
+            err.status !== undefined && isErrorStatus(err.status) ? err.status : 500
+        );
     }
 };

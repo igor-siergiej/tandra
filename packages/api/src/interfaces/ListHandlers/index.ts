@@ -1,17 +1,14 @@
 import { APIError } from '@imapps/api-utils/hono';
 import type { ListType } from '@tandra/types';
 import type { Context } from 'hono';
+import { z } from 'zod';
 
 import { dependencyContainer } from '../../dependencies';
 import { DependencyToken } from '../../dependencies/types';
 import type { AuthorizationService } from '../../domain/AuthorizationService';
 import type { ListService } from '../../domain/ListService';
-import type { HonoVars } from '../handlerUtils';
-
-interface HttpError {
-    status?: number;
-    [key: string]: unknown;
-}
+import { caughtErrorSchema } from '../../infrastructure/caughtError';
+import type { HonoVars, LogFields } from '../handlerUtils';
 
 const getListService = (): ListService => dependencyContainer.resolve(DependencyToken.ListService);
 const getLogger = () => dependencyContainer.resolve(DependencyToken.Logger);
@@ -32,6 +29,10 @@ const verifyListAccess = async (
     }
 };
 
+type UpdatedList = Awaited<
+    ReturnType<ListService['updateItemName'] | ListService['setItemSelected'] | ListService['updateItemQuantity']>
+>;
+
 const resolveItemOperation = (body: {
     isSelected?: boolean;
     newItemName?: string;
@@ -39,7 +40,7 @@ const resolveItemOperation = (body: {
     unit?: string;
 }): {
     type: 'name' | 'selection' | 'quantity';
-    execute: (service: ReturnType<typeof getListService>, title: string, itemId: string) => Promise<unknown>;
+    execute: (service: ReturnType<typeof getListService>, title: string, itemId: string) => Promise<UpdatedList>;
 } | null => {
     if (body.newItemName !== undefined) {
         return {
@@ -48,10 +49,12 @@ const resolveItemOperation = (body: {
         };
     }
 
-    if (typeof body.isSelected === 'boolean') {
+    const isSelected = z.boolean().safeParse(body.isSelected);
+
+    if (isSelected.success) {
         return {
             type: 'selection',
-            execute: (service, title, itemId) => service.setItemSelected(title, itemId, body.isSelected),
+            execute: (service, title, itemId) => service.setItemSelected(title, itemId, isSelected.data),
         };
     }
 
@@ -85,13 +88,8 @@ const ensureListAccess = async (
     return null;
 };
 
-const failWith = (
-    error: unknown,
-    logger: ReturnType<typeof getLogger>,
-    message: string,
-    meta: Record<string, unknown>
-): never => {
-    const err = error as { status?: number; message?: string };
+const failWith = (cause: unknown, logger: ReturnType<typeof getLogger>, message: string, meta: LogFields): never => {
+    const err = caughtErrorSchema.parse(cause);
     logger.error(message, { ...meta, error: err.message });
     throw new APIError(err.message ?? 'Internal Server Error', err.status ?? 500);
 };
@@ -416,7 +414,7 @@ export const addUserToList = async (c: Context<HonoVars>) => {
         return c.json(list, 200);
     } catch (error: unknown) {
         const err = error instanceof Error ? error : new Error(String(error));
-        const status = (error as HttpError)?.status ?? 500;
+        const status = caughtErrorSchema.parse(error).status ?? 500;
         const errorMessage = err.message || 'Internal Server Error';
 
         logger.error('API: Failed to add user to list', {
@@ -455,7 +453,7 @@ export const removeUserFromList = async (c: Context<HonoVars>) => {
         return c.json(list, 200);
     } catch (error: unknown) {
         const err = error instanceof Error ? error : new Error(String(error));
-        const status = (error as HttpError)?.status ?? 500;
+        const status = caughtErrorSchema.parse(error).status ?? 500;
         const errorMessage = err.message || 'Internal Server Error';
 
         logger.error('API: Failed to remove user from list', {

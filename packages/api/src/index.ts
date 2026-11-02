@@ -92,7 +92,7 @@ export const onStartup = async () => {
         dependencyContainer
             .resolve(DependencyToken.DiscoveryService)
             .ensureIndex()
-            .catch((error: unknown) => logger.warn('Discovery index not ready at startup', { error: String(error) }));
+            .catch((cause: unknown) => logger.warn('Discovery index not ready at startup', { error: String(cause) }));
 
         await bucket.connect?.({
             endpoint: config.get('bucketEndpoint'),

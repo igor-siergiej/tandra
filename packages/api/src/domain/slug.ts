@@ -14,19 +14,21 @@ const MAX_LENGTH = 80;
 
 const asciiFor = (ch: string): string => {
     // Common Latin-1 ligatures and accents that show up in recipe names.
-    const map: Record<string, string> = {
-        æ: 'ae',
-        œ: 'oe',
-        ß: 'ss',
-        ø: 'o',
-        å: 'a',
-        đ: 'd',
-        ñ: 'n',
-    };
+    const map = new Map([
+        ['æ', 'ae'],
+        ['œ', 'oe'],
+        ['ß', 'ss'],
+        ['ø', 'o'],
+        ['å', 'a'],
+        ['đ', 'd'],
+        ['ñ', 'n'],
+    ]);
 
     const lower = ch.toLowerCase();
 
-    if (map[lower]) return map[lower];
+    const mapped = map.get(lower);
+
+    if (mapped) return mapped;
 
     // Decompose accented characters and drop combining marks: "é" -> "e".
     return lower.normalize('NFKD').replace(/[\u0300-\u036f]/g, '');

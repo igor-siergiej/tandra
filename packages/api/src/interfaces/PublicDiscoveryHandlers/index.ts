@@ -7,8 +7,10 @@ import type {
     PublicDiscoveryRecipeSummary,
 } from '@tandra/types';
 import type { Context } from 'hono';
+import { z } from 'zod';
 
 import type { DiscoveryService } from '../../domain/DiscoveryService';
+import { caughtErrorSchema } from '../../infrastructure/caughtError';
 import { clientIpFrom } from '../../infrastructure/clientIp';
 import { IpRateLimiter, type RateLimitDecision } from '../../infrastructure/rateLimit';
 import type { HonoVars } from '../handlerUtils';
@@ -28,9 +30,7 @@ setInterval(() => rateLimiter.reset(), RATE_LIMIT_WINDOW_MS).unref();
 const clientIp = (c: Context): string =>
     clientIpFrom(c.req.header('x-forwarded-for'), c.req.raw.headers.get('x-real-ip'));
 
-const isRateLimitError = (error: unknown): error is RateLimitDecision => {
-    return typeof error === 'object' && error !== null && 'allowed' in error && 'retryAfterSeconds' in error;
-};
+const rateLimitDecisionSchema = z.object({ allowed: z.boolean(), retryAfterSeconds: z.number() });
 
 const requireRateLimit = (c: Context): void => {
     const ip = clientIp(c);
@@ -116,22 +116,26 @@ export const createPublicDiscoveryHandlers = ({ discovery }: PublicDiscoveryHand
             const cursor = parseCursor(c.req.query('cursor'));
             const page = await discovery.listPublic(pageSize, cursor);
 
+            // SAFETY: listPublic reads the library with its Mongo `_id` (see WITH_OBJECT_ID in MongoDiscoveryRecipeRepository) so cursors can be issued; `_id` is not part of DiscoveryRecipe, so the type only adds the optional field that is really there.
             const lastId = (
                 page.at(-1) as (DiscoveryRecipe & { _id?: { toString(): string } }) | undefined
             )?._id?.toString();
 
-            const response: PublicDiscoveryRecipePage = {
-                items: page.map(toPublicSummary),
-                ...(lastId && page.length === pageSize ? { nextCursor: lastId } : {}),
-            };
+            const response: PublicDiscoveryRecipePage = { items: page.map(toPublicSummary) };
+
+            if (lastId && page.length === pageSize) response.nextCursor = lastId;
 
             return c.json(response, 200);
         } catch (error) {
-            if (isRateLimitError(error)) {
-                return c.json({ error: 'rate_limited' }, 429, { 'Retry-After': String(error.retryAfterSeconds) });
+            const decision = rateLimitDecisionSchema.safeParse(error);
+
+            if (decision.success) {
+                return c.json({ error: 'rate_limited' }, 429, {
+                    'Retry-After': String(decision.data.retryAfterSeconds),
+                });
             }
 
-            logger.error('Public discovery list failed', { error: (error as Error).message });
+            logger.error('Public discovery list failed', { error: caughtErrorSchema.parse(error).message });
 
             return c.json({ error: 'internal' }, 500);
         }
@@ -150,11 +154,15 @@ export const createPublicDiscoveryHandlers = ({ discovery }: PublicDiscoveryHand
 
             return c.json(toPublicRecipe(recipe), 200);
         } catch (error) {
-            if (isRateLimitError(error)) {
-                return c.json({ error: 'rate_limited' }, 429, { 'Retry-After': String(error.retryAfterSeconds) });
+            const decision = rateLimitDecisionSchema.safeParse(error);
+
+            if (decision.success) {
+                return c.json({ error: 'rate_limited' }, 429, {
+                    'Retry-After': String(decision.data.retryAfterSeconds),
+                });
             }
 
-            logger.error('Public discovery by-slug lookup failed', { error: (error as Error).message });
+            logger.error('Public discovery by-slug lookup failed', { error: caughtErrorSchema.parse(error).message });
 
             return c.json({ error: 'internal' }, 500);
         }

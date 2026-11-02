@@ -34,10 +34,11 @@ export const createRealtimeHandlers = ({ hub, tickets, getList }: RealtimeDeps) 
         return c.json({ ticket: tickets.issue(listId, user) });
     });
 
-    const upgrade = upgradeWebSocket((c: Context<WsVars>) => {
+    const upgrade = upgradeWebSocket((c: Context<HonoVars & WsVars>) => {
         const listId = c.get('wsListId');
         const user = c.get('wsUser');
 
+        // SAFETY: ws.raw is the Bun ServerWebSocket that bunWebSocket.ts upgrades the connection with, which provides send/close as ListSocket declares.
         return {
             onOpen: (_event, ws) => hub.join(listId, user, ws.raw as ListSocket),
             onClose: (_event, ws) => hub.leave(listId, ws.raw as ListSocket),
@@ -69,7 +70,7 @@ export const createRealtimeHandlers = ({ hub, tickets, getList }: RealtimeDeps) 
         c.set('wsUser', user);
         c.set('wsListId', listId);
 
-        return upgrade(c as unknown as Context<WsVars>, next);
+        return upgrade(c, next);
     };
 
     return { issueListSocketTicket, connectListSocket };

@@ -1,4 +1,5 @@
 import type { DiscoveryRecipe, DiscoveryRecipeSummary } from '@tandra/types';
+import { z } from 'zod';
 
 /** The searchable subset of a library recipe. Instructions and quantities stay in Mongo only. */
 // One flat field-by-field projection.
@@ -37,12 +38,15 @@ export const SUMMARY_FIELDS = [
     'estimated',
 ] as const satisfies ReadonlyArray<keyof DiscoveryRecipeSummary>;
 
-export const toSummary = (source: Record<string, unknown>): DiscoveryRecipeSummary => {
-    const summary: Record<string, unknown> = {};
-
-    for (const field of SUMMARY_FIELDS) {
-        if (source[field] !== undefined) summary[field] = source[field];
-    }
-
-    return summary as unknown as DiscoveryRecipeSummary;
-};
+export const summarySchema: z.ZodType<DiscoveryRecipeSummary> = z.object({
+    id: z.string(),
+    title: z.string(),
+    tags: z.array(z.string()),
+    prepTime: z.number().optional(),
+    cookTime: z.number().optional(),
+    servings: z.number().optional(),
+    difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
+    coverImageKey: z.string().optional(),
+    source: z.enum(['wikibooks', 'user']),
+    estimated: z.array(z.enum(['prepTime', 'cookTime', 'servings', 'difficulty'])).optional(),
+});

@@ -18,12 +18,19 @@ interface IngredientSubstituter {
 
 const normalizeTag = (t: string) => t.trim().toLowerCase();
 
+const normalizeTags = (tags: string[]): string[] =>
+    tags.flatMap((tag) => {
+        const normalized = normalizeTag(tag);
+
+        return normalized ? [normalized] : [];
+    });
+
 const mergeTags = (manual: string[], aiTags: string[]): string[] => {
-    const normalizedManual = manual.map(normalizeTag).filter(Boolean);
+    const normalizedManual = normalizeTags(manual);
     const seen = new Set(normalizedManual);
     const merged = [...normalizedManual];
 
-    for (const tag of aiTags.map(normalizeTag).filter(Boolean)) {
+    for (const tag of normalizeTags(aiTags)) {
         if (!seen.has(tag)) {
             seen.add(tag);
             merged.push(tag);

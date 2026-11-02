@@ -8,9 +8,11 @@ import type {
     DiscoverySearchResult,
     DiscoveryTimeBucket,
 } from '@tandra/types';
+import { z } from 'zod';
 
 import type { DiscoveryIndex, NormalizedDiscoveryQuery } from '../../domain/DiscoveryService/types';
-import { toIndexDocument, toSummary } from './document';
+import { caughtErrorSchema } from '../caughtError';
+import { summarySchema, toIndexDocument } from './document';
 import { DEFAULT_INDEX_ALIAS, indexBody } from './mapping';
 import { buildSearchBody, buildSimilarBody, TIME_RANGES } from './query';
 
@@ -22,13 +24,22 @@ type Options = { ignore?: number[] };
  * The slice of the OpenSearch client this index uses. The real client is far more strictly typed than the plain JSON
  * bodies built here need; declaring the slice keeps the call sites honest and lets tests pass a fake.
  */
+/** One index in a `getAlias` answer: the aliases that point at it. */
+interface IndexAliases {
+    aliases: Record<string, AliasOptions>;
+}
+
+interface AliasOptions {
+    is_write_index?: boolean;
+}
+
 export interface OpenSearchApi {
     indices: {
         existsAlias(params: { name: string }): Reply<boolean>;
         create(params: { index: string; body: object }): Reply;
         delete(params: { index: string }, options?: Options): Reply;
         refresh(params: { index: string }): Reply;
-        getAlias(params: { name: string }, options?: Options): Reply<Record<string, unknown>>;
+        getAlias(params: { name: string }, options?: Options): Reply<Record<string, IndexAliases>>;
         updateAliases(params: { body: object }): Reply;
     };
     index(params: { index: string; id: string; body: object }): Reply;
@@ -37,21 +48,30 @@ export interface OpenSearchApi {
     bulk(params: { body: object[] }): Reply<{ errors: boolean; items: Array<{ index?: { error?: unknown } }> }>;
 }
 
+const errorBodySchema = z
+    .object({
+        error: z
+            .object({ type: z.string().optional().catch(undefined) })
+            .optional()
+            .catch(undefined),
+    })
+    .catch({});
+
 const unavailable = (message: string, cause?: unknown) => Object.assign(new Error(message), { status: 503, cause });
 
 /** Failures that mean "the engine is not there", as opposed to "we sent it something wrong". */
 // A flat list of error classes that mean "engine unreachable".
 // fallow-ignore-next-line complexity
-const isUnreachable = (error: unknown): boolean =>
-    error instanceof errors.ConnectionError ||
-    error instanceof errors.TimeoutError ||
-    error instanceof errors.NoLivingConnectionsError ||
-    (error instanceof errors.ResponseError && (error.statusCode === 503 || error.statusCode === 502));
+const isUnreachable = (cause: unknown): boolean =>
+    cause instanceof errors.ConnectionError ||
+    cause instanceof errors.TimeoutError ||
+    cause instanceof errors.NoLivingConnectionsError ||
+    (cause instanceof errors.ResponseError && (cause.statusCode === 503 || cause.statusCode === 502));
 
 type Bucket = { key: string | number; doc_count: number };
 
 type SearchResponse = {
-    hits: { total: { value: number }; hits: Array<{ _source: Record<string, unknown> }> };
+    hits: { total: { value: number }; hits: Array<{ _source: object }> };
     aggregations?: Record<string, { buckets: Bucket[] }>;
 };
 
@@ -99,7 +119,9 @@ export class OpenSearchDiscoveryIndex implements DiscoveryIndex {
             return await fn(client);
         } catch (error) {
             if (isUnreachable(error)) {
-                this.logger?.warn('Discovery search engine unreachable', { error: (error as Error).message });
+                this.logger?.warn('Discovery search engine unreachable', {
+                    error: caughtErrorSchema.parse(error).message,
+                });
                 throw unavailable('Recipe discovery is temporarily unavailable', error);
             }
 
@@ -142,8 +164,7 @@ export class OpenSearchDiscoveryIndex implements DiscoveryIndex {
             if (
                 !(
                     error instanceof errors.ResponseError &&
-                    (error.body as { error?: { type?: string } } | undefined)?.error?.type ===
-                        'resource_already_exists_exception'
+                    errorBodySchema.parse(error.body).error?.type === 'resource_already_exists_exception'
                 )
             ) {
                 throw error;
@@ -167,7 +188,7 @@ export class OpenSearchDiscoveryIndex implements DiscoveryIndex {
         );
 
         return {
-            hits: body.hits.hits.map((hit) => toSummary(hit._source)),
+            hits: body.hits.hits.map((hit) => summarySchema.parse(hit._source)),
             total: body.hits.total.value,
             page: query.page,
             pageSize: query.pageSize,
@@ -180,7 +201,7 @@ export class OpenSearchDiscoveryIndex implements DiscoveryIndex {
             client.search<SearchResponse>({ index: this.alias, body: buildSimilarBody(this.alias, id, limit) })
         );
 
-        return body.hits.hits.map((hit) => toSummary(hit._source));
+        return body.hits.hits.map((hit) => summarySchema.parse(hit._source));
     }
 
     async rebuild(batches: AsyncIterable<DiscoveryRecipe[]>): Promise<number> {

@@ -1,6 +1,8 @@
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 
+import { caughtErrorSchema } from './caughtError';
+
 const MAX_REDIRECTS = 5;
 
 const blocked = (message: string) => Object.assign(new Error(message), { status: 400 });
@@ -153,12 +155,12 @@ export const guardedFetch = async <T>(
 
         return await handle(response);
     } catch (error) {
-        if (typeof (error as { status?: unknown })?.status === 'number') throw error;
+        const caught = caughtErrorSchema.parse(error);
+
+        if (caught.status !== undefined) throw error;
 
         const message =
-            (error as Error)?.name === 'AbortError'
-                ? `Timed out fetching ${options.noun}`
-                : `Failed to fetch ${options.noun}`;
+            caught.name === 'AbortError' ? `Timed out fetching ${options.noun}` : `Failed to fetch ${options.noun}`;
 
         throw Object.assign(new Error(message), { status: 502 });
     } finally {
