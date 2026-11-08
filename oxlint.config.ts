@@ -19,4 +19,14 @@ export default defineConfig({
         // (a drawer or inline editor that opens in response to the user's tap).
         'jsx-a11y/no-autofocus': ['error', { ignoreNonDOM: true }],
     },
+    overrides: [
+        ...(base.overrides ?? []),
+        {
+            // The web component tests stub ~70 modules (api, auth, router, hooks, child components) with vi.mock.
+            // Replacing them with real seams means threading injected dependencies through production UI code, which
+            // is tracked as its own change. Every other anti-slop rule still applies to these files.
+            files: ['packages/web/src/**/*.test.{ts,tsx}'],
+            rules: { 'anti-slop/no-module-mocking': 'off' },
+        },
+    ],
 });
