@@ -4,7 +4,7 @@
  */
 
 /** Values a log line carries; structured values are flattened by the caller so the API never sees an unchecked shape. */
-export type LogContext = Record<string, string | number | boolean | null | undefined>;
+type LogContext = Record<string, string | number | boolean | null | undefined>;
 
 interface LogEntry {
     level: 'debug' | 'info' | 'warn' | 'error';

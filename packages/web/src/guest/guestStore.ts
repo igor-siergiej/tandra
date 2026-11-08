@@ -111,7 +111,7 @@ const deleteListItems = async (listId: string, shouldDelete: (item: GuestItem) =
     );
 };
 
-export interface GuestSnapshot {
+interface GuestSnapshot {
     lists: GuestList[];
     itemsByList: Map<string, GuestItem[]>;
 }

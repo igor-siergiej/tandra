@@ -2,7 +2,7 @@ import sharp from 'sharp';
 import { z } from 'zod';
 
 import type { ImageGenerator } from '../../domain/ImageService/types';
-import { processImage } from '../imageProcessor';
+import { processImage, type SharpFactory } from '../imageProcessor';
 
 const FETCH_TIMEOUT_MS = 30_000;
 
@@ -23,7 +23,7 @@ export interface FalImageGeneratorOptions {
     outputFormat?: 'jpeg' | 'png';
     outputSize?: number;
     processor?: typeof processImage;
-    sharpFactory?: typeof sharp;
+    sharpFactory?: SharpFactory;
 }
 
 export class FalImageGenerator implements ImageGenerator {
@@ -33,7 +33,7 @@ export class FalImageGenerator implements ImageGenerator {
     private readonly outputFormat: 'jpeg' | 'png';
     private readonly outputSize: number;
     private readonly processor: typeof processImage;
-    private readonly sharpFactory: typeof sharp;
+    private readonly sharpFactory: SharpFactory;
 
     constructor(
         private readonly apiKey: string,

@@ -11,5 +11,3 @@ export const caughtErrorSchema = z
         status: z.number().optional().catch(undefined),
     })
     .catch({});
-
-export type CaughtError = z.output<typeof caughtErrorSchema>;
