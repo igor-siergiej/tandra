@@ -18,6 +18,20 @@ const rejectEmailSignIn = (path: string) => {
     if (path === '/sign-in/email') throw new APIError('NOT_FOUND');
 };
 
+type NameFields = { username?: unknown; displayUsername?: unknown };
+
+/**
+ * `displayUsername` is what other people see, but only `username` is unique, so the display name may differ from it
+ * in casing only. `current` is the stored username for an update that does not change it.
+ */
+const assertDisplayMatchesUsername = (data: NameFields, current?: string | null) => {
+    if (typeof data.displayUsername !== 'string') return;
+    const username = typeof data.username === 'string' ? data.username : current;
+    if (!username || username.trim().toLowerCase() !== data.displayUsername.trim().toLowerCase()) {
+        throw new APIError('BAD_REQUEST', { message: 'Display name must match the username' });
+    }
+};
+
 const usernameFromBody = (body: unknown): string => {
     const candidate = (body as { username?: unknown })?.username;
     return typeof candidate === 'string' ? candidate.trim() : '';
@@ -58,7 +72,16 @@ export const createAuth = ({ database, secret, baseURL, trustedOrigins, google, 
         advanced: { ipAddress: { ipAddressHeaders: ['cf-connecting-ip', 'x-forwarded-for'] } },
         databaseHooks: {
             user: {
+                update: {
+                    before: async (data, ctx) => {
+                        const session = ctx?.context.session as { user?: { username?: string | null } } | null;
+                        assertDisplayMatchesUsername(data as NameFields, session?.user?.username);
+                    },
+                },
                 create: {
+                    before: async (data) => {
+                        assertDisplayMatchesUsername(data as NameFields);
+                    },
                     // Fires once per new user row: password sign-up or a first Google sign-in (the only
                     // other user-creating flow configured here); ordinary sign-ins never reach it.
                     after: async (user, ctx) => {

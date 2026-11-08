@@ -100,6 +100,19 @@ describe('authenticate middleware with Better Auth session', () => {
         expect(mockNext).toHaveBeenCalled();
     });
 
+    it('falls back to the unique username when the display name is not a casing of it', async () => {
+        const { auth, db } = buildAuth();
+        __setAuthGetterForTests(() => auth);
+        const { cookieHeader, userId } = await signUpAndGetCookie(auth);
+        const target = db.user.find((u) => u.id === userId);
+        if (target) target.displayUsername = 'Mallory';
+
+        const ctx = createMockContext({}, { cookie: cookieHeader });
+        await authenticate(ctx, mockNext);
+
+        expect(ctx.set).toHaveBeenCalledWith('user', { id: userId, username: 'alice' });
+    });
+
     it('returns 403 username_required when the session user has no username yet', async () => {
         const { auth, db } = buildAuth();
         __setAuthGetterForTests(() => auth);
