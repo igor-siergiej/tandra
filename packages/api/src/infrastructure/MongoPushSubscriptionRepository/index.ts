@@ -20,8 +20,8 @@ export class MongoPushSubscriptionRepository implements PushSubscriptionReposito
         await this.collection().replaceOne({ endpoint: sub.endpoint }, sub, { upsert: true });
     }
 
-    async deleteByEndpoint(endpoint: string): Promise<void> {
-        await this.collection().deleteOne({ endpoint });
+    async deleteByEndpoint(endpoint: string, userId: string): Promise<void> {
+        await this.collection().deleteOne({ endpoint, userId });
     }
 
     async findByUserIds(userIds: string[]): Promise<PushSubscription[]> {
