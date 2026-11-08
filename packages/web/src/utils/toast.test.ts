@@ -1,5 +1,6 @@
 import { toast } from 'sonner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { notifyError, notifySuccess, notifyWarning } from './toast';
 
 vi.mock('sonner', () => ({

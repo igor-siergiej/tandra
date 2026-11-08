@@ -1,15 +1,23 @@
-import sharp from 'sharp';
+import sharp, { type ResizeOptions, type WebpOptions, type WriteableMetadata } from 'sharp';
 
-// Default sharp library for production
-const sharpLib = sharp;
+/** The part of a sharp pipeline the image helpers drive. sharp itself satisfies it; a test passes a recording double. */
+export interface ImagePipeline {
+    resize(width: number, height: number, options: ResizeOptions): ImagePipeline;
+    webp(options: WebpOptions): ImagePipeline;
+    withMetadata(metadata: WriteableMetadata): ImagePipeline;
+    toBuffer(): Promise<Buffer>;
+}
 
-/**
- * Process image buffer with Sharp transformations
- * Can optionally inject a mock sharp library for testing
- */
-export async function processImage(inputBuffer: Buffer, sharpFactory?: typeof sharp, size = 256): Promise<Buffer> {
-    const sharpToUse = sharpFactory || sharpLib;
-    return await sharpToUse(inputBuffer)
+/** Opens a pipeline over an image buffer: `sharp` in production. */
+export type SharpFactory = (input: Buffer) => ImagePipeline;
+
+/** Resize to a `size` square and re-encode as WebP, through `sharpFactory` when one is injected. */
+export async function processImage(
+    inputBuffer: Buffer,
+    sharpFactory: SharpFactory = sharp,
+    size = 256
+): Promise<Buffer> {
+    return await sharpFactory(inputBuffer)
         .resize(size, size, {
             fit: 'contain',
             background: { r: 0, g: 0, b: 0, alpha: 0 },
@@ -38,9 +46,11 @@ export async function normaliseUpload(inputBuffer: Buffer): Promise<Buffer> {
     try {
         const image = sharp(inputBuffer, { limitInputPixels: UPLOAD_MAX_PIXELS });
         const { format } = await image.metadata();
+
         if (!format || !UPLOAD_FORMATS.has(format)) {
             throw new Error(`unsupported format: ${format}`);
         }
+
         return await image
             .rotate()
             .resize(UPLOAD_MAX_EDGE, UPLOAD_MAX_EDGE, { fit: 'inside', withoutEnlargement: true })

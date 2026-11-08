@@ -6,6 +6,7 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+
 import sharp from 'sharp';
 
 const OUT = resolve(import.meta.dir, '../../web/public/og.png');
@@ -39,8 +40,11 @@ const svg = `
 `.trim();
 
 const buf = Buffer.from(svg);
+
 mkdirSync(dirname(OUT), { recursive: true });
 
 const png = await sharp(buf).png().toBuffer();
+
 writeFileSync(OUT, png);
+
 console.log(`Wrote ${OUT} (${png.length} bytes)`);

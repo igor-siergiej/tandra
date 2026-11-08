@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test';
+
 import type { Todo } from '@tandra/types';
+
+import { connectionTo } from '../../testing/fake';
 import { MongoTodoRepository } from './index';
 
 const makeTodo = (over: Partial<Todo> = {}): Todo => ({
@@ -23,8 +26,10 @@ class FakeCollection {
     find(q: { ownerId?: string }) {
         const matched = this.docs.filter((d) => {
             if (q.ownerId !== undefined && d.ownerId !== q.ownerId) return false;
+
             return true;
         });
+
         return { toArray: async () => matched };
     }
     async insertOne(doc: Todo) {
@@ -32,6 +37,7 @@ class FakeCollection {
     }
     async findOneAndReplace(q: { id: string }, doc: Todo) {
         const i = this.docs.findIndex((d) => d.id === q.id);
+
         if (i >= 0) this.docs[i] = doc;
     }
     async deleteOne(q: { id: string }) {
@@ -40,13 +46,13 @@ class FakeCollection {
     async updateMany(q: { labelId: string; ownerId: string }, _update: { $unset: { labelId: '' } }) {
         for (const d of this.docs) {
             if (d.labelId === q.labelId && d.ownerId === q.ownerId) {
-                delete (d as Partial<Todo>).labelId;
+                delete d.labelId;
             }
         }
     }
 }
 
-const makeDb = (col: FakeCollection) => ({ getCollection: () => col }) as never;
+const makeDb = (col: FakeCollection) => connectionTo(col);
 
 describe('MongoTodoRepository', () => {
     let col: FakeCollection;
@@ -95,9 +101,9 @@ describe('MongoTodoRepository', () => {
 
     it('findDueCandidates queries incomplete todos due on or before today (day string)', async () => {
         const mockFind = mock(() => ({ toArray: async () => [] }));
-        const mockDb = {
-            getCollection: () => ({ find: mockFind }),
-        } as never;
+
+        const mockDb = connectionTo({ find: mockFind });
+
         const testRepo = new MongoTodoRepository(mockDb);
 
         await testRepo.findDueCandidates('2026-06-25');

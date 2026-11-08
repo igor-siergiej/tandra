@@ -1,29 +1,30 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { present } from '../testing/fake';
+
 const api = vi.hoisted(() => ({
     addItemsBulk: vi.fn(),
     getListsQuery: vi.fn(),
     getRecipesQuery: vi.fn(),
 }));
+
 vi.mock('../api', () => api);
 
 import { getModelContext, registerWebMcpTools } from './registerTools';
 
-type Tool = {
-    name: string;
-    annotations?: Record<string, boolean>;
-    inputSchema: { required?: string[] };
-    execute: (args: Record<string, unknown>, ctx: { signal: AbortSignal }) => Promise<string>;
-};
+type ModelContext = NonNullable<Document['modelContext']>;
 
-const setContext = (value: unknown) => {
-    (document as unknown as { modelContext?: unknown }).modelContext = value;
+type Tool = Parameters<ModelContext['registerTool']>[0];
+
+const setContext = (value: ModelContext | undefined) => {
+    document.modelContext = value;
 };
 
 const lists = [
     { id: 'l1', title: 'Groceries', items: [{}, {}] },
     { id: 'l2', title: 'Party', items: [] },
 ];
+
 const recipes = [
     {
         id: 'r1',
@@ -40,7 +41,12 @@ describe('registerWebMcpTools', () => {
     let registered: Tool[];
     let signals: AbortSignal[];
     const ctx = { signal: new AbortController().signal };
-    const tool = (name: string) => registered.find((t) => t.name === name) as Tool;
+
+    const tool = (name: string) =>
+        present(
+            registered.find((t) => t.name === name),
+            `tool ${name}`
+        );
 
     beforeEach(() => {
         registered = [];
@@ -48,6 +54,7 @@ describe('registerWebMcpTools', () => {
         setContext({
             registerTool: vi.fn(async (t: Tool, options?: { signal?: AbortSignal }) => {
                 registered.push(t);
+
                 if (options?.signal) signals.push(options.signal);
             }),
         });

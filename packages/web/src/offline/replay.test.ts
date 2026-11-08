@@ -1,28 +1,31 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { fake } from '../testing/fake';
+
 const { addRecipe, updateRecipe, createTodo } = vi.hoisted(() => ({
     addRecipe: vi.fn(),
     updateRecipe: vi.fn(),
     createTodo: vi.fn(),
 }));
+
 vi.mock('../api', () => ({ addRecipe, updateRecipe, createTodo }));
 
 import type { OutboxIntent } from './outboxStore';
+import { type OutboxPayload } from './outboxStore';
 import { replayIntent } from './replay';
 
 const user = { id: 'u1', username: 'tester' };
 
-const createIntent = (payload: Record<string, unknown>): OutboxIntent =>
-    ({
-        id: 'i1',
-        seq: 1,
-        entityType: 'recipe',
-        op: 'recipe.create',
-        targetId: 'r1',
-        scope: '',
-        payload: { title: 'Pancakes', user, ...payload },
-        createdAt: 0,
-    }) as OutboxIntent;
+const createIntent = (payload: OutboxPayload): OutboxIntent => ({
+    id: 'i1',
+    seq: 1,
+    entityType: 'recipe',
+    op: 'recipe.create',
+    targetId: 'r1',
+    scope: '',
+    payload: { title: 'Pancakes', user, ...payload },
+    createdAt: 0,
+});
 
 describe('replayIntent recipe.create', () => {
     beforeEach(() => addRecipe.mockReset());
@@ -80,13 +83,15 @@ describe('replayIntent recipe.update', () => {
 
 describe('replayIntent todo.create', () => {
     it('keeps an empty share list so the todo is not shared with every friend', async () => {
-        await replayIntent({
-            ...createIntent({}),
-            entityType: 'todo',
-            op: 'todo.create',
-            targetId: 't1',
-            payload: { title: 'Private', ownerId: 'u1', userIds: [] },
-        } as OutboxIntent);
+        await replayIntent(
+            fake<OutboxIntent>({
+                ...createIntent({}),
+                entityType: 'todo',
+                op: 'todo.create',
+                targetId: 't1',
+                payload: { title: 'Private', ownerId: 'u1', userIds: [] },
+            })
+        );
 
         expect(createTodo).toHaveBeenCalledWith({ title: 'Private', ownerId: 'u1', userIds: [] }, 't1');
     });

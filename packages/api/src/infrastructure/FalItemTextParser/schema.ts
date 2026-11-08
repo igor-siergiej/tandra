@@ -18,6 +18,7 @@ export const spokenItemsSchema: z.ZodType<{ items: ParsedShoppingItem[] }> = z
     .transform(({ items }) => ({
         items: items.flatMap((entry) => {
             const parsed = item.safeParse(entry);
-            return parsed.success ? [parsed.data as ParsedShoppingItem] : [];
+
+            return parsed.success ? [parsed.data] : [];
         }),
     }));

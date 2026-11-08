@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+
 import { Hono } from 'hono';
 import { z } from 'zod';
 
@@ -11,11 +12,15 @@ const app = (options?: { optional?: boolean }) => {
     a.post('/x', validateJson(schema, options), async (c) =>
         c.json({ received: await c.req.json().catch(() => null) })
     );
+
     return a;
 };
 
 const post = (a: Hono, body?: string) =>
     a.request('/x', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+
+/** The 400 body validateJson answers with. */
+const errorBody = z.object({ error: z.string(), fields: z.record(z.string(), z.string()) });
 
 describe('validateJson', () => {
     it('lets a valid body through, and the handler can still read it', async () => {
@@ -27,7 +32,7 @@ describe('validateJson', () => {
 
     it('rejects an invalid body with 400 and a per-field error map', async () => {
         const res = await post(app(), JSON.stringify({ name: '  ', count: 'two' }));
-        const body = (await res.json()) as { error: string; fields: Record<string, string> };
+        const body = errorBody.parse(await res.json());
 
         expect(res.status).toBe(400);
         expect(Object.keys(body.fields).sort()).toEqual(['count', 'name']);

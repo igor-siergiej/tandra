@@ -1,5 +1,8 @@
 import 'fake-indexeddb/auto';
+import { type ListResponse, ListType } from '@tandra/types';
 import { beforeEach, describe, expect, it } from 'vitest';
+
+import { fake } from '../testing/fake';
 import {
     foldPendingItems,
     foldPendingLabels,
@@ -7,6 +10,7 @@ import {
     foldPendingRecipe,
     foldPendingRecipes,
     foldPendingTodos,
+    type ListItemsData,
 } from './foldPending';
 import { outboxStore } from './outboxStore';
 
@@ -34,8 +38,14 @@ describe('foldPendingItems', () => {
             payload: { name: 'Bread' },
             createdAt: 0,
         });
-        const server = { listType: 'shopping', items: [{ id: 'a', name: 'Milk', isSelected: false }], users: [] };
-        const folded = foldPendingItems('L', server as never);
+
+        const server: ListItemsData = {
+            listType: ListType.SHOPPING,
+            items: [{ id: 'a', name: 'Milk', isSelected: false, dateAdded: new Date(0) }],
+            users: [],
+        };
+
+        const folded = foldPendingItems('L', server);
         expect(folded.items.find((i) => i.id === 'a')?.isSelected).toBe(true);
         expect(folded.items.map((i) => i.id)).toEqual(['a', 'b']);
     });
@@ -50,8 +60,14 @@ describe('foldPendingItems', () => {
             payload: {},
             createdAt: 0,
         });
-        const server = { listType: 'shopping', items: [{ id: 'a', name: 'Milk', isSelected: false }], users: [] };
-        expect(foldPendingItems('L', server as never).items).toHaveLength(1);
+
+        const server: ListItemsData = {
+            listType: ListType.SHOPPING,
+            items: [{ id: 'a', name: 'Milk', isSelected: false, dateAdded: new Date(0) }],
+            users: [],
+        };
+
+        expect(foldPendingItems('L', server).items).toHaveLength(1);
     });
 });
 
@@ -67,13 +83,15 @@ describe('foldPendingLists', () => {
             op: 'list.create',
             targetId: 'L1',
             scope: 'user-1',
-            payload: { title: 'Groceries', listType: 'shopping', ownerId: 'user-1' },
+            payload: { title: 'Groceries', listType: ListType.SHOPPING, ownerId: 'user-1' },
             createdAt: 0,
         });
-        const server = [
-            { id: 'S1', title: 'Existing', dateAdded: new Date(), items: [], users: [], listType: 'shopping' },
+
+        const server: ListResponse[] = [
+            { id: 'S1', title: 'Existing', dateAdded: new Date(), items: [], users: [], listType: ListType.SHOPPING },
         ];
-        const folded = foldPendingLists('user-1', server as never);
+
+        const folded = foldPendingLists('user-1', server);
         expect(folded.map((l) => l.id)).toEqual(['S1', 'L1']);
     });
 
@@ -87,10 +105,12 @@ describe('foldPendingLists', () => {
             payload: { title: 'X' },
             createdAt: 0,
         });
-        const server = [
-            { id: 'S1', title: 'Existing', dateAdded: new Date(), items: [], users: [], listType: 'shopping' },
+
+        const server: ListResponse[] = [
+            { id: 'S1', title: 'Existing', dateAdded: new Date(), items: [], users: [], listType: ListType.SHOPPING },
         ];
-        expect(foldPendingLists('user-1', server as never)).toHaveLength(1);
+
+        expect(foldPendingLists('user-1', server)).toHaveLength(1);
     });
 });
 
@@ -109,7 +129,7 @@ describe('foldPendingTodos', () => {
             createdAt: 0,
         });
         const server = [{ id: 'S1', ownerId: 'user-1', title: 'Existing', done: false, dateAdded: new Date() }];
-        expect(foldPendingTodos('user-1', server as never).map((t) => t.id)).toEqual(['S1', 'T1']);
+        expect(foldPendingTodos('user-1', fake(server)).map((t) => t.id)).toEqual(['S1', 'T1']);
     });
     it('ignores todo intents scoped to another user', async () => {
         await outboxStore.enqueue({
@@ -122,7 +142,7 @@ describe('foldPendingTodos', () => {
             createdAt: 0,
         });
         const server = [{ id: 'S1', ownerId: 'user-1', title: 'Existing', done: false, dateAdded: new Date() }];
-        expect(foldPendingTodos('user-1', server as never)).toHaveLength(1);
+        expect(foldPendingTodos('user-1', fake(server))).toHaveLength(1);
     });
 });
 
@@ -141,7 +161,7 @@ describe('foldPendingLabels', () => {
             createdAt: 0,
         });
         const server = [{ id: 'S1', ownerId: 'user-1', name: 'Work', color: '#000' }];
-        expect(foldPendingLabels('user-1', server as never).map((l) => l.id)).toEqual(['S1', 'L1']);
+        expect(foldPendingLabels('user-1', fake(server)).map((l) => l.id)).toEqual(['S1', 'L1']);
     });
 });
 
@@ -159,10 +179,12 @@ describe('foldPendingRecipes', () => {
             payload: { title: 'Pasta', ownerId: 'user-1' },
             createdAt: 0,
         });
+
         const server = [
             { id: 'S1', title: 'Soup', ingredients: [], ownerId: 'user-1', users: [], dateAdded: new Date() },
         ];
-        expect(foldPendingRecipes('user-1', server as never).map((r) => r.id)).toEqual(['S1', 'R1']);
+
+        expect(foldPendingRecipes('user-1', fake(server)).map((r) => r.id)).toEqual(['S1', 'R1']);
     });
 });
 
@@ -180,6 +202,7 @@ describe('foldPendingRecipe', () => {
             payload: { title: 'New Title' },
             createdAt: 0,
         });
+
         const server = {
             id: 'R1',
             title: 'Old Title',
@@ -188,7 +211,8 @@ describe('foldPendingRecipe', () => {
             users: [],
             dateAdded: new Date(),
         };
-        expect(foldPendingRecipe('R1', server as never).title).toBe('New Title');
+
+        expect(foldPendingRecipe('R1', fake(server)).title).toBe('New Title');
     });
     it('returns the recipe unchanged when no pending intent targets it', async () => {
         await outboxStore.enqueue({
@@ -200,6 +224,7 @@ describe('foldPendingRecipe', () => {
             payload: { title: 'Nope' },
             createdAt: 0,
         });
+
         const server = {
             id: 'R1',
             title: 'Old Title',
@@ -208,6 +233,7 @@ describe('foldPendingRecipe', () => {
             users: [],
             dateAdded: new Date(),
         };
-        expect(foldPendingRecipe('R1', server as never).title).toBe('Old Title');
+
+        expect(foldPendingRecipe('R1', fake(server)).title).toBe('Old Title');
     });
 });

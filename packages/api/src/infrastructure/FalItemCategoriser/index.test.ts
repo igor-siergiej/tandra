@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'bun:test';
 
+import { fake } from '../../testing/fake';
 import { FalItemCategoriser } from './index';
 import { categorySchema } from './schema';
 
@@ -7,7 +8,7 @@ describe('FalItemCategoriser', () => {
     it('returns the category from the structured reply', async () => {
         const client = { completeStructured: vi.fn().mockResolvedValue({ value: { category: 'bakery' } }) };
 
-        expect(await new FalItemCategoriser(client as never).classify('bread')).toBe('bakery');
+        expect(await new FalItemCategoriser(fake(client)).classify('bread')).toBe('bakery');
         expect(client.completeStructured.mock.calls[0][0]).toMatchObject({
             operation: 'item.categorise',
             prompt: 'Item: bread',

@@ -1,6 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { narrowTo } from '../../testing/fake';
 import ErrorPage from './index';
 
 vi.mock('../Appbar', () => ({
@@ -82,7 +84,7 @@ describe('ErrorPage', () => {
     it('uses min-h-screen for full height layout', () => {
         const { container } = render(<ErrorPage />);
 
-        const mainDiv = container.firstChild as HTMLElement;
+        const mainDiv = narrowTo(container.firstChild, HTMLElement);
         expect(mainDiv).toHaveClass('min-h-screen', 'bg-background', 'flex', 'flex-col');
     });
 });

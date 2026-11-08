@@ -1,15 +1,17 @@
 import { useId } from 'react';
-import type { FieldError, FieldPath, FieldValues, UseFormRegister } from 'react-hook-form';
+import type { FieldErrors, UseFormRegister } from 'react-hook-form';
+
+import type { LoginFormData } from '../../../hooks/useLoginForm';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 
-interface LoginFormFieldsProps<T extends FieldValues> {
-    register: UseFormRegister<T>;
-    errors: Partial<Record<FieldPath<T>, FieldError | undefined>>;
+interface LoginFormFieldsProps {
+    register: UseFormRegister<LoginFormData>;
+    errors: FieldErrors<LoginFormData>;
     isSubmitting: boolean;
 }
 
-export const LoginFormFields = <T extends FieldValues>({ register, errors, isSubmitting }: LoginFormFieldsProps<T>) => {
+export const LoginFormFields = ({ register, errors, isSubmitting }: LoginFormFieldsProps) => {
     const usernameId = useId();
     const passwordId = useId();
 
@@ -26,8 +28,7 @@ export const LoginFormFields = <T extends FieldValues>({ register, errors, isSub
                     autoCapitalize="none"
                     spellCheck={false}
                     enterKeyHint="next"
-                    // biome-ignore lint/suspicious/noExplicitAny: react-hook-form generic type constraint
-                    {...(register('username') as any)}
+                    {...register('username')}
                     aria-invalid={errors.username ? 'true' : 'false'}
                     disabled={isSubmitting}
                 />
@@ -47,8 +48,7 @@ export const LoginFormFields = <T extends FieldValues>({ register, errors, isSub
                     autoCapitalize="none"
                     spellCheck={false}
                     enterKeyHint="done"
-                    // biome-ignore lint/suspicious/noExplicitAny: react-hook-form generic type constraint
-                    {...(register('password') as any)}
+                    {...register('password')}
                     aria-invalid={errors.password ? 'true' : 'false'}
                     disabled={isSubmitting}
                 />

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+
 import type { Todo } from './index';
 import { occursOn, parseDay } from './recurrence';
 
@@ -22,11 +23,11 @@ describe('parseDay', () => {
     });
 
     it('tolerates a legacy full ISO string by keeping the day part', () => {
-        expect(parseDay('2026-07-02T00:00:00.000Z' as string).getDate()).toBe(2);
+        expect(parseDay('2026-07-02T00:00:00.000Z').getDate()).toBe(2);
     });
 
     it('tolerates a legacy Date by bucketing to its local calendar day', () => {
-        const d = parseDay(new Date(2026, 6, 2, 15, 0) as unknown as string);
+        const d = parseDay(new Date(2026, 6, 2, 15, 0));
         expect(d.getMonth()).toBe(6);
         expect(d.getDate()).toBe(2);
         expect(d.getHours()).toBe(0);
@@ -57,6 +58,7 @@ describe('occursOn', () => {
             dueDate: '2026-06-01',
             recurrence: { freq: 'daily', interval: 1, until: '2026-06-10' },
         };
+
         expect(occursOn(todo, at('2026-06-25T09:00:00Z'))).toBe(false);
     });
 
@@ -67,6 +69,7 @@ describe('occursOn', () => {
             recurrence: { freq: 'daily', interval: 1 },
             completedDates: ['2026-06-25'],
         };
+
         expect(occursOn(todo, at('2026-06-25T09:00:00Z'))).toBe(false);
     });
 

@@ -1,6 +1,7 @@
 import type { DiscoveryFacets, DiscoveryRecipeSummary, DiscoverySearchQuery, RecipeDifficulty } from '@tandra/types';
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
+
 import { searchDiscoveryRecipes } from '../api';
 import { useDebouncedValue } from './useDebouncedValue';
 
@@ -87,8 +88,10 @@ export const useDiscoverySearch = (): DiscoverySearch => {
         (patch: Partial<DiscoveryFilterState>) => setFilters((old) => ({ ...old, ...patch })),
         []
     );
+
     const { fetchNextPage, refetch } = result;
 
+    // SAFETY: react-query errors from makeRequest are Errors carrying an optional numeric `status`.
     return {
         filters,
         activeFilterCount: activeFilterCount(filters),

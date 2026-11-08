@@ -3,8 +3,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import * as api from '../api';
 import { outboxStore } from '../offline/outboxStore';
+import { fake } from '../testing/fake';
 import { useTodos } from './useTodos';
 
 vi.mock('../auth', () => ({
@@ -15,6 +17,7 @@ vi.mock('../offline/drainer', () => ({ drainOutbox: vi.fn().mockResolvedValue(un
 
 vi.mock('../api', async (importOriginal) => {
     const actual = await importOriginal<typeof api>();
+
     return {
         ...actual,
         getTodosQuery: actual.getTodosQuery,
@@ -23,6 +26,7 @@ vi.mock('../api', async (importOriginal) => {
 
 const wrapper = ({ children }: { children: ReactNode }) => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
     return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 };
 
@@ -33,10 +37,12 @@ describe('useTodos', () => {
     });
 
     it('loads todos', async () => {
-        vi.spyOn(api, 'getTodosQuery').mockReturnValue({
-            queryKey: ['todos'],
-            queryFn: async () => [{ id: 't1', ownerId: 'u', title: 'A', done: false, dateAdded: new Date() }],
-        } as never);
+        vi.spyOn(api, 'getTodosQuery').mockReturnValue(
+            fake({
+                queryKey: ['todos'],
+                queryFn: async () => [{ id: 't1', ownerId: 'u', title: 'A', done: false, dateAdded: new Date() }],
+            })
+        );
 
         const { result } = renderHook(() => useTodos(), { wrapper });
         await waitFor(() => expect(result.current.todos).toHaveLength(1));
@@ -44,7 +50,7 @@ describe('useTodos', () => {
     });
 
     it('createTodo enqueues a todo.create intent and optimistically adds it', async () => {
-        vi.spyOn(api, 'getTodosQuery').mockReturnValue({ queryKey: ['todos'], queryFn: async () => [] } as never);
+        vi.spyOn(api, 'getTodosQuery').mockReturnValue(fake({ queryKey: ['todos'], queryFn: async () => [] }));
 
         const { result } = renderHook(() => useTodos(), { wrapper });
         await act(async () => {
@@ -62,8 +68,10 @@ describe('useTodos', () => {
         const client = new QueryClient({
             defaultOptions: { queries: { retry: false, staleTime: Infinity } },
         });
+
         client.setQueryData(['todos'], []);
-        vi.spyOn(api, 'getTodosQuery').mockReturnValue({ queryKey: ['todos'], queryFn: async () => [] } as never);
+        vi.spyOn(api, 'getTodosQuery').mockReturnValue(fake({ queryKey: ['todos'], queryFn: async () => [] }));
+
         const localWrapper = ({ children }: { children: ReactNode }) => (
             <QueryClientProvider client={client}>{children}</QueryClientProvider>
         );
@@ -79,7 +87,7 @@ describe('useTodos', () => {
     });
 
     it('deleteTodo enqueues a todo.delete intent', async () => {
-        vi.spyOn(api, 'getTodosQuery').mockReturnValue({ queryKey: ['todos'], queryFn: async () => [] } as never);
+        vi.spyOn(api, 'getTodosQuery').mockReturnValue(fake({ queryKey: ['todos'], queryFn: async () => [] }));
 
         const { result } = renderHook(() => useTodos(), { wrapper });
         await act(async () => {
@@ -92,7 +100,7 @@ describe('useTodos', () => {
     });
 
     it('completeTodo enqueues a todo.complete intent with date payload', async () => {
-        vi.spyOn(api, 'getTodosQuery').mockReturnValue({ queryKey: ['todos'], queryFn: async () => [] } as never);
+        vi.spyOn(api, 'getTodosQuery').mockReturnValue(fake({ queryKey: ['todos'], queryFn: async () => [] }));
 
         const { result } = renderHook(() => useTodos(), { wrapper });
         await act(async () => {

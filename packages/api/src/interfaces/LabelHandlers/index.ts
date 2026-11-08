@@ -11,17 +11,20 @@ export const getLabels = withAuth(async (c, user) => {
 
 export const createLabel = withAuth(async (c, user) => {
     const body = await c.req.json<CreateLabelInput>();
+
     return c.json(await getLabelService().createLabel(user.id, body), 201);
 });
 
 export const updateLabel = withAuth(async (c, user) => {
     const id = c.req.param('id');
     const body = await c.req.json<UpdateLabelInput>();
+
     return c.json(await getLabelService().updateLabel(id, user.id, body), 200);
 });
 
 export const deleteLabel = withAuth(async (c, user) => {
     const id = c.req.param('id');
     await getLabelService().deleteLabel(id, user.id);
+
     return new Response(null, { status: 204 });
 });

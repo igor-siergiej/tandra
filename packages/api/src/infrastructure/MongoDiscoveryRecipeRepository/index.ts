@@ -35,12 +35,16 @@ export class MongoDiscoveryRecipeRepository implements DiscoveryRecipeRepository
             source: { $ne: 'wikibooks' },
             slug: { $regex: WIKIBOOKS_RECIPE_ID },
         });
+
         const slugless = { source: 'wikibooks' as const, slug: { $exists: false } };
+
         const { modifiedCount } = await this.collection().updateMany({ ...slugless, id: { $nin: claimed } }, [
             { $set: { slug: '$id' } },
         ]);
+
         const blocked =
             claimed.length === 0 ? [] : await this.collection().distinct('id', { ...slugless, id: { $in: claimed } });
+
         return { assigned: modifiedCount, blocked };
     }
 
@@ -58,6 +62,7 @@ export class MongoDiscoveryRecipeRepository implements DiscoveryRecipeRepository
 
     async getByIds(ids: string[]): Promise<DiscoveryRecipe[]> {
         if (ids.length === 0) return [];
+
         return this.collection()
             .find({ id: { $in: ids } }, NO_OBJECT_ID)
             .toArray();
@@ -77,18 +82,19 @@ export class MongoDiscoveryRecipeRepository implements DiscoveryRecipeRepository
         const filter = after
             ? { slug: { $exists: true }, _id: { $lt: new ObjectId(after) } }
             : { slug: { $exists: true } };
+
         return this.collection()
             .find(filter, WITH_OBJECT_ID)
             .sort({ createdAt: -1, _id: -1 })
             .limit(pageSize)
-            .toArray() as Promise<DiscoveryRecipe[]>;
+            .toArray();
     }
 
     async findByTitle(title: string): Promise<DiscoveryRecipe[]> {
         // Case-insensitive equality (collation strength 2); the library is a few thousand documents, so no title index.
         return this.collection()
             .find({ title }, { ...NO_OBJECT_ID, collation: { locale: 'en', strength: 2 } })
-            .toArray() as Promise<DiscoveryRecipe[]>;
+            .toArray();
     }
 
     async hasCoverImageKey(key: string): Promise<boolean> {
@@ -100,21 +106,22 @@ export class MongoDiscoveryRecipeRepository implements DiscoveryRecipeRepository
     ): Promise<Array<Pick<DiscoveryRecipe, 'id' | 'sourceRevision' | 'imageRevision' | 'createdAt'>>> {
         return this.collection()
             .find({ source }, { projection: { _id: 0, id: 1, sourceRevision: 1, imageRevision: 1, createdAt: 1 } })
-            .toArray() as Promise<
-            Array<Pick<DiscoveryRecipe, 'id' | 'sourceRevision' | 'imageRevision' | 'createdAt'>>
-        >;
+            .toArray();
     }
 
     async *batches(size: number): AsyncGenerator<DiscoveryRecipe[]> {
         const cursor = this.collection().find({}, NO_OBJECT_ID).sort({ id: 1 });
         let batch: DiscoveryRecipe[] = [];
+
         for await (const recipe of cursor) {
-            batch.push(recipe as DiscoveryRecipe);
+            batch.push(recipe);
+
             if (batch.length >= size) {
                 yield batch;
                 batch = [];
             }
         }
+
         if (batch.length > 0) yield batch;
     }
 }

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'bun:test';
+
 import type { Friendship } from '@tandra/types';
 
+import { fake } from '../testing/fake';
 import { migrateFriendsFromExistingShares, pairsFromItems } from './friendsFromExistingShares';
 
 describe('pairsFromItems', () => {
@@ -28,7 +30,8 @@ describe('pairsFromItems', () => {
                 ],
             },
         ];
-        const pairs = pairsFromItems(items as never);
+
+        const pairs = pairsFromItems(fake(items));
         expect(pairs.map((p) => p.userIds)).toEqual([
             ['u1', 'u2'],
             ['u1', 'u3'],
@@ -37,7 +40,7 @@ describe('pairsFromItems', () => {
 
     it('ignores unshared items (single user) and the owner-self entry', () => {
         const items = [{ ownerId: 'u1', users: [{ id: 'u1', username: 'a' }] }];
-        expect(pairsFromItems(items as never)).toEqual([]);
+        expect(pairsFromItems(fake(items))).toEqual([]);
     });
 });
 
@@ -48,6 +51,7 @@ describe('migrateFriendsFromExistingShares', () => {
 
     it('creates a friendship for each new pair found across lists and recipes', async () => {
         const inserted: Friendship[] = [];
+
         const result = await migrateFriendsFromExistingShares({
             listRepo: { getAll: async () => [{ ownerId: 'u1', users: [u1, u2] }] },
             recipeRepo: { getAll: async () => [{ ownerId: 'u1', users: [u1, u3] }] },
@@ -74,7 +78,9 @@ describe('migrateFriendsFromExistingShares', () => {
             users: [u1, u2],
             createdAt: new Date(),
         };
+
         const inserted: Friendship[] = [];
+
         const result = await migrateFriendsFromExistingShares({
             listRepo: { getAll: async () => [{ ownerId: 'u1', users: [u1, u2] }] },
             recipeRepo: { getAll: async () => [] },

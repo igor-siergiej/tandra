@@ -1,7 +1,9 @@
 import { isoDay } from '@tandra/types';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+
 import { useFriends } from '../../../hooks/useFriends';
+import { fake } from '../../../testing/fake';
 import { AddTodoDrawer } from './index';
 
 vi.mock('../../../hooks/useFriends', () => ({
@@ -37,19 +39,22 @@ describe('AddTodoDrawer', () => {
     });
 
     const withFriends = () =>
-        vi.mocked(useFriends).mockReturnValue({
-            friends: [
-                { id: 'f1', username: 'alice' },
-                { id: 'f2', username: 'bob' },
-            ],
-            isLoading: false,
-        } as ReturnType<typeof useFriends>);
+        vi.mocked(useFriends).mockReturnValue(
+            fake<ReturnType<typeof useFriends>>({
+                friends: [
+                    { id: 'f1', username: 'alice' },
+                    { id: 'f2', username: 'bob' },
+                ],
+                isLoading: false,
+            })
+        );
 
     it('keeps a todo private when the friend picker is left untouched', async () => {
         withFriends();
         const onAdd = vi.fn().mockResolvedValue(undefined);
         render(<AddTodoDrawer open onOpenChange={noop} onAdd={onAdd} labels={[]} />);
         const switches = await screen.findAllByRole('switch');
+
         for (const s of switches) expect(s).not.toBeChecked();
         fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Private' } });
         fireEvent.click(screen.getByRole('button', { name: 'Add Todo' }));

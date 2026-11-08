@@ -19,14 +19,20 @@ export const TIME_RANGES = [
 // fallow-ignore-next-line complexity
 const buildFilters = (query: NormalizedDiscoveryQuery): object[] => {
     const filters: object[] = [];
+
     for (const tag of query.tags) filters.push({ term: { tags: tag } });
+
     // match_phrase: "olive oil" must be adjacent within one ingredient, but stemming and synonyms still apply.
     for (const ingredient of query.ingredients) filters.push({ match_phrase: { ingredientNames: ingredient } });
+
     if (query.difficulty.length > 0) filters.push({ terms: { difficulty: query.difficulty } });
+
     if (query.source.length > 0) filters.push({ terms: { source: query.source } });
+
     if (query.minTime !== undefined || query.maxTime !== undefined) {
         filters.push({ range: { totalTime: { gte: query.minTime, lte: query.maxTime } } });
     }
+
     return filters;
 };
 

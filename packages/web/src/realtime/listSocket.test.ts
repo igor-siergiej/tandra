@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { openListSocket } from './listSocket';
+
+import { fake } from '../testing/fake';
+import { openListSocket, type Viewer } from './listSocket';
+
+/** A message as the server sends it over the list socket. */
+type ServerMessage = { type: 'changed' | 'presence'; users?: Viewer[] };
 
 class FakeSocket {
     static instances: FakeSocket[] = [];
@@ -16,7 +21,7 @@ class FakeSocket {
     open() {
         this.onopen?.();
     }
-    receive(message: object) {
+    receive(message: ServerMessage) {
         this.onmessage?.({ data: JSON.stringify(message) });
     }
     drop(code = 1006) {
@@ -38,7 +43,7 @@ describe('openListSocket', () => {
             getTicket,
             onChanged,
             onPresence,
-            createSocket: (url) => new FakeSocket(url) as unknown as WebSocket,
+            createSocket: (url) => fake<WebSocket>(new FakeSocket(url)),
             random: () => 1,
         });
     };

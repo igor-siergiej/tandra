@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'bun:test';
 import { Readable } from 'node:stream';
+
 import type { DiscoveryRecipe, Recipe, User } from '@tandra/types';
 
+import { fake, present } from '../../testing/fake';
 import type { DiscoveryPublication } from '../DiscoveryPublicationRepository';
 import type { DiscoveryRecipeRepository } from '../DiscoveryRecipeRepository';
 import { DiscoveryService } from '../DiscoveryService';
@@ -37,10 +39,12 @@ const personal = (overrides: Partial<Recipe> = {}): Recipe => ({
 
 const setup = (initial: Recipe[] = [personal()], seedLibrary: DiscoveryRecipe[] = []) => {
     const recipes = new Map(initial.map((recipe) => [recipe.id, recipe]));
+
     const recipeRepo = {
         getById: async (id: string) => recipes.get(id) ?? null,
         update: async (id: string, recipe: Recipe) => {
             recipes.set(id, recipe);
+
             return recipe;
         },
         deleteById: async (id: string) => {
@@ -49,6 +53,7 @@ const setup = (initial: Recipe[] = [personal()], seedLibrary: DiscoveryRecipe[] 
     };
 
     const library = new Map(seedLibrary.map((recipe) => [recipe.id, recipe]));
+
     const libraryRepo: DiscoveryRecipeRepository = {
         ensureIndexes: async () => {},
         getById: async (id) => library.get(id) ?? null,
@@ -65,8 +70,10 @@ const setup = (initial: Recipe[] = [personal()], seedLibrary: DiscoveryRecipe[] 
         listRevisions: async () => [],
         batches: async function* () {},
     };
+
     const indexed = new Map<string, DiscoveryRecipe>();
     const failIndex = { once: false };
+
     const index: DiscoveryIndex = {
         ensureIndex: async () => {},
         index: async (recipe) => {
@@ -74,6 +81,7 @@ const setup = (initial: Recipe[] = [personal()], seedLibrary: DiscoveryRecipe[] 
                 failIndex.once = false;
                 throw Object.assign(new Error('Recipe discovery is temporarily unavailable'), { status: 503 });
             }
+
             indexed.set(recipe.id, recipe);
         },
         remove: async (id) => {
@@ -85,9 +93,11 @@ const setup = (initial: Recipe[] = [personal()], seedLibrary: DiscoveryRecipe[] 
         similar: async () => [],
         rebuild: async () => 0,
     };
+
     const discovery = new DiscoveryService(libraryRepo, index);
 
     const publicationRows = new Map<string, DiscoveryPublication>();
+
     const publications = {
         ensureIndexes: async () => {},
         getByRecipeId: async (id: string) => publicationRows.get(id) ?? null,
@@ -103,15 +113,20 @@ const setup = (initial: Recipe[] = [personal()], seedLibrary: DiscoveryRecipe[] 
     };
 
     const objects = new Map<string, { buffer: Buffer; contentType: string }>();
+
     const images = {
         getHeadObject: async (name: string) => {
             const object = objects.get(name);
+
             if (!object) throw new Error('not found');
+
             return { metaData: { 'content-type': object.contentType } };
         },
         getObjectStream: async (name: string) => {
             const object = objects.get(name);
+
             if (!object) throw new Error('not found');
+
             return Readable.from([object.buffer]);
         },
         putObject: async (name: string, buffer: Buffer, options?: { contentType: string }) => {
@@ -121,8 +136,9 @@ const setup = (initial: Recipe[] = [personal()], seedLibrary: DiscoveryRecipe[] 
 
     let n = 0;
     const ids = { generate: () => `id-${++n}` };
-    const recipeService = new RecipeService(recipeRepo as never, ids);
+    const recipeService = new RecipeService(fake(recipeRepo), ids);
     const publish = new DiscoveryPublishService(discovery, publications, recipeService, images, ids);
+
     return { publish, recipes, recipeService, library, indexed, publicationRows, objects, failIndex, discovery };
 };
 
@@ -149,7 +165,7 @@ describe('DiscoveryPublishService.publish', () => {
             slug: 'grandma-soup',
         });
         expect(doc?.ingredients.map((i) => i.name)).toEqual(['Carrot', 'onion']);
-        expect(indexed.get(ref.libraryId)).toEqual(doc as DiscoveryRecipe);
+        expect(indexed.get(ref.libraryId)).toEqual(present(doc, 'library recipe'));
         expect(ref.libraryId).toMatch(/^user-/);
     });
 
@@ -186,9 +202,11 @@ describe('DiscoveryPublishService.publish', () => {
         const ref = await publish.publish(RECIPE_ID, owner, agree);
 
         const everything = JSON.stringify([library.get(ref.libraryId), indexed.get(ref.libraryId)]);
+
         for (const secret of ['ownerId', '"users"', RECIPE_ID, owner.id, friend.id, owner.username, friend.username]) {
             expect(everything).not.toContain(secret);
         }
+
         expect(library.get(ref.libraryId)?.publishedBy).toBeUndefined();
         expect(library.get(ref.libraryId)?.attribution).toBe('"Grandma Soup" by a Tandra user, CC BY-SA 4.0');
         // New ingredient ids too: nothing links the copy back to the private ingredients.
@@ -206,7 +224,8 @@ describe('DiscoveryPublishService.publish', () => {
         });
     });
 
-    it.each([[{}], [{ agreeToLicence: false }], [{ agreeToLicence: 'yes' as unknown as boolean }]])(
+    // The last case is a body as a client might send it: JSON whose agreement is a string, not `true`.
+    it.each([[{}], [{ agreeToLicence: false }], [JSON.parse('{"agreeToLicence":"yes"}')]])(
         'refuses without the explicit licence agreement (%j) and stores nothing',
         async (request) => {
             const { publish, library, publicationRows } = setup();
@@ -282,6 +301,7 @@ describe('DiscoveryPublishService.publish', () => {
                 [personal()],
                 [existing({ ingredients: [{ id: 'x1', name: 'onion' }] })]
             );
+
             await expect(differentIngredients.publish(RECIPE_ID, owner, agree)).resolves.toBeDefined();
 
             const { publish: differentTitle } = setup([personal()], [existing({ title: 'Winter Soup' })]);
@@ -299,7 +319,7 @@ describe('DiscoveryPublishService.publish', () => {
     it('republishing updates the same library recipe instead of adding another', async () => {
         const { publish, library, recipes } = setup();
         const first = await publish.publish(RECIPE_ID, owner, agree);
-        recipes.set(RECIPE_ID, { ...(recipes.get(RECIPE_ID) as Recipe), title: 'Better Soup' });
+        recipes.set(RECIPE_ID, { ...present(recipes.get(RECIPE_ID), 'personal recipe'), title: 'Better Soup' });
 
         const second = await publish.publish(RECIPE_ID, owner, agree);
 
@@ -313,7 +333,7 @@ describe('DiscoveryPublishService.publish', () => {
         const ref = await publish.publish(RECIPE_ID, owner, agree);
 
         recipes.set(RECIPE_ID, {
-            ...(recipes.get(RECIPE_ID) as Recipe),
+            ...present(recipes.get(RECIPE_ID), 'personal recipe'),
             title: 'Edited privately',
             instructions: ['Secret step.'],
         });
@@ -333,7 +353,7 @@ describe('DiscoveryPublishService.publish', () => {
 
         const ref = await publish.publish(RECIPE_ID, owner, agree);
 
-        expect(ref.libraryId).toBe(firstId as string);
+        expect(ref.libraryId).toBe(present(firstId, 'first library id'));
         expect(library.size).toBe(1);
         expect(await publish.listMine(owner)).toHaveLength(1);
     });
@@ -345,6 +365,7 @@ describe('DiscoveryPublishService.publish', () => {
                 buffer: Buffer.from('cover-bytes'),
                 contentType: 'image/png',
             });
+
             return world;
         };
 
@@ -353,7 +374,7 @@ describe('DiscoveryPublishService.publish', () => {
 
             const ref = await publish.publish(RECIPE_ID, owner, agree);
 
-            const key = library.get(ref.libraryId)?.coverImageKey as string;
+            const key = present(library.get(ref.libraryId)?.coverImageKey, 'cover key');
             expect(key).toMatch(new RegExp(`^discovery-image/${ref.libraryId}/\\d+\\.png$`));
             expect(key).not.toContain(owner.id);
             expect(key).not.toContain(RECIPE_ID);
@@ -363,7 +384,7 @@ describe('DiscoveryPublishService.publish', () => {
         it('keeps working after the private cover is replaced, removed or the recipe deleted', async () => {
             const { publish, library, objects, recipeService } = withCover();
             const ref = await publish.publish(RECIPE_ID, owner, agree);
-            const key = library.get(ref.libraryId)?.coverImageKey as string;
+            const key = present(library.get(ref.libraryId)?.coverImageKey, 'cover key');
 
             objects.delete('recipe-upload/u-owner/personal-recipe-123/1.png');
             await recipeService.setCoverImageKey(
@@ -434,6 +455,7 @@ describe('DiscoveryPublishService.unpublish', () => {
         let fail = true;
         discovery.remove = async (id: string) => {
             await realRemove(id);
+
             if (fail) {
                 fail = false;
                 throw Object.assign(new Error('index down'), { status: 503 });
@@ -455,6 +477,7 @@ describe('DiscoveryPublishService.listMine', () => {
             personal(),
             personal({ id: 'r2', title: 'Other Soup', ownerId: other.id, users: [other] }),
         ]);
+
         const mine = await publish.publish(RECIPE_ID, owner, agree);
         await publish.publish('r2', other, agree);
 

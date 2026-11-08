@@ -1,5 +1,7 @@
 import type { Logger } from '@imapps/api-utils';
 import type { Item, List, Todo, User } from '@tandra/types';
+
+import { caughtErrorSchema } from '../../infrastructure/caughtError';
 import type { WebPushSender } from '../../infrastructure/WebPushSender';
 import type { PushSubscriptionRepository } from '../PushSubscriptionRepository';
 
@@ -22,6 +24,7 @@ export const MAX_NAMES_SHOWN = 3;
 export const formatAddedBody = (username: string, names: string[]): string => {
     const shown = names.slice(0, MAX_NAMES_SHOWN).join(', ');
     const extra = names.length - MAX_NAMES_SHOWN;
+
     return extra > 0 ? `${username} added ${shown} and ${extra} more` : `${username} added ${shown}`;
 };
 
@@ -76,6 +79,7 @@ export class NotificationService {
             existing.list = list;
             clearTimeout(existing.timer);
             existing.timer = setTimeout(() => void this.flush(key), this.debounceMs);
+
             return;
         }
 
@@ -89,9 +93,11 @@ export class NotificationService {
 
     private async flush(key: string): Promise<void> {
         const entry = this.buffers.get(key);
+
         if (!entry) {
             return;
         }
+
         this.buffers.delete(key);
 
         const recipientIds = entry.list.users.map((u) => u.id).filter((id) => id !== entry.actor.id);
@@ -109,6 +115,7 @@ export class NotificationService {
             }
 
             const subs = await this.repo.findByUserIds(recipientIds);
+
             if (subs.length === 0) {
                 return;
             }
@@ -117,13 +124,14 @@ export class NotificationService {
             const results = await Promise.all(subs.map((sub) => this.sender.send(sub, body)));
 
             const dead = subs.filter((_, i) => results[i] === 'gone').map((s) => s.endpoint);
+
             if (dead.length > 0) {
                 await this.repo.deleteByEndpoints(dead);
             }
         } catch (error) {
             this.logger?.error('Notification fan-out failed', {
                 subject,
-                error: (error as Error).message,
+                error: caughtErrorSchema.parse(error).message,
             });
         }
     }

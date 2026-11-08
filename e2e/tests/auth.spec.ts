@@ -1,6 +1,7 @@
 import { expect, test } from '../fixtures';
 
 const freshUsername = () => `user${Date.now()}${Math.floor(Math.random() * 1000)}`;
+
 // The live run starts on a host that redirects to the app's own host, so match the path only.
 const atPath = (path: string) => (url: URL) => url.pathname === path;
 

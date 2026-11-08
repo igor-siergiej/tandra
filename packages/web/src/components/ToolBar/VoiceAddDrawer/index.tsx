@@ -1,5 +1,6 @@
 import { Mic, Square } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+
 import { parseSpokenItems, type SpokenItem } from '../../../api';
 import { useKeepListening } from '../../../hooks/useKeepListening';
 import { useSpeechRecognition } from '../../../hooks/useSpeechRecognition';
@@ -46,6 +47,7 @@ export const VoiceAddDrawer = ({ open, onOpenChange, onAddMany }: VoiceAddDrawer
     // fallow-ignore-next-line complexity
     useEffect(() => {
         if (speech.listening || !speech.transcript || parsed || busy) return;
+
         if (parsedTranscript.current === speech.transcript) return;
         parsedTranscript.current = speech.transcript;
         setBusy(true);
@@ -54,10 +56,11 @@ export const VoiceAddDrawer = ({ open, onOpenChange, onAddMany }: VoiceAddDrawer
             .then((items) => {
                 setParsed(items);
                 setKept(new Set(items.map((_, index) => index)));
+
                 if (items.length === 0) setFailure("I couldn't find any items in that. Try again.");
             })
-            .catch((error: unknown) => {
-                setFailure(error instanceof Error ? error.message : 'Could not understand that. Try again.');
+            .catch((cause: unknown) => {
+                setFailure(cause instanceof Error ? cause.message : 'Could not understand that. Try again.');
             })
             .finally(() => setBusy(false));
     }, [speech.listening, speech.transcript, parsed, busy]);
@@ -65,7 +68,9 @@ export const VoiceAddDrawer = ({ open, onOpenChange, onAddMany }: VoiceAddDrawer
     const toggle = (index: number) =>
         setKept((current) => {
             const next = new Set(current);
+
             if (!next.delete(index)) next.add(index);
+
             return next;
         });
 
@@ -91,6 +96,7 @@ export const VoiceAddDrawer = ({ open, onOpenChange, onAddMany }: VoiceAddDrawer
     const confirm = async () => {
         if (!parsed) return;
         setBusy(true);
+
         try {
             await onAddMany(parsed.filter((_, index) => kept.has(index)));
             onOpenChange(false);

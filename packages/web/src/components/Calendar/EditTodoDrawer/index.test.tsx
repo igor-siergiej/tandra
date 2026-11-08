@@ -1,5 +1,6 @@
 import type { Todo } from '@tandra/types';
 import { describe, expect, it } from 'vitest';
+
 import { buildUpdateBody } from './buildUpdateBody';
 
 const todo: Todo = {

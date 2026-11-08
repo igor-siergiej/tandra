@@ -17,7 +17,9 @@ const ShareTargetPage = () => {
         const url = rawUrl || extractUrl(text) || extractUrl(title);
 
         const params = new URLSearchParams();
+
         if (url) params.set('sharedUrl', url);
+
         if (title) params.set('sharedTitle', title);
         navigate(`/recipes?${params.toString()}`, { replace: true });
     }, [searchParams, navigate]);

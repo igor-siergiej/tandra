@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'bun:test';
+
 import type { Recipe, User } from '@tandra/types';
 
+import { fake } from '../../testing/fake';
 import { MongoRecipeRepository } from './index';
 
 const makeRecipe = (id: string, users: User[] = []): Recipe => ({
@@ -33,7 +35,7 @@ describe('MongoRecipeRepository', () => {
     beforeEach(() => {
         collection = makeMockCollection();
         const db = makeMockDb(collection);
-        repo = new MongoRecipeRepository(db as any);
+        repo = new MongoRecipeRepository(fake(db));
     });
 
     describe('ensureIndexes', () => {

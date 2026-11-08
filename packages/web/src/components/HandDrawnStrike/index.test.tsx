@@ -1,8 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { fake } from '../../testing/fake';
 import { HandDrawnStrike } from './index';
 
-const fakeRects = (count: number) => Array.from({ length: count }, () => new DOMRect()) as unknown as DOMRectList;
+const fakeRects = (count: number) => fake<DOMRectList>(Array.from({ length: count }, () => new DOMRect()));
 
 describe('HandDrawnStrike', () => {
     afterEach(() => {

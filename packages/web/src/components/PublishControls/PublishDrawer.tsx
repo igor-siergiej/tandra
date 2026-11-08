@@ -1,6 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useId, useState } from 'react';
+
 import { getPublishedRecipesQuery, publishRecipe } from '../../api';
+import { caughtErrorSchema } from '../../utils/caughtError';
 import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
 import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from '../ui/drawer';
@@ -15,8 +17,8 @@ interface PublishDrawerProps {
     isUpdate: boolean;
 }
 
-const errorMessage = (error: unknown): string =>
-    (error as { message?: string } | null)?.message || 'Could not make this recipe public. Please try again.';
+const errorMessage = (cause: unknown): string =>
+    caughtErrorSchema.parse(cause).message || 'Could not make this recipe public. Please try again.';
 
 // The licence step: nothing is sent until the user has ticked that they wrote the recipe and accept CC BY-SA 4.0.
 // Both boxes start unticked, including "show my name", so the safe choice is what you get by default.
@@ -43,6 +45,7 @@ export const PublishDrawer = ({ open, onOpenChange, recipeId, recipeTitle, isUpd
             setShowName(false);
             publish.reset();
         }
+
         onOpenChange(next);
     };
 

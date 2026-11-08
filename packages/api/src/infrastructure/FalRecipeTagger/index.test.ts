@@ -1,13 +1,13 @@
-import { describe, expect, it, mock } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 
-import type { FalLlmClient, LlmResult } from '../FalLlmClient';
+import { type LlmRequest, llmReplying } from '../../testing/doubles';
+import type { LlmResult } from '../FalLlmClient';
 import { FalRecipeTagger } from './index';
 import { taggedRecipeSchema } from './schema';
 
-type CompleteArgs = Parameters<FalLlmClient['completeStructured']>[0];
+type CompleteArgs = LlmRequest;
 
-const fakeClient = (impl: (args: CompleteArgs) => Promise<LlmResult<unknown>>) =>
-    ({ completeStructured: mock(impl) }) as unknown as FalLlmClient;
+const fakeClient = llmReplying;
 
 const result = <T>(value: T): LlmResult<T> => ({
     value,
@@ -17,8 +17,10 @@ const result = <T>(value: T): LlmResult<T> => ({
 describe('FalRecipeTagger', () => {
     it('calls the client with operation recipe.tag, the tagged-recipe schema and title/ingredients/instructions in the prompt', async () => {
         let seen: CompleteArgs | undefined;
+
         const client = fakeClient(async (args) => {
             seen = args;
+
             return result({ tags: ['pasta', 'egg', 'pork'] });
         });
 
@@ -42,8 +44,10 @@ describe('FalRecipeTagger', () => {
 
     it('defaults instructions to empty when omitted', async () => {
         let seen: CompleteArgs | undefined;
+
         const client = fakeClient(async (args) => {
             seen = args;
+
             return result({ tags: [] });
         });
 
@@ -62,8 +66,10 @@ describe('FalRecipeTagger', () => {
 
     it('passes an explicit model and timeout through to the client', async () => {
         let seen: CompleteArgs | undefined;
+
         const client = fakeClient(async (args) => {
             seen = args;
+
             return result({ tags: [] });
         });
 

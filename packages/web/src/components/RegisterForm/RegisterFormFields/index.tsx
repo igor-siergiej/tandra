@@ -1,19 +1,17 @@
 import { useId } from 'react';
-import type { FieldError, FieldPath, FieldValues, UseFormRegister } from 'react-hook-form';
+import type { FieldErrors, UseFormRegister } from 'react-hook-form';
+
+import type { RegisterFormData } from '../../../hooks/useRegisterForm';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 
-interface RegisterFormFieldsProps<T extends FieldValues> {
-    register: UseFormRegister<T>;
-    errors: Partial<Record<FieldPath<T>, FieldError | undefined>>;
+interface RegisterFormFieldsProps {
+    register: UseFormRegister<RegisterFormData>;
+    errors: FieldErrors<RegisterFormData>;
     isSubmitting: boolean;
 }
 
-export const RegisterFormFields = <T extends FieldValues>({
-    register,
-    errors,
-    isSubmitting,
-}: RegisterFormFieldsProps<T>) => {
+export const RegisterFormFields = ({ register, errors, isSubmitting }: RegisterFormFieldsProps) => {
     const usernameId = useId();
     const passwordId = useId();
     const repeatPasswordId = useId();
@@ -31,8 +29,7 @@ export const RegisterFormFields = <T extends FieldValues>({
                     autoCapitalize="none"
                     spellCheck={false}
                     enterKeyHint="next"
-                    // biome-ignore lint/suspicious/noExplicitAny: react-hook-form generic type constraint
-                    {...(register('username') as any)}
+                    {...register('username')}
                     aria-invalid={errors.username ? 'true' : 'false'}
                     disabled={isSubmitting}
                 />
@@ -50,8 +47,7 @@ export const RegisterFormFields = <T extends FieldValues>({
                     autoCapitalize="none"
                     spellCheck={false}
                     enterKeyHint="next"
-                    // biome-ignore lint/suspicious/noExplicitAny: react-hook-form generic type constraint
-                    {...(register('password') as any)}
+                    {...register('password')}
                     aria-invalid={errors.password ? 'true' : 'false'}
                 />
                 {errors.password ? (
@@ -74,8 +70,7 @@ export const RegisterFormFields = <T extends FieldValues>({
                     autoCapitalize="none"
                     spellCheck={false}
                     enterKeyHint="done"
-                    // biome-ignore lint/suspicious/noExplicitAny: react-hook-form generic type constraint
-                    {...(register('repeatPassword') as any)}
+                    {...register('repeatPassword')}
                     aria-invalid={errors.repeatPassword ? 'true' : 'false'}
                     disabled={isSubmitting}
                 />

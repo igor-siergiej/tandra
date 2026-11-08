@@ -5,7 +5,16 @@ import type { User } from '@tandra/types';
 export const MOCK_USER: User = { id: '6e2e00000000000000000001', username: 'testuser' };
 export const MOCK_USER_2: User = { id: '6e2e00000000000000000002', username: 'otheruser' };
 
-export const PASSWORDS: Record<string, string> = {
-    testuser: 'password123',
-    otheruser: 'password123',
+const PASSWORDS = new Map([
+    [MOCK_USER.username, 'password123'],
+    [MOCK_USER_2.username, 'password123'],
+]);
+
+/** The password global-setup seeds for one of the mock users. */
+export const passwordFor = (user: User): string => {
+    const password = PASSWORDS.get(user.username);
+
+    if (password === undefined) throw new Error(`no seeded password for ${user.username}`);
+
+    return password;
 };

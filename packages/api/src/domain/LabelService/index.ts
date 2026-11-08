@@ -1,7 +1,7 @@
 import type { Logger } from '@imapps/api-utils';
 import type { Label } from '@tandra/types';
-import type { IdGenerator } from '../IdGenerator';
 
+import type { IdGenerator } from '../IdGenerator';
 import type { LabelRepository } from '../LabelRepository';
 import type { TodoRepository } from '../TodoRepository';
 
@@ -26,25 +26,32 @@ export class LabelService {
 
     private async getOwned(labelId: string, ownerId: string): Promise<Label> {
         const label = await this.labels.getById(labelId);
+
         if (!label) throw notFound();
+
         if (label.ownerId !== ownerId) throw forbidden();
+
         return label;
     }
 
     async createLabel(ownerId: string, input: CreateLabelInput): Promise<Label> {
         if (input.id) {
             const existing = await this.labels.getById(input.id);
+
             if (existing && existing.ownerId === ownerId) {
                 return existing; // idempotent replay
             }
         }
+
         const label: Label = {
             id: input.id ?? this.idGenerator.generate(),
             ownerId,
             name: input.name,
             color: input.color,
         };
+
         await this.labels.insert(label);
+
         return label;
     }
 
@@ -54,6 +61,7 @@ export class LabelService {
 
     async updateLabel(labelId: string, ownerId: string, input: UpdateLabelInput): Promise<Label> {
         const existing = await this.getOwned(labelId, ownerId);
+
         return this.labels.update(labelId, { ...existing, ...input });
     }
 

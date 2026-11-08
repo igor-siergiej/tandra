@@ -2,6 +2,7 @@ import type { Recipe, RecipeDifficulty } from '@tandra/types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+
 import {
     generateRecipeAiImage,
     getListsQuery,
@@ -63,10 +64,12 @@ const AddRecipePage = () => {
     const { user } = useUser();
     const queryClient = useQueryClient();
     const { createRecipe } = useRecipeMutations(user ?? undefined);
+
     const { refetch } = useQuery({
         ...getRecipesQuery(user?.id || ''),
         enabled: false,
     });
+
     const { data: lists = [] } = useQuery(
         user?.id ? getListsQuery(user.id) : { queryKey: [], queryFn: async () => [] }
     );
@@ -120,8 +123,10 @@ const AddRecipePage = () => {
     // fallow-ignore-next-line complexity
     const handleImport = useCallback(async (importUrl: string) => {
         const target = importUrl.trim();
+
         if (!target) {
             notifyError('Enter a recipe link to import');
+
             return;
         }
 
@@ -131,6 +136,7 @@ const AddRecipePage = () => {
         setError('');
         setImportError('');
         track('recipe_import_started', { source: 'link' });
+
         try {
             const draft = await importRecipe(target, controller.signal);
 
@@ -162,6 +168,7 @@ const AddRecipePage = () => {
             if (controller.signal.aborted) {
                 return;
             }
+
             const message = err instanceof Error ? err.message : 'Failed to import recipe';
             setImportError(message);
             notifyError(message);
@@ -201,6 +208,7 @@ const AddRecipePage = () => {
     ): Promise<Recipe | undefined> => {
         if (!user) {
             logger.warn('Attempted to add recipe without user');
+
             return undefined;
         }
 
@@ -217,6 +225,7 @@ const AddRecipePage = () => {
                 recipeServings,
                 recipeDifficulty
             );
+
             logger.info('Recipe created successfully', { title: recipeTitle, recipeId });
 
             if (imageFile) {
@@ -229,11 +238,13 @@ const AddRecipePage = () => {
             if (!imageFile) {
                 void generateRecipeAiImage(recipeId).then((updatedRecipe) => {
                     queryClient.setQueryData(getRecipeQuery(recipeId).queryKey, updatedRecipe);
+
                     return queryClient.invalidateQueries({ queryKey: getRecipesQuery(user.id).queryKey });
                 });
             }
 
             const recipes = queryClient.getQueryData<Recipe[]>(['recipes', user.id]) ?? [];
+
             return recipes.find((r) => r.id === recipeId);
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Unknown error';
@@ -285,6 +296,7 @@ const AddRecipePage = () => {
     const handleSubmit = async () => {
         if (!title.trim()) {
             setError('Recipe title is required');
+
             return;
         }
 
@@ -307,6 +319,7 @@ const AddRecipePage = () => {
                 toOptionalNumber(servings),
                 difficulty || undefined
             );
+
             if (!recipe) {
                 throw new Error('Failed to create recipe');
             }
@@ -430,6 +443,7 @@ const AddRecipePage = () => {
                                     onChange={(e) => setInstructionsPasteText(e.target.value)}
                                     onBlur={() => {
                                         const parsed = splitIntoSteps(instructionsPasteText);
+
                                         if (parsed.length > 0) {
                                             setSteps(parsed);
                                             setShowPasteArea(false);

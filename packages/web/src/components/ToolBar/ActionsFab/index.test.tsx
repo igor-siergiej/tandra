@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CheckCheck, Trash2 } from 'lucide-react';
 import { describe, expect, it, vi } from 'vitest';
+
 import { ActionsFab } from './index';
 
 describe('ActionsFab', () => {

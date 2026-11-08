@@ -1,9 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'bun:test';
 
+import { connectionTo } from '../../testing/fake';
 import { MongoMealPlanRepository } from './index';
 
 const cursor = { sort: vi.fn(), toArray: vi.fn() };
+
 cursor.sort.mockReturnValue(cursor);
+
 const collection = {
     createIndex: vi.fn(),
     findOne: vi.fn(),
@@ -13,7 +16,8 @@ const collection = {
     deleteOne: vi.fn(),
     updateMany: vi.fn(),
 };
-const repo = new MongoMealPlanRepository({ getCollection: () => collection } as never);
+
+const repo = new MongoMealPlanRepository(connectionTo(collection));
 const entry = { id: 'e1', ownerId: 'u1', date: '2026-10-12', recipeId: 'r1', servings: 2, dateAdded: new Date() };
 
 describe('MongoMealPlanRepository', () => {

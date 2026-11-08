@@ -52,6 +52,7 @@ export type InputProps = React.InputHTMLAttributes<HTMLInputElement> & { purpose
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(({ className, type, purpose, ...props }, ref) => {
     const preset = purpose ? PURPOSE_PRESETS[purpose] : undefined;
+
     return (
         <input
             type={type}

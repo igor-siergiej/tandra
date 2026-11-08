@@ -2,6 +2,7 @@ import 'fake-indexeddb/auto';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type * as Api from '../api';
 
 vi.mock('../api', async (importOriginal) => ({
@@ -16,6 +17,7 @@ vi.mock('../offline/drainer', () => ({ drainOutbox: vi.fn().mockResolvedValue(un
 
 import { GuestProvider } from '../guest/GuestContext';
 import { outboxStore } from '../offline/outboxStore';
+import { present } from '../testing/fake';
 import { useItemMutations } from './useItemMutations';
 
 const wrap =
@@ -59,7 +61,11 @@ describe('useItemMutations (id-addressed)', () => {
             result.current.toggleMutation.mutate(true);
         });
         await waitFor(() => {
-            const data = client.getQueryData(['My List']) as { items: { id: string; isSelected: boolean }[] };
+            const data = present(
+                client.getQueryData<{ items: { id: string; isSelected: boolean }[] }>(['My List']),
+                'cached data'
+            );
+
             expect(data.items[0].isSelected).toBe(true);
         });
     });
@@ -78,7 +84,7 @@ describe('useItemMutations (id-addressed)', () => {
             result.current.deleteMutation.mutate(undefined);
         });
         await waitFor(() => {
-            const data = client.getQueryData(['My List']) as { items: { id: string }[] };
+            const data = present(client.getQueryData<{ items: { id: string }[] }>(['My List']), 'cached list');
             expect(data.items.map((i) => i.id)).toEqual(['x2']);
         });
     });

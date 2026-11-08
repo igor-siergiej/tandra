@@ -1,19 +1,32 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const speech = vi.hoisted(() => ({
+type SpeechState = {
+    supported: boolean;
+    listening: boolean;
+    transcript: string;
+    error: string | null;
+    start: () => void;
+    stop: () => void;
+    reset: () => void;
+};
+
+const speech = vi.hoisted((): SpeechState => ({
     supported: true,
     listening: false,
     transcript: '',
-    error: null as string | null,
+    error: null,
     start: vi.fn(),
     stop: vi.fn(),
     reset: vi.fn(),
 }));
+
 const parse = vi.hoisted(() => vi.fn());
 
 vi.mock('../../../hooks/useSpeechRecognition', () => ({ useSpeechRecognition: () => speech }));
+
 vi.mock('../../../api', () => ({ parseSpokenItems: parse }));
+
 vi.mock('../../ui/drawer', () => ({
     Drawer: ({ open, children }: any) => (open ? <div>{children}</div> : null),
     DrawerContent: ({ children }: any) => <div>{children}</div>,
@@ -26,6 +39,7 @@ import { VoiceAddDrawer } from './index';
 
 const renderDrawer = (onAddMany = vi.fn().mockResolvedValue(undefined), onOpenChange = vi.fn()) => {
     render(<VoiceAddDrawer open onOpenChange={onOpenChange} onAddMany={onAddMany} />);
+
     return { onAddMany, onOpenChange };
 };
 

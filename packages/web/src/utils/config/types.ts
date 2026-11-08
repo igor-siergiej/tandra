@@ -1,4 +1,6 @@
-export interface AppConfig {
+import { z } from 'zod';
+
+export const appConfigSchema = z.looseObject({
     /**
      * Self-hosted Umami analytics (jott #72, #138). `host` is the base URL the
      * tracker script `p.js` is served under (production: same-origin
@@ -6,12 +8,17 @@ export interface AppConfig {
      * `enabled` is `false` or the fields are missing — selfhost/.env.example
      * documents how to turn it on.
      */
-    analytics?: {
-        host?: string;
-        websiteId?: string;
-        enabled?: boolean;
-    };
-}
+    analytics: z
+        .object({
+            host: z.string().optional().catch(undefined),
+            websiteId: z.string().optional().catch(undefined),
+            enabled: z.boolean().optional().catch(undefined),
+        })
+        .optional()
+        .catch(undefined),
+});
+
+export type AppConfig = z.output<typeof appConfigSchema>;
 
 export interface ConfigState {
     config: AppConfig | null;

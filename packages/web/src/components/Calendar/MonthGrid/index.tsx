@@ -9,6 +9,7 @@ import {
     startOfWeek,
 } from 'date-fns';
 import { motion, type PanInfo } from 'motion/react';
+
 import { DayDots } from './DayDots';
 
 export const dayKey = (date: Date): string => format(date, 'yyyy-MM-dd');
@@ -18,8 +19,11 @@ const SWIPE_THRESHOLD = 50;
 // Combine drag distance with a fraction of fling velocity so a fast short flick still pages.
 const resolveMonthSwipe = (offsetX: number, velocityX: number): -1 | 0 | 1 => {
     const effective = offsetX + velocityX / 8;
+
     if (effective < -SWIPE_THRESHOLD) return 1; // swipe left -> next month
+
     if (effective > SWIPE_THRESHOLD) return -1; // swipe right -> prev month
+
     return 0;
 };
 
@@ -30,6 +34,7 @@ const dayCellClassName = (inMonth: boolean, selected: boolean, schedulingActive:
     const colorClass = inMonth ? 'text-foreground' : 'text-muted-foreground/40';
     const bgClass = selected ? 'bg-primary text-primary-foreground' : 'bg-muted/40';
     const schedulingClass = schedulingActive ? 'ring-1 ring-primary/40' : '';
+
     return `aspect-square rounded-lg flex flex-col items-center justify-center text-sm relative ${colorClass} ${bgClass} ${schedulingClass}`;
 };
 
@@ -66,6 +71,7 @@ const DayCell = ({ day, dots, selected, inMonth, schedulingActive, onSelect, onD
     const handleDrop = (e: React.DragEvent) => {
         e.preventDefault();
         const id = getDraggedTodoId(e);
+
         if (id) onDrop(id);
     };
 
@@ -98,8 +104,9 @@ export const MonthGrid = ({
     const gridEnd = endOfWeek(endOfMonth(month), { weekStartsOn: 1 });
     const days = eachDayOfInterval({ start: gridStart, end: gridEnd });
 
-    const handleDragEnd = (_e: unknown, info: PanInfo) => {
+    const handleDragEnd = (_e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
         const direction = resolveMonthSwipe(info.offset.x, info.velocity.x);
+
         if (direction !== 0) onChangeMonth?.(direction);
     };
 
@@ -125,6 +132,7 @@ export const MonthGrid = ({
             >
                 {days.map((day) => {
                     const key = dayKey(day);
+
                     return (
                         <DayCell
                             key={key}

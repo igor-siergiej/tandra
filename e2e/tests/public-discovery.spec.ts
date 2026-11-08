@@ -8,7 +8,7 @@ test.describe('Public discover API', () => {
     test('@smoke /api/public/discover/recipes responds 200 with an `items` array', async ({ request }) => {
         const res = await request.get('/api/public/discover/recipes');
         expect(res.status()).toBe(200);
-        const body = (await res.json()) as { items: unknown[]; nextCursor?: string };
+        const body: { items: unknown[]; nextCursor?: string } = await res.json();
         expect(Array.isArray(body.items)).toBe(true);
     });
 
@@ -20,6 +20,7 @@ test.describe('Public discover API', () => {
         const res = await request.get('/api/public/discover/recipes', {
             headers: { Origin: 'https://tandra.uk' },
         });
+
         expect(res.status()).toBe(200);
         const allowOrigin = res.headers()['access-control-allow-origin'];
         expect(['https://tandra.uk', '*']).toContain(allowOrigin);
@@ -29,13 +30,14 @@ test.describe('Public discover API', () => {
         const res = await request.get('/api/public/discover/recipes/definitely-not-a-real-slug-xyz', {
             failOnStatusCode: false,
         });
+
         expect(res.status()).toBe(404);
     });
 
     test('@smoke /api/public/discover/recipes honors the pageSize parameter', async ({ request }) => {
         const res = await request.get('/api/public/discover/recipes?pageSize=5');
         expect(res.status()).toBe(200);
-        const body = (await res.json()) as { items: unknown[] };
+        const body: { items: unknown[] } = await res.json();
         expect(body.items.length).toBeLessThanOrEqual(5);
     });
 });

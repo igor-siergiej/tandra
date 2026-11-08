@@ -28,6 +28,7 @@ export class MongoPushSubscriptionRepository implements PushSubscriptionReposito
         if (userIds.length === 0) {
             return [];
         }
+
         return this.collection()
             .find({ userId: { $in: userIds } })
             .toArray();
@@ -37,6 +38,7 @@ export class MongoPushSubscriptionRepository implements PushSubscriptionReposito
         if (endpoints.length === 0) {
             return;
         }
+
         await this.collection().deleteMany({ endpoint: { $in: endpoints } });
     }
 }

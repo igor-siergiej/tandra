@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
+
 import { useRefreshSession } from '../auth';
 import { authClient } from '../auth/client';
 import { authErrorMessage } from '../auth/errors';
@@ -31,7 +32,7 @@ export const registerSchema = z
         path: ['repeatPassword'],
     });
 
-type RegisterFormData = z.infer<typeof registerSchema>;
+export type RegisterFormData = z.infer<typeof registerSchema>;
 
 export const useRegisterForm = () => {
     const navigate = useNavigate();
@@ -62,6 +63,7 @@ export const useRegisterForm = () => {
                 name: data.username,
                 email: `${crypto.randomUUID()}@users.invalid`,
             });
+
             if (error) throw new Error(authErrorMessage(error, 'Registration failed'));
 
             const user = await refreshSession();

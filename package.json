@@ -13,9 +13,9 @@
     "auth:reset-password": "dotenv -e .env -- bun packages/api/scripts/auth/reset-password.ts",
     "start": "bun run start:web & bun run start:api",
     "dev:local": "scripts/dev-local.sh",
-    "lint": "biome check .",
-    "lint:fix": "biome check --fix --unsafe .",
-    "format": "biome format --write .",
+    "lint": "oxlint && oxfmt --check",
+    "lint:fix": "oxlint --fix && oxfmt && oxlint",
+    "format": "oxfmt",
     "typecheck": "bun scripts/typecheck.js",
     "typecheck:update": "bun scripts/typecheck.js --update",
     "check:release-notes": "bun scripts/check-release-notes.js",
@@ -35,11 +35,11 @@
     "packages/*"
   ],
   "devDependencies": {
-    "@biomejs/biome": "2.2.5",
     "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^20.0.0",
-    "@imapps/biome-config": "0.5.1",
     "@imapps/dev-scripts": "0.1.0",
+    "@imapps/oxc-config": "7.0.0",
+    "@oxlint/plugins": "1.90.0",
     "@playwright/test": "^1.60.0",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/commit-analyzer": "^13.0.0",
@@ -54,12 +54,18 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.1.5",
     "mongodb": "^7.2.0",
+    "oxfmt": "0.75.0",
+    "oxlint": "1.90.0",
     "semantic-release": "^24.2.0",
     "typescript": "^5.9.2"
   },
   "packageManager": "bun@1.4.2",
   "lint-staged": {
-    "*.{ts,tsx,json}": "biome check --fix --unsafe"
+    "*.{ts,tsx,mts,cts,js,jsx}": [
+      "oxlint --fix --no-error-on-unmatched-pattern",
+      "oxfmt --no-error-on-unmatched-pattern"
+    ],
+    "*.json": "oxfmt --no-error-on-unmatched-pattern"
   },
   "patchedDependencies": {
     "playwright-core@1.60.0": "patches/playwright-core@1.60.0.patch"

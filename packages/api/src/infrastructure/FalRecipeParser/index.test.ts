@@ -1,13 +1,13 @@
 import { describe, expect, it, mock } from 'bun:test';
 
-import type { FalLlmClient, LlmResult } from '../FalLlmClient';
+import { type LlmRequest, llmReplying } from '../../testing/doubles';
+import type { LlmResult } from '../FalLlmClient';
 import { FalRecipeParser } from './index';
 import { parsedRecipeSchema } from './schema';
 
-type CompleteArgs = Parameters<FalLlmClient['completeStructured']>[0];
+type CompleteArgs = LlmRequest;
 
-const fakeClient = (impl: (args: CompleteArgs) => Promise<LlmResult<unknown>>) =>
-    ({ completeStructured: mock(impl) }) as unknown as FalLlmClient;
+const fakeClient = llmReplying;
 
 const result = <T>(value: T): LlmResult<T> => ({
     value,
@@ -17,7 +17,7 @@ const result = <T>(value: T): LlmResult<T> => ({
 describe('FalRecipeParser', () => {
     it('throws 502 when the source is empty, without calling the client', async () => {
         const complete = mock(async () => result({}));
-        const parser = new FalRecipeParser({ completeStructured: complete } as unknown as FalLlmClient);
+        const parser = new FalRecipeParser(llmReplying(complete));
 
         await expect(parser.parse('   ')).rejects.toMatchObject({ status: 502 });
         expect(complete).not.toHaveBeenCalled();
@@ -25,8 +25,10 @@ describe('FalRecipeParser', () => {
 
     it('calls the client with operation recipe.parse, the parsed-recipe schema and the source in the prompt', async () => {
         let seen: CompleteArgs | undefined;
+
         const client = fakeClient(async (args) => {
             seen = args;
+
             return result({
                 title: 'Carbonara',
                 ingredients: [{ name: 'spaghetti', quantity: 350, unit: 'g' }],
@@ -57,8 +59,10 @@ describe('FalRecipeParser', () => {
 
     it('passes an explicit model and timeout through to the client', async () => {
         let seen: CompleteArgs | undefined;
+
         const client = fakeClient(async (args) => {
             seen = args;
+
             return result({ title: 'X', ingredients: [{ name: 'salt' }], instructions: [] });
         });
 

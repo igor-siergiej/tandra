@@ -1,13 +1,13 @@
-import { describe, expect, it, mock } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 
-import type { FalLlmClient, LlmResult } from '../FalLlmClient';
+import { type LlmRequest, llmReplying } from '../../testing/doubles';
+import type { LlmResult } from '../FalLlmClient';
 import { FalRecipeExtractor } from './index';
 import { extractedRecipeSchema } from './schema';
 
-type CompleteArgs = Parameters<FalLlmClient['completeStructured']>[0];
+type CompleteArgs = LlmRequest;
 
-const fakeClient = (impl: (args: CompleteArgs) => Promise<LlmResult<unknown>>) =>
-    ({ completeStructured: mock(impl) }) as unknown as FalLlmClient;
+const fakeClient = llmReplying;
 
 const result = <T>(value: T): LlmResult<T> => ({
     value,
@@ -17,8 +17,10 @@ const result = <T>(value: T): LlmResult<T> => ({
 describe('FalRecipeExtractor', () => {
     it('calls the client with operation recipe.extract, the extracted-recipe schema and the page text in the prompt', async () => {
         let seen: CompleteArgs | undefined;
+
         const client = fakeClient(async (args) => {
             seen = args;
+
             return result({ title: 'Soup', ingredients: ['1 onion'], instructions: ['Boil.'] });
         });
 
@@ -41,8 +43,10 @@ describe('FalRecipeExtractor', () => {
 
     it('passes an explicit model and timeout through to the client', async () => {
         let seen: CompleteArgs | undefined;
+
         const client = fakeClient(async (args) => {
             seen = args;
+
             return result({ title: '', ingredients: [], instructions: [] });
         });
 

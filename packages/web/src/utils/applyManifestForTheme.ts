@@ -16,6 +16,7 @@ const readStoredTheme = (): string | null => {
 
 const resolveTheme = (): Theme => {
     const stored = readStoredTheme();
+
     return isTheme(stored) ? stored : getSystemTheme();
 };
 
@@ -25,9 +26,11 @@ const resolveTheme = (): Theme => {
 // already-installed PWA instantly — browsers only revalidate periodically.
 export const applyManifestForTheme = (doc: Document = document): void => {
     const link = doc.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+
     if (!link) {
         return;
     }
+
     const theme = resolveTheme();
     link.setAttribute('href', theme === 'dark' ? '/manifest-dark.webmanifest' : '/manifest.webmanifest');
 };

@@ -4,11 +4,14 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { useRecipeSearch } from '../../hooks/useRecipeSearch';
+import { fake } from '../../testing/fake';
 import RecipesPage from './index';
 
 vi.mock('../../hooks/useRecipeSearch', async () => {
     const actual = await vi.importActual<typeof import('../../hooks/useRecipeSearch')>('../../hooks/useRecipeSearch');
+
     return { useRecipeSearch: vi.fn(actual.useRecipeSearch) };
 });
 
@@ -33,7 +36,7 @@ vi.mock('../../auth', () => ({
 
 vi.mock('@tanstack/react-query', () => ({
     useQuery: vi.fn(() => ({
-        data: [] as Recipe[],
+        data: new Array<Recipe>(),
         isLoading: false,
         isError: false,
         refetch: vi.fn(),
@@ -54,6 +57,7 @@ vi.mock('../../components/ToolBar', () => ({
 
 const mockScrollTo = vi.fn();
 const mockScrollContainerRef = { current: { scrollTo: mockScrollTo, scrollHeight: 1234 } };
+
 vi.mock('../../contexts/ScrollContainerContext', () => ({
     useScrollContainer: () => mockScrollContainerRef,
 }));
@@ -104,36 +108,38 @@ describe('RecipesPage', () => {
     });
 
     it('renders owned and shared recipes together, with avatars for other members on each', () => {
-        vi.mocked(useQuery).mockReturnValue({
-            data: [
-                {
-                    id: 'r1',
-                    title: 'Owned Recipe',
-                    ownerId: 'user-1',
-                    ingredients: [],
-                    coverImageKey: 'img-1',
-                    users: [
-                        { id: 'user-1', username: 'me' },
-                        { id: 'user-3', username: 'friend' },
-                    ],
-                    dateAdded: new Date(),
-                },
-                {
-                    id: 'r2',
-                    title: 'Shared Recipe',
-                    ownerId: 'user-2',
-                    ingredients: [],
-                    users: [
-                        { id: 'user-2', username: 'owner2' },
-                        { id: 'user-1', username: 'me' },
-                    ],
-                    dateAdded: new Date(),
-                },
-            ],
-            isLoading: false,
-            isError: false,
-            refetch: vi.fn(),
-        } as ReturnType<typeof useQuery>);
+        vi.mocked(useQuery).mockReturnValue(
+            fake<ReturnType<typeof useQuery>>({
+                data: [
+                    {
+                        id: 'r1',
+                        title: 'Owned Recipe',
+                        ownerId: 'user-1',
+                        ingredients: [],
+                        coverImageKey: 'img-1',
+                        users: [
+                            { id: 'user-1', username: 'me' },
+                            { id: 'user-3', username: 'friend' },
+                        ],
+                        dateAdded: new Date(),
+                    },
+                    {
+                        id: 'r2',
+                        title: 'Shared Recipe',
+                        ownerId: 'user-2',
+                        ingredients: [],
+                        users: [
+                            { id: 'user-2', username: 'owner2' },
+                            { id: 'user-1', username: 'me' },
+                        ],
+                        dateAdded: new Date(),
+                    },
+                ],
+                isLoading: false,
+                isError: false,
+                refetch: vi.fn(),
+            })
+        );
 
         render(
             <MemoryRouter>
@@ -151,33 +157,35 @@ describe('RecipesPage', () => {
 
     it('matches a recipe by tag with no visible tag UI on the page', async () => {
         const user = userEvent.setup();
-        vi.mocked(useQuery).mockReturnValue({
-            data: [
-                {
-                    id: 'r1',
-                    title: "Grandma's Bourguignon",
-                    ownerId: 'user-1',
-                    ingredients: [],
-                    users: [],
-                    dateAdded: new Date(),
-                    coverImageKey: 'img-1',
-                    tags: ['beef', 'stew', 'french'],
-                },
-                {
-                    id: 'r2',
-                    title: 'Chicken Curry',
-                    ownerId: 'user-1',
-                    ingredients: [],
-                    users: [],
-                    dateAdded: new Date(),
-                    coverImageKey: 'img-2',
-                    tags: ['spicy'],
-                },
-            ],
-            isLoading: false,
-            isError: false,
-            refetch: vi.fn(),
-        } as ReturnType<typeof useQuery>);
+        vi.mocked(useQuery).mockReturnValue(
+            fake<ReturnType<typeof useQuery>>({
+                data: [
+                    {
+                        id: 'r1',
+                        title: "Grandma's Bourguignon",
+                        ownerId: 'user-1',
+                        ingredients: [],
+                        users: [],
+                        dateAdded: new Date(),
+                        coverImageKey: 'img-1',
+                        tags: ['beef', 'stew', 'french'],
+                    },
+                    {
+                        id: 'r2',
+                        title: 'Chicken Curry',
+                        ownerId: 'user-1',
+                        ingredients: [],
+                        users: [],
+                        dateAdded: new Date(),
+                        coverImageKey: 'img-2',
+                        tags: ['spicy'],
+                    },
+                ],
+                isLoading: false,
+                isError: false,
+                refetch: vi.fn(),
+            })
+        );
 
         render(
             <MemoryRouter>
@@ -206,6 +214,7 @@ describe('RecipesPage', () => {
             dateAdded: new Date(),
             coverImageKey: 'img-1',
         };
+
         const worseMatch: Recipe = {
             id: 'r2',
             title: 'Worse Match',
@@ -215,12 +224,15 @@ describe('RecipesPage', () => {
             dateAdded: new Date(),
             coverImageKey: 'img-2',
         };
-        vi.mocked(useQuery).mockReturnValue({
-            data: [bestMatch, worseMatch],
-            isLoading: false,
-            isError: false,
-            refetch: vi.fn(),
-        } as ReturnType<typeof useQuery>);
+
+        vi.mocked(useQuery).mockReturnValue(
+            fake<ReturnType<typeof useQuery>>({
+                data: [bestMatch, worseMatch],
+                isLoading: false,
+                isError: false,
+                refetch: vi.fn(),
+            })
+        );
 
         render(
             <MemoryRouter>
@@ -241,22 +253,24 @@ describe('RecipesPage', () => {
 
     it('scrolls back to the bottom-pinned search field when the search is cleared', async () => {
         const user = userEvent.setup();
-        vi.mocked(useQuery).mockReturnValue({
-            data: [
-                {
-                    id: 'r1',
-                    title: 'Recipe 1',
-                    ownerId: 'user-1',
-                    ingredients: [],
-                    users: [],
-                    dateAdded: new Date(),
-                    coverImageKey: 'img-1',
-                },
-            ],
-            isLoading: false,
-            isError: false,
-            refetch: vi.fn(),
-        } as ReturnType<typeof useQuery>);
+        vi.mocked(useQuery).mockReturnValue(
+            fake<ReturnType<typeof useQuery>>({
+                data: [
+                    {
+                        id: 'r1',
+                        title: 'Recipe 1',
+                        ownerId: 'user-1',
+                        ingredients: [],
+                        users: [],
+                        dateAdded: new Date(),
+                        coverImageKey: 'img-1',
+                    },
+                ],
+                isLoading: false,
+                isError: false,
+                refetch: vi.fn(),
+            })
+        );
 
         render(
             <MemoryRouter>

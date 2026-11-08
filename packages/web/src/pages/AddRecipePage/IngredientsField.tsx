@@ -1,5 +1,6 @@
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
+
 import { AddIngredientDrawer } from '../../components/ToolBar/AddIngredientDrawer';
 import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
@@ -87,6 +88,7 @@ export const IngredientsField = ({
                     onChange={(e) => setIngredientsPasteText(e.target.value)}
                     onBlur={() => {
                         const parsed = splitIntoSteps(ingredientsPasteText);
+
                         if (parsed.length > 0) {
                             onChange(parsed.map((name) => ({ name })));
                             setShowIngredientsPaste(false);

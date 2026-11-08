@@ -1,5 +1,6 @@
 import { addMonths, endOfMonth, startOfMonth } from 'date-fns';
 import { useEffect, useMemo, useState } from 'react';
+
 import type { CreateTodoBody } from '../../api';
 import { useUser } from '../../auth';
 import { EditTodoDrawer } from '../../components/Calendar/EditTodoDrawer';
@@ -41,7 +42,9 @@ const CalendarPage = () => {
 
     const labelColor = useMemo(() => {
         const map = new Map<string, string>();
+
         for (const l of labels) map.set(l.id, l.color);
+
         return map;
     }, [labels]);
 
@@ -63,17 +66,21 @@ const CalendarPage = () => {
 
     const handleDropOnDay = (todoId: string, day: Date) => void updateTodo(todoId, { dueDate: isoDay(day) });
     const scheduling = useCalendarScheduling(handleDropOnDay);
+
     const handleSelectDay = (day: Date) => {
         scheduling.selectDay(day);
         setSelectedDay(day);
     };
+
     const handleAddTodo = async (body: CreateTodoBody) => {
         await createTodo(body);
     };
+
     const handleToggle = (todoId: string, occurrenceDay: string) => {
         const todo = todos.find((t) => t.id === todoId);
         void completeTodo(todoId, todo?.recurrence ? occurrenceDay : undefined);
     };
+
     const handleDelete = (todoId: string) => void deleteTodo(todoId);
     const editingTodo = todos.find((t) => t.id === editingTodoId) ?? null;
 

@@ -1,9 +1,17 @@
 import type { Recipe } from '@tandra/types';
 import { describe, expect, it } from 'vitest';
+
 import { aiTagPollInterval } from './aiTagPoll';
 
-const recipe = (over: Partial<Recipe>): Recipe =>
-    ({ id: 'r', title: 'T', ingredients: [], users: [], ownerId: 'u', dateAdded: new Date(), ...over }) as Recipe;
+const recipe = (over: Partial<Recipe>): Recipe => ({
+    id: 'r',
+    title: 'T',
+    ingredients: [],
+    users: [],
+    ownerId: 'u',
+    dateAdded: new Date(),
+    ...over,
+});
 
 describe('aiTagPollInterval', () => {
     it('polls while a just-created recipe has no tags yet', () => {

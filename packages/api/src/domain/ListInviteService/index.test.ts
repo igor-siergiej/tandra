@@ -1,16 +1,23 @@
 import { describe, expect, it } from 'bun:test';
-import type { ListInvite } from '@tandra/types';
+
+import type { Logger } from '@imapps/api-utils';
+import { type Friendship, type List, type ListInvite, ListType, type User } from '@tandra/types';
+
+import { fake } from '../../testing/fake';
 import type { FriendService } from '../FriendService';
 import type { ListInviteRepository } from '../ListInviteRepository';
 import type { ListService } from '../ListService';
 import { type IssuedInvite, type ListInvitePublic, ListInviteService } from './index';
 
-const noopLogger = {
-    debug: () => {},
-    info: () => {},
-    warn: () => {},
-    error: () => {},
-};
+/** The friendship the real service would record between two users. */
+const friendship = (a: User, b: User): Friendship => ({
+    id: `f-${a.id}-${b.id}`,
+    userIds: [a.id, b.id],
+    users: [a, b],
+    createdAt: new Date(0),
+});
+
+const noopLogger = fake<Logger>({ info: () => {}, warn: () => {}, error: () => {} });
 
 const FAKE_USER_A = { id: 'user-a', username: 'alice' };
 const FAKE_USER_B = { id: 'user-b', username: 'bob' };
@@ -27,6 +34,7 @@ const fakeInvite = (over: Partial<ListInvite> = {}): ListInvite => ({
 
 const setup = (initialInvites: ListInvite[] = []) => {
     const invites: ListInvite[] = [...initialInvites];
+
     const invitesRepo: ListInviteRepository = {
         ensureIndexes: async () => {},
         insert: async (invite) => {
@@ -35,13 +43,16 @@ const setup = (initialInvites: ListInvite[] = []) => {
         getByToken: async (token) => invites.find((i) => i.token === token) ?? null,
         markClaimed: async (token, userId, at) => {
             const existing = invites.find((i) => i.token === token);
+
             if (!existing || existing.claimedAt) return null;
             existing.claimedBy = userId;
             existing.claimedAt = at;
+
             return existing;
         },
         markRevoked: async (token, at) => {
             const existing = invites.find((i) => i.token === token);
+
             if (existing && !existing.revokedAt) existing.revokedAt = at;
         },
         listOpenByOwner: async (ownerId) =>
@@ -51,23 +62,32 @@ const setup = (initialInvites: ListInvite[] = []) => {
                 )
                 .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
     };
-    const list = {
+
+    const list: List = {
         id: 'l1',
         title: 'Groceries',
         ownerId: 'user-a',
         users: [{ id: 'user-a', username: 'alice' }],
-    } as never;
+        items: [],
+        dateAdded: new Date(0),
+        listType: ListType.SHOPPING,
+    };
+
     const lists: Pick<ListService, 'getList' | 'addInvitedUser'> = {
         getList: async () => list,
         addInvitedUser: async (_title, claimer, _ownerId) => {
-            (list as { users: unknown[] }).users.push(claimer);
+            list.users.push(claimer);
+
             return list;
         },
     };
+
     const friends: Pick<FriendService, 'createFriendship'> = {
-        createFriendship: async () => ({}) as never,
+        createFriendship: async (a, b) => friendship(a, b),
     };
+
     const service = new ListInviteService({ invites: invitesRepo, lists, friends }, noopLogger);
+
     return { service, invites, invitesRepo, list, lists, friends };
 };
 
@@ -167,8 +187,10 @@ describe('ListInviteService.claim', () => {
         let created = { a: '', b: '' };
         friends.createFriendship = async (a, b) => {
             created = { a: a.id, b: b.id };
-            return {} as never;
+
+            return friendship(a, b);
         };
+
         const result = await service.claim('token-abc', FAKE_USER_B);
         expect(result.listTitle).toBe('Groceries');
         expect(invites[0]?.claimedBy).toBe('user-b');
@@ -185,17 +207,20 @@ describe('ListInviteService.listOpenByOwner', () => {
             createdAt: new Date('2026-01-01'),
             expiresAt: new Date(Date.now() + 60_000),
         });
+
         const newer = fakeInvite({
             token: 'new',
             createdAt: new Date('2026-02-01'),
             expiresAt: new Date(Date.now() + 60_000),
         });
+
         const revoked = fakeInvite({
             token: 'rev',
             createdAt: new Date('2026-01-15'),
             expiresAt: new Date(Date.now() + 60_000),
             revokedAt: new Date(),
         });
+
         const { service } = setup([older, newer, revoked]);
         const items: ListInvitePublic[] = await service.listOpenByOwner('user-a');
         expect(items.map((i) => i.token)).toEqual(['new', 'old']);

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'bun:test';
 
+import { fake, present } from '../../testing/fake';
 import { WikibooksCoverService } from './cover';
 import type { WikibooksImageInfo } from './types';
 
@@ -16,6 +17,7 @@ const usable = (overrides: Partial<WikibooksImageInfo> = {}): WikibooksImageInfo
 
 const setup = (download = async () => ({ buffer: Buffer.from('jpeg-bytes'), contentType: 'image/jpeg' })) => {
     const stored = new Map<string, { buffer: Buffer; contentType?: string }>();
+
     const images = {
         getHeadObject: vi.fn(),
         getObjectStream: vi.fn(),
@@ -23,8 +25,10 @@ const setup = (download = async () => ({ buffer: Buffer.from('jpeg-bytes'), cont
             stored.set(name, { buffer, contentType: options?.contentType });
         }),
     };
+
     const source = { downloadImage: vi.fn(download) };
-    return { service: new WikibooksCoverService(source as never, images), stored, source, images };
+
+    return { service: new WikibooksCoverService(fake(source), images), stored, source, images };
 };
 
 describe('WikibooksCoverService', () => {
@@ -34,7 +38,7 @@ describe('WikibooksCoverService', () => {
         const outcome = await service.resolve('wikibooks-7', 'Baked Ziti.jpg', usable());
 
         expect(source.downloadImage).toHaveBeenCalledWith('https://upload.wikimedia.org/x/Baked_Ziti.jpg');
-        const key = outcome.fields.coverImageKey as string;
+        const key = present(outcome.fields.coverImageKey, 'cover key');
         expect(key).toMatch(/^discovery-image\/wikibooks-7\/\d+\.jpg$/);
         expect(stored.get(key)).toEqual({ buffer: Buffer.from('jpeg-bytes'), contentType: 'image/jpeg' });
         expect(outcome).toMatchObject({

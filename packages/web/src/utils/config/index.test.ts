@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { fake } from '../../testing/fake';
 import { loadConfig } from './index';
 
 const mockFetch = (impl: () => Promise<Response>) => {
@@ -16,10 +18,12 @@ describe('loadConfig', () => {
 
     it('resolves with fetched config and caches it for offline use', async () => {
         mockFetch(() =>
-            Promise.resolve({
-                ok: true,
-                json: () => Promise.resolve({ analytics: { host: 'https://stats.example.com' } }),
-            } as Response)
+            Promise.resolve(
+                fake<Response>({
+                    ok: true,
+                    json: () => Promise.resolve({ analytics: { host: 'https://stats.example.com' } }),
+                })
+            )
         );
 
         const config = await loadConfig();

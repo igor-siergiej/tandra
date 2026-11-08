@@ -157,7 +157,7 @@ Root `package.json`:
 | `reindex:discovery` | rebuild the OpenSearch Discover index from Mongo |
 | `discover:ingest`, `discover:validate` | Wikibooks Cookbook ingest / library validation ([docs/discovery-ingest.md](docs/discovery-ingest.md)) |
 | `auth:reset-password` | auth admin; see [Admin](#admin) |
-| `lint`, `lint:fix`, `format` | Biome |
+| `lint`, `lint:fix`, `format` | Oxlint + Oxfmt |
 | `test:e2e`, `test:e2e:ui`, `test:e2e:update-snapshots` | Playwright |
 | `tsc:e2e` | type-check `e2e/` |
 | `test:scripts` | Bun tests for `scripts/` (coverage gate, release-notes collector) |
@@ -177,7 +177,7 @@ It uses the api's `CONNECTION_URI` / `DATABASE_NAME` / `BETTER_AUTH_SECRET` /
 ### Testing
 
 ```bash
-bun run lint                                       # Biome
+bun run lint                                       # Oxlint + Oxfmt
 bunx tsc -p packages/api/tsconfig.json --noEmit    # API types
 bunx tsc -p packages/web/tsconfig.app.json --noEmit # web types
 bun run --filter @tandra/api test               # Bun runner; 90 % coverage gate
@@ -209,7 +209,7 @@ label picks out small, contained starting points.
 
 ## CI/CD
 
-- **`pr.yml`** on every PR: `lint` (Biome + `tsc:e2e`), then in parallel
+- **`pr.yml`** on every PR: `lint` (Oxlint + Oxfmt), then in parallel
   `test` (`tsc --noEmit`, api tests with coverage against a real OpenSearch
   service, web tests, script tests, 90 % gate), `e2e`, `fallow-deadcode` and
   `semgrep`. Playwright runs as four `e2e-shard` jobs (`--shard=N/4`), each

@@ -1,11 +1,12 @@
 import type { ItemCategory, ListResponse, ListType, User } from '@tandra/types';
+
 import { clearList, clearSelected, deleteList, getListQuery, getListsQuery, updateListName } from '../api';
 import { useUser } from '../auth';
 import { useGuest } from '../guest/GuestContext';
 import { GUEST_USER, guestListSource } from '../guest/guestListSource';
 import { drainOutbox } from '../offline/drainer';
 import type { ListItemsData } from '../offline/foldPending';
-import type { ItemOp } from '../offline/outboxStore';
+import type { ItemOp, OutboxPayload } from '../offline/outboxStore';
 import { outboxStore } from '../offline/outboxStore';
 
 // Where the lists and items pages read and write. Signed-in users go through the API and the offline outbox;
@@ -38,7 +39,7 @@ const enqueue = async (
     op: ItemOp | 'list.create',
     scope: string,
     targetId: string,
-    payload: Record<string, unknown>
+    payload: OutboxPayload
 ) => {
     await outboxStore.enqueue({
         id: crypto.randomUUID(),
@@ -91,5 +92,6 @@ export const useListSource = (): ListSource => (useGuest().isGuest ? guestListSo
 // The user the lists page is keyed and ownership-checked by: the signed-in account, or the on-device guest.
 export const useListUser = (): User | undefined => {
     const { user } = useUser();
+
     return useGuest().isGuest ? GUEST_USER : user;
 };

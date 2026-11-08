@@ -20,6 +20,7 @@ describe('ToolBarButton', () => {
     it('calls onClick handler when clicked', () => {
         let called = false;
         const TestIcon = () => <span>icon</span>;
+
         const { getByRole } = render(
             <ToolBarButton
                 icon={TestIcon}
@@ -44,6 +45,7 @@ describe('ToolBarButton', () => {
 
     it('applies variant styling for destructive', () => {
         const TestIcon = () => <span>icon</span>;
+
         const { container } = render(
             <ToolBarButton icon={TestIcon} title="Test" onClick={() => {}} variant="destructive" />
         );

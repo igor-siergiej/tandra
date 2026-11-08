@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../offline/drainer', () => ({ drainOutbox: vi.fn().mockResolvedValue(undefined) }));
+
 vi.mock('./useFriends', () => ({
     useFriends: () => ({
         friends: [{ id: 'friend-1', username: 'alice' }],
@@ -14,9 +15,11 @@ vi.mock('./useFriends', () => ({
 
 import { drainOutbox } from '../offline/drainer';
 import { outboxStore } from '../offline/outboxStore';
+import { present } from '../testing/fake';
 import { useRecipeMutations } from './useRecipeMutations';
 
 const user = { id: 'user-1', username: 'me' };
+
 const wrap =
     (client: QueryClient) =>
     ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
@@ -35,7 +38,7 @@ describe('useRecipeMutations', () => {
         });
         await waitFor(() => expect(outboxStore.peekAll()).toHaveLength(1));
         expect(outboxStore.peekAll()[0]).toMatchObject({ op: 'recipe.create', entityType: 'recipe', scope: 'user-1' });
-        const cached = client.getQueryData(['recipes', 'user-1']) as Array<{ title: string }>;
+        const cached = present(client.getQueryData<Array<{ title: string }>>(['recipes', 'user-1']), 'cached recipes');
         expect(cached.map((r) => r.title)).toContain('Pasta');
     });
 
@@ -47,10 +50,17 @@ describe('useRecipeMutations', () => {
             await result.current.createRecipe('Pasta', ['friend-1'], []);
         });
         await waitFor(() => expect(outboxStore.peekAll()).toHaveLength(1));
-        const cached = client.getQueryData(['recipes', 'user-1']) as Array<{
-            title: string;
-            users: Array<{ id: string }>;
-        }>;
+
+        const cached = present(
+            client.getQueryData<
+                Array<{
+                    title: string;
+                    users: Array<{ id: string }>;
+                }>
+            >(['recipes', 'user-1']),
+            'cached data'
+        );
+
         const created = cached.find((r) => r.title === 'Pasta');
         expect(created?.users.map((u) => u.id).sort()).toEqual(['friend-1', 'user-1']);
     });
@@ -71,6 +81,7 @@ describe('useRecipeMutations', () => {
 
     it('createRecipe does not resolve until the create intent has drained', async () => {
         let resolveDrain: () => void = () => {};
+
         vi.mocked(drainOutbox).mockImplementation(
             () =>
                 new Promise((resolve) => {
@@ -83,6 +94,7 @@ describe('useRecipeMutations', () => {
         const { result } = renderHook(() => useRecipeMutations(user), { wrapper: wrap(client) });
 
         let created = false;
+
         const createPromise = result.current.createRecipe('Pasta', [], []).then(() => {
             created = true;
         });
@@ -106,6 +118,7 @@ describe('useRecipeMutations', () => {
             users: [user],
             dateAdded: new Date(),
         };
+
         const client = new QueryClient();
         client.setQueryData(['recipes', 'user-1'], [existingRecipe]);
         client.setQueryData(['recipe', 'R2'], existingRecipe);
@@ -115,9 +128,14 @@ describe('useRecipeMutations', () => {
         });
         await waitFor(() => expect(outboxStore.peekAll()).toHaveLength(1));
         expect(outboxStore.peekAll()[0]).toMatchObject({ op: 'recipe.update', targetId: 'R2' });
-        const list = client.getQueryData(['recipes', 'user-1']) as Array<{ id: string; title: string }>;
+
+        const list = present(
+            client.getQueryData<Array<{ id: string; title: string }>>(['recipes', 'user-1']),
+            'cached data'
+        );
+
         expect(list.find((r) => r.id === 'R2')?.title).toBe('New Title');
-        const detail = client.getQueryData(['recipe', 'R2']) as { title: string };
+        const detail = present(client.getQueryData<{ title: string }>(['recipe', 'R2']), 'cached recipes');
         expect(detail.title).toBe('New Title');
     });
 
@@ -128,13 +146,20 @@ describe('useRecipeMutations', () => {
         await act(async () => {
             await result.current.createRecipe('Pasta', [], [], undefined, undefined, undefined, 10, 20, 4, 'easy');
         });
-        const cached = client.getQueryData(['recipes', 'user-1']) as Array<{
-            title: string;
-            prepTime?: number;
-            cookTime?: number;
-            servings?: number;
-            difficulty?: string;
-        }>;
+
+        const cached = present(
+            client.getQueryData<
+                Array<{
+                    title: string;
+                    prepTime?: number;
+                    cookTime?: number;
+                    servings?: number;
+                    difficulty?: string;
+                }>
+            >(['recipes', 'user-1']),
+            'cached data'
+        );
+
         const created = cached.find((r) => r.title === 'Pasta');
         expect(created).toMatchObject({ prepTime: 10, cookTime: 20, servings: 4, difficulty: 'easy' });
     });
@@ -148,6 +173,7 @@ describe('useRecipeMutations', () => {
             users: [user],
             dateAdded: new Date(),
         };
+
         const client = new QueryClient();
         client.setQueryData(['recipes', 'user-1'], [existingRecipe]);
         client.setQueryData(['recipe', 'R3'], existingRecipe);
@@ -167,12 +193,17 @@ describe('useRecipeMutations', () => {
                 'hard'
             );
         });
-        const detail = client.getQueryData(['recipe', 'R3']) as {
-            prepTime?: number;
-            cookTime?: number;
-            servings?: number;
-            difficulty?: string;
-        };
+
+        const detail = present(
+            client.getQueryData<{
+                prepTime?: number;
+                cookTime?: number;
+                servings?: number;
+                difficulty?: string;
+            }>(['recipe', 'R3']),
+            'cached data'
+        );
+
         expect(detail).toMatchObject({ prepTime: 15, cookTime: 25, servings: 6, difficulty: 'hard' });
     });
 });

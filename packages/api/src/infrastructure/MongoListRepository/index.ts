@@ -63,6 +63,7 @@ export class MongoListRepository implements ListRepository {
             { $set: { 'items.$[item].category': category }, $inc: { revision: 1 } },
             { arrayFilters: [{ 'item.id': itemId, 'item.category': { $exists: false } }] }
         );
+
         return result.modifiedCount === 1;
     }
 

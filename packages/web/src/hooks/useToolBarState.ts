@@ -10,6 +10,7 @@ export const useToolBarState = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     useEffect(() => {
+        // SAFETY: mousedown/touchstart targets inside the document are Nodes.
         const handleClickOutside = (event: MouseEvent | TouchEvent) => {
             if (menuCardRef.current && !menuCardRef.current.contains(event.target as Node) && isMenuOpen) {
                 setIsMenuOpen(false);

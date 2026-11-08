@@ -1,13 +1,13 @@
-import { describe, expect, it, mock } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 
-import type { FalLlmClient, LlmResult } from '../FalLlmClient';
+import { type LlmRequest, llmReplying } from '../../testing/doubles';
+import type { LlmResult } from '../FalLlmClient';
 import { FalIngredientSubstituter } from './index';
 import { substitutesSchema } from './schema';
 
-type CompleteArgs = Parameters<FalLlmClient['completeStructured']>[0];
+type CompleteArgs = LlmRequest;
 
-const fakeClient = (impl: (args: CompleteArgs) => Promise<LlmResult<unknown>>) =>
-    ({ completeStructured: mock(impl) }) as unknown as FalLlmClient;
+const fakeClient = llmReplying;
 
 const result = <T>(value: T): LlmResult<T> => ({
     value,
@@ -17,8 +17,10 @@ const result = <T>(value: T): LlmResult<T> => ({
 describe('FalIngredientSubstituter', () => {
     it('calls the client with operation ingredient.substitute, the substitutes schema and the ingredient name in the prompt', async () => {
         let seen: CompleteArgs | undefined;
+
         const client = fakeClient(async (args) => {
             seen = args;
+
             return result({ substitutes: ['margarine', 'coconut oil'] });
         });
 
@@ -33,8 +35,10 @@ describe('FalIngredientSubstituter', () => {
 
     it('includes the recipe title in the prompt when provided', async () => {
         let seen: CompleteArgs | undefined;
+
         const client = fakeClient(async (args) => {
             seen = args;
+
             return result({ substitutes: [] });
         });
 
@@ -55,8 +59,10 @@ describe('FalIngredientSubstituter', () => {
 
     it('passes an explicit model and timeout through to the client', async () => {
         let seen: CompleteArgs | undefined;
+
         const client = fakeClient(async (args) => {
             seen = args;
+
             return result({ substitutes: [] });
         });
 

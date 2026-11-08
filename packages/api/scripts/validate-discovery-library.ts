@@ -5,7 +5,6 @@
  *   bun run discover:validate            (from the repo root, reads .env)
  */
 import 'dotenv/config';
-
 import type { DiscoveryRecipe } from '@tandra/types';
 
 import { config } from '../src/config';
@@ -15,21 +14,28 @@ import { CollectionNames, DependencyToken } from '../src/dependencies/types';
 registerDepdendencies();
 
 const database = dependencyContainer.resolve(DependencyToken.Database);
+
 await database.connect({ connectionUri: config.get('connectionUri'), databaseName: config.get('databaseName') });
 
+// SAFETY: `Collections` is a union of every collection's document type; the query filters the DiscoveryRecipe collection and the projection only drops `_id`.
 const recipes = (await database
     .getCollection(CollectionNames.DiscoveryRecipe)
     .find({ source: 'wikibooks' }, { projection: { _id: 0 } })
     .toArray()) as DiscoveryRecipe[];
 
-const nonEmpty = (value: unknown): boolean => (Array.isArray(value) ? value.length > 0 : Boolean(value));
+const nonEmpty = (value: string | readonly unknown[] | undefined): boolean =>
+    Array.isArray(value) ? value.length > 0 : Boolean(value);
+
 const required = ['title', 'ingredients', 'instructions', 'tags', 'sourceUrl', 'licence', 'attribution'] as const;
 
 const missing = Object.fromEntries(
     required.map((field) => [field, recipes.filter((recipe) => !nonEmpty(recipe[field])).length])
 );
+
+// SAFETY: `estimated` only ever holds DiscoveryEstimatedField names, which are strings; the cast widens it so `field` (a plain string from the CLI report) can be looked up with includes().
 const estimatedCount = (field: string) =>
     recipes.filter((recipe) => (recipe.estimated as string[] | undefined)?.includes(field)).length;
+
 const withField = (field: 'prepTime' | 'cookTime' | 'servings' | 'difficulty') =>
     recipes.filter((recipe) => recipe[field] !== undefined).length;
 
@@ -50,4 +56,5 @@ console.log(
         2
     )
 );
+
 process.exit(Object.values(missing).some((count) => count > 0) ? 1 : 0);

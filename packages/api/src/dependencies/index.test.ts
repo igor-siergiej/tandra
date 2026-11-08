@@ -13,7 +13,7 @@ describe('dependency registration', () => {
     });
 
     it.each(Object.values(DependencyToken))('resolves %s to an object without connecting to anything', (token) => {
-        const resolved = dependencyContainer.resolve(token as never);
+        const resolved = dependencyContainer.resolve(token);
 
         expect(resolved).toBeDefined();
         expect(resolved).not.toBeNull();
@@ -26,9 +26,13 @@ describe('dependency registration', () => {
     });
 
     it('gives ListService the item categoriser and realtime notifier', () => {
-        const service = dependencyContainer.resolve(DependencyToken.ListService) as unknown as Record<string, unknown>;
+        const service = dependencyContainer.resolve(DependencyToken.ListService);
 
-        expect(service.itemCategoryService).toBe(dependencyContainer.resolve(DependencyToken.ItemCategoryService));
-        expect(service.onListChanged).toBeFunction();
+        // Both are private collaborators, so the test reads them as properties rather than through the type.
+        expect(service).toHaveProperty(
+            'itemCategoryService',
+            dependencyContainer.resolve(DependencyToken.ItemCategoryService)
+        );
+        expect(service).toHaveProperty('onListChanged', expect.any(Function));
     });
 });

@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
+
 import type { List } from '@tandra/types';
+
 import { AuthorizationService } from './index';
 
 describe('AuthorizationService', () => {
@@ -12,6 +14,7 @@ describe('AuthorizationService', () => {
     describe('isListOwner', () => {
         it('returns true when user is list owner via ownerId', () => {
             const userId = 'user-123';
+
             const list: List = {
                 id: 'list-1',
                 title: 'Test',
@@ -41,6 +44,7 @@ describe('AuthorizationService', () => {
 
         it('returns true when user is first in users array (backward compatibility)', () => {
             const userId = 'user-123';
+
             const list: List = {
                 id: 'list-1',
                 title: 'Test',
@@ -76,6 +80,7 @@ describe('AuthorizationService', () => {
     describe('canManageUsers', () => {
         it('returns true when user is list owner via ownerId', () => {
             const userId = 'user-123';
+
             const list: List = {
                 id: 'list-1',
                 title: 'Test',
@@ -105,6 +110,7 @@ describe('AuthorizationService', () => {
 
         it('returns true for backward compatible first user', () => {
             const userId = 'user-123';
+
             const list: List = {
                 id: 'list-1',
                 title: 'Test',

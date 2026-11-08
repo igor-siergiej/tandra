@@ -7,10 +7,12 @@
  *   OPENSEARCH_TEST_URL=http://localhost:9200 bun test OpenSearchDiscoveryIndex
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'bun:test';
+
 import { Client } from '@opensearch-project/opensearch';
 import type { DiscoveryRecipe } from '@tandra/types';
 
 import { DiscoveryService } from '../../domain/DiscoveryService';
+import { fake } from '../../testing/fake';
 import { type OpenSearchApi, OpenSearchDiscoveryIndex } from './index';
 import { DEFAULT_INDEX_ALIAS as INDEX_ALIAS } from './mapping';
 
@@ -37,17 +39,21 @@ const ing = (...names: string[]) => names.map((name, i) => ({ id: `${name}-${i}`
 
 describe.skipIf(!url)('OpenSearchDiscoveryIndex (real OpenSearch)', () => {
     const client = new Client({ node: url ?? 'http://localhost:9200' });
-    const index = new OpenSearchDiscoveryIndex(client as unknown as OpenSearchApi);
+    // A fresh instance per test: each one memoises "index exists".
+    const freshIndex = () => new OpenSearchDiscoveryIndex(fake<OpenSearchApi>(client));
+    let index = freshIndex();
+    let service = new DiscoveryService(fake({}), index);
 
     const wipe = async () => {
         await client.indices.delete({ index: 'discovery-recipes*' }, { ignore: [404] });
     };
+
     const load = async (...recipes: DiscoveryRecipe[]) => {
         for (const r of recipes) await index.index(r);
         await client.indices.refresh({ index: INDEX_ALIAS });
     };
+
     // Through the service, so queries are normalised exactly as the API does it.
-    const service = new DiscoveryService({} as never, index);
     const search = (q: Parameters<DiscoveryService['search']>[0]) => service.search(q);
     const ids = (result: { hits: Array<{ id: string }> }) => result.hits.map((h) => h.id);
 
@@ -55,14 +61,13 @@ describe.skipIf(!url)('OpenSearchDiscoveryIndex (real OpenSearch)', () => {
     afterAll(wipe);
     beforeEach(async () => {
         await wipe();
-        // A fresh instance each time: it memoises "index exists".
-        (index as unknown as { ready: unknown }).ready = null;
+        index = freshIndex();
+        service = new DiscoveryService(fake({}), index);
     });
 
     it('ensureIndex is idempotent and creates one concrete index behind the alias', async () => {
         await index.ensureIndex();
-        (index as unknown as { ready: unknown }).ready = null;
-        await index.ensureIndex();
+        await freshIndex().ensureIndex();
 
         const { body } = await client.indices.getAlias({ name: INDEX_ALIAS });
         expect(Object.keys(body)).toHaveLength(1);
@@ -70,18 +75,21 @@ describe.skipIf(!url)('OpenSearchDiscoveryIndex (real OpenSearch)', () => {
 
     it('uses an explicit strict mapping: unknown fields are rejected instead of mapped dynamically', async () => {
         await index.ensureIndex();
+
         // The client returns a thenable, not a Promise, so `.rejects` cannot be used on it directly.
         const attempt = (async () =>
             client.index({ index: INDEX_ALIAS, id: 'x', body: { title: 'x', surprise: 'field' } }))();
+
         await expect(attempt).rejects.toThrow(/strict_dynamic_mapping_exception/);
     });
 
     it('keeps instances on different aliases apart, including across a rebuild', async () => {
         // Inside the `discovery-recipes*` pattern so `wipe` cleans it up too.
         const otherAlias = 'discovery-recipes-other';
-        const other = new OpenSearchDiscoveryIndex(client as unknown as OpenSearchApi, undefined, otherAlias);
+        const other = new OpenSearchDiscoveryIndex(fake<OpenSearchApi>(client), undefined, otherAlias);
+
         const otherSearch = (q: Parameters<DiscoveryService['search']>[0]) =>
-            new DiscoveryService({} as never, other).search(q);
+            new DiscoveryService(fake({}), other).search(q);
 
         await load(recipe('mine'));
         await other.index(recipe('theirs'));
@@ -374,6 +382,7 @@ describe.skipIf(!url)('OpenSearchDiscoveryIndex (real OpenSearch)', () => {
                 yield [recipe('partial')];
                 throw new Error('mongo went away');
             }
+
             await expect(index.rebuild(failing())).rejects.toThrow('mongo went away');
 
             expect(ids(await search({}))).toEqual(['live']);

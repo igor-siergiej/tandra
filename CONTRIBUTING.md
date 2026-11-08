@@ -34,7 +34,7 @@ images and uses HMR via Vite.
 Run these from the repo root before opening a PR:
 
 ```bash
-bun run lint                                       # Biome (not ESLint)
+bun run lint                                       # Oxlint + Oxfmt (not ESLint)
 bunx tsc -p packages/api/tsconfig.json --noEmit    # API types
 bunx tsc -p packages/web/tsconfig.app.json --noEmit # web types
 bun run --filter @tandra/api test               # Bun runner; 90% coverage gate
@@ -53,7 +53,7 @@ bun run test:e2e --grep "@smoke"  # smoke subset; safe to run against any deploy
 - **Commits** follow Conventional Commits (`feat:`, `fix:`, `chore:`, `refactor:`)
   — enforced by `commitlint` + Husky. Use `bunx commit` if you'd like the
   prompts.
-- **Lint** is Biome, not ESLint. Run `bun run lint:fix` before committing;
+- **Lint** is Oxlint + Oxfmt, not ESLint. Run `bun run lint:fix` before committing;
   pre-commit hooks run `lint-staged` on staged files.
 - **Architecture** is documented in `AGENTS.md`. Read it before touching
   `domain/`, `infrastructure/`, or route handlers — clean architecture means

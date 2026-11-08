@@ -1,87 +1,134 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
+
 import type { MongoDbConnection } from '@imapps/api-utils';
 import type { Item, List } from '@tandra/types';
+import type { Document, Filter, IndexSpecification, UpdateFilter, UpdateOptions } from 'mongodb';
 
+import type { Collections } from '../../dependencies/types';
+import { fake } from '../../testing/fake';
 import { MongoListRepository } from './index';
 
-class MockCollection {
-    calls: Record<string, Array<Array<unknown>>> = {
-        findOne: [],
-        find: [],
-        insertOne: [],
-        deleteOne: [],
-        replaceOne: [],
-        updateOne: [],
-        findOneAndReplace: [],
-        findOneAndUpdate: [],
-    };
+type Query = Filter<List>;
 
-    resolvedValues: Record<string, unknown> = {
-        findOne: null,
-        find: { toArray: async () => [] },
-        insertOne: { insertedId: null },
-        deleteOne: { deletedCount: 0 },
-        replaceOne: { modifiedCount: 0 },
-        updateOne: { modifiedCount: 0 },
-        findOneAndReplace: { modifiedCount: 0 },
-        findOneAndUpdate: { modifiedCount: 0 },
-    };
+type Update = UpdateFilter<List> | Document[];
+
+/** Every call the double saw, by method, in the argument order the driver takes. */
+type Calls = {
+    findOne: Array<[Query]>;
+    find: Array<[Query]>;
+    insertOne: Array<[List]>;
+    deleteOne: Array<[Query]>;
+    replaceOne: Array<[Query, List]>;
+    updateOne: Array<[Query, Update] | [Query, Update, UpdateOptions]>;
+    findOneAndReplace: Array<[Query, List]>;
+    findOneAndUpdate: Array<[Query, Update]>;
+};
+
+/** What each method resolves with; the repository reads only these fields of a driver result. */
+type Resolved = {
+    findOne: List | null;
+    find: { toArray: () => Promise<List[]> };
+    insertOne: { insertedId: string | null };
+    deleteOne: { deletedCount: number };
+    replaceOne: { matchedCount?: number; modifiedCount?: number };
+    updateOne: { modifiedCount: number };
+    findOneAndReplace: { modifiedCount: number };
+    findOneAndUpdate: { modifiedCount: number };
+};
+
+const emptyCalls = (): Calls => ({
+    findOne: [],
+    find: [],
+    insertOne: [],
+    deleteOne: [],
+    replaceOne: [],
+    updateOne: [],
+    findOneAndReplace: [],
+    findOneAndUpdate: [],
+});
+
+const defaultResolved = (): Resolved => ({
+    findOne: null,
+    find: { toArray: async () => [] },
+    insertOne: { insertedId: null },
+    deleteOne: { deletedCount: 0 },
+    replaceOne: { modifiedCount: 0 },
+    updateOne: { modifiedCount: 0 },
+    findOneAndReplace: { modifiedCount: 0 },
+    findOneAndUpdate: { modifiedCount: 0 },
+});
+
+class MockCollection {
+    calls = emptyCalls();
+
+    resolvedValues = defaultResolved();
 
     /** When set, successive findOne calls return these in order (then fall back to resolvedValues.findOne). */
-    findOneSequence: Array<unknown> = [];
+    findOneSequence: Array<List | null> = [];
 
-    async findOne(query: unknown) {
+    async findOne(query: Query) {
         this.calls.findOne.push([query]);
+
         if (this.findOneSequence.length > 0) return this.findOneSequence.shift();
+
         return this.resolvedValues.findOne;
     }
 
-    find(query: unknown) {
+    find(query: Query) {
         this.calls.find.push([query]);
+
         return this.resolvedValues.find;
     }
 
-    async insertOne(doc: unknown) {
+    async insertOne(doc: List) {
         this.calls.insertOne.push([doc]);
+
         return this.resolvedValues.insertOne;
     }
 
-    async deleteOne(query: unknown) {
+    async deleteOne(query: Query) {
         this.calls.deleteOne.push([query]);
+
         return this.resolvedValues.deleteOne;
     }
 
-    async replaceOne(query: unknown, replacement: unknown) {
+    async replaceOne(query: Query, replacement: List) {
         this.calls.replaceOne.push([query, replacement]);
+
         return this.resolvedValues.replaceOne;
     }
 
-    async updateOne(query: unknown, update: unknown, options?: unknown) {
+    async updateOne(query: Query, update: Update, options?: UpdateOptions) {
         this.calls.updateOne.push(options === undefined ? [query, update] : [query, update, options]);
+
         return this.resolvedValues.updateOne;
     }
 
-    async findOneAndReplace(query: unknown, replacement: unknown) {
+    async findOneAndReplace(query: Query, replacement: List) {
         this.calls.findOneAndReplace.push([query, replacement]);
+
         return this.resolvedValues.findOneAndReplace;
     }
 
-    async findOneAndUpdate(query: unknown, update: unknown) {
+    async findOneAndUpdate(query: Query, update: Update) {
         this.calls.findOneAndUpdate.push([query, update]);
+
         return this.resolvedValues.findOneAndUpdate;
     }
 
-    createIndexCalls: Array<unknown> = [];
+    createIndexCalls: Array<IndexSpecification> = [];
 
-    async createIndex(keys: unknown) {
+    async createIndex(keys: IndexSpecification) {
         this.createIndexCalls.push(keys);
+
         return 'index';
     }
 
-    updateManyCalls: Array<[unknown, unknown]> = [];
+    updateManyCalls: Array<[Query, Update]> = [];
 
-    async updateMany(query: unknown, update: unknown) {
+    async updateMany(query: Query, update: Update) {
         this.updateManyCalls.push([query, update]);
+
         return { modifiedCount: 1 };
     }
 
@@ -89,33 +136,16 @@ class MockCollection {
         this.findOneSequence = [];
         this.createIndexCalls = [];
         this.updateManyCalls = [];
-        this.calls = {
-            findOne: [],
-            find: [],
-            insertOne: [],
-            deleteOne: [],
-            replaceOne: [],
-            updateOne: [],
-            findOneAndReplace: [],
-            findOneAndUpdate: [],
-        };
-        this.resolvedValues = {
-            findOne: null,
-            find: { toArray: async () => [] },
-            insertOne: { insertedId: null },
-            deleteOne: { deletedCount: 0 },
-            replaceOne: { modifiedCount: 0 },
-            updateOne: { modifiedCount: 0 },
-            findOneAndReplace: { modifiedCount: 0 },
-            findOneAndUpdate: { modifiedCount: 0 },
-        };
+        this.calls = emptyCalls();
+        this.resolvedValues = defaultResolved();
     }
 }
 
 const mockCollection = new MockCollection();
-const mockConnection = {
-    getCollection: () => mockCollection,
-} as unknown as MongoDbConnection<{ list: List }>;
+
+// SAFETY: MockCollection implements every collection method MongoListRepository calls (findOne, find, insertOne,
+// deleteOne, replaceOne, updateOne, findOneAndReplace, findOneAndUpdate, createIndex, updateMany).
+const mockConnection = fake<MongoDbConnection<Collections>>({ getCollection: () => mockCollection as never });
 
 describe('MongoListRepository', () => {
     let repository: MongoListRepository;
@@ -200,6 +230,7 @@ describe('MongoListRepository', () => {
                         users: [{ id: 'user-1', username: 'testuser' }],
                     },
                 ];
+
                 const mockCursor = {
                     toArray: async () => mockLists,
                 };

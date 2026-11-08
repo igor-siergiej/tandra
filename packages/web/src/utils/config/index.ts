@@ -1,4 +1,4 @@
-import type { AppConfig, ConfigState } from './types';
+import { type AppConfig, appConfigSchema, type ConfigState } from './types';
 
 const CONFIG_STORAGE_KEY = 'tandra:config';
 
@@ -13,9 +13,11 @@ const configState: ConfigState = {
 const readCachedConfig = (): AppConfig | null => {
     try {
         const raw = localStorage.getItem(CONFIG_STORAGE_KEY);
+
         if (!raw) return null;
-        const cached = JSON.parse(raw);
-        return cached && typeof cached === 'object' ? (cached as AppConfig) : null;
+        const cached = appConfigSchema.safeParse(JSON.parse(raw));
+
+        return cached.success ? cached.data : null;
     } catch {
         return null;
     }
@@ -36,8 +38,9 @@ export const loadConfig = async (): Promise<AppConfig> => {
         }
 
         const configData = await response.json();
-        configState.config = configData as AppConfig;
+        configState.config = appConfigSchema.parse(configData);
         configState.isLoading = false;
+
         try {
             localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(configState.config));
         } catch {
@@ -47,9 +50,11 @@ export const loadConfig = async (): Promise<AppConfig> => {
         return configState.config;
     } catch (error) {
         const cached = readCachedConfig();
+
         if (cached) {
             configState.config = cached;
             configState.isLoading = false;
+
             return cached;
         }
 

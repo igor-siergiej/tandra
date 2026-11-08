@@ -55,10 +55,12 @@ export class HttpPageFetcher implements PageFetcher {
                     { status: 502 }
                 );
             }
+
             throw Object.assign(new Error(`Failed to fetch page: ${response.status}`), { status: 502 });
         }
 
         const contentType = response.headers.get('content-type') ?? '';
+
         if (contentType && !contentType.includes('html') && !contentType.includes('xml')) {
             throw Object.assign(new Error(`Unsupported content type: ${contentType}`), { status: 415 });
         }
@@ -69,8 +71,10 @@ export class HttpPageFetcher implements PageFetcher {
     // Stream the body and stop once maxBytes is reached, so a huge page can't exhaust memory.
     private async readCapped(response: Response): Promise<string> {
         const body = response.body;
+
         if (!body) {
             const text = await response.text();
+
             return text.slice(0, this.maxBytes);
         }
 
@@ -81,10 +85,12 @@ export class HttpPageFetcher implements PageFetcher {
 
         while (received < this.maxBytes) {
             const { done, value } = await reader.read();
+
             if (done) break;
             received += value.byteLength;
             html += decoder.decode(value, { stream: true });
         }
+
         await reader.cancel().catch(() => {});
         html += decoder.decode();
 

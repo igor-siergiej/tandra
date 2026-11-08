@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { hasInAppBackHistory } from '../utils/navigationHistory';
 
 // Prefer a real back-navigation (pops the actual history entry) so the

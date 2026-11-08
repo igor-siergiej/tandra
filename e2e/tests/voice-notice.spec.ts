@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+
 import { apiCreateList } from '../api-helpers';
 import { expect, test } from '../fixtures';
 import { mockSpokenItemsParse } from '../mocks/ai';
@@ -12,8 +13,7 @@ const openVoiceDrawer = async (page: Page) => {
     await page.getByRole('button', { name: 'Add by voice' }).click();
 };
 
-const speechStarts = (page: Page) =>
-    page.evaluate(() => (window as unknown as { __speechStarts?: number }).__speechStarts ?? 0);
+const speechStarts = (page: Page) => page.evaluate(() => window.__speechStarts ?? 0);
 
 test.describe('Voice add: one-time notice', () => {
     test('explains where speech goes before the mic first opens, and only once', async ({ authenticatedPage }) => {

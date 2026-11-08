@@ -1,5 +1,6 @@
 import type { Todo } from '@tandra/types';
 import { GripVertical } from 'lucide-react';
+
 import { SwipeableRow } from '../SwipeableRow';
 
 export interface InboxDrawerItemProps {

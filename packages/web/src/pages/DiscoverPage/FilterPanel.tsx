@@ -1,16 +1,17 @@
 import type { DiscoveryFacetBucket, DiscoveryFacets, RecipeDifficulty } from '@tandra/types';
 import type { ReactNode } from 'react';
+
 import type { DiscoverySearch, DiscoveryTimeFilter } from '../../hooks/useDiscoverySearch';
 
 const MAX_CHIPS = 12;
 
-const TIME_LABEL: Record<string, string> = {
-    'under-15': 'Under 15 min',
-    '15-30': '15-30 min',
-    '30-60': '30-60 min',
-    '60-120': '1-2 hours',
-    'over-120': 'Over 2 hours',
-};
+const TIME_LABEL = new Map([
+    ['under-15', 'Under 15 min'],
+    ['15-30', '15-30 min'],
+    ['30-60', '30-60 min'],
+    ['60-120', '1-2 hours'],
+    ['over-120', 'Over 2 hours'],
+]);
 
 const DIFFICULTY_ORDER: RecipeDifficulty[] = ['easy', 'medium', 'hard'];
 
@@ -51,6 +52,7 @@ const Group = ({ title, children }: { title: string; children: ReactNode }) => (
 const withSelected = (buckets: DiscoveryFacetBucket[], selected: string[]): DiscoveryFacetBucket[] => {
     const shown = buckets.slice(0, MAX_CHIPS);
     const missing = selected.filter((key) => !shown.some((bucket) => bucket.key === key));
+
     return [...missing.map((key) => ({ key, count: 0 })), ...shown];
 };
 
@@ -65,6 +67,7 @@ const capitalised = (text: string) => text.charAt(0).toUpperCase() + text.slice(
 
 // Four facet groups, each a list of chips; the branching is only "is this one selected".
 // fallow-ignore-next-line complexity
+// SAFETY: the difficulty facet keys are RecipeDifficulty values (the API only indexes those three).
 export const FilterPanel = ({ search, facets }: { search: DiscoverySearch; facets: DiscoveryFacets }) => (
     <div className="space-y-4 rounded-2xl border border-border bg-card p-3" data-testid="discover-filters">
         <Group title="Difficulty">
@@ -82,7 +85,7 @@ export const FilterPanel = ({ search, facets }: { search: DiscoverySearch; facet
             {timeBuckets(facets, search.filters.time).map((bucket) => (
                 <Chip
                     key={bucket.key}
-                    label={TIME_LABEL[bucket.key] ?? bucket.key}
+                    label={TIME_LABEL.get(bucket.key) ?? bucket.key}
                     count={bucket.count}
                     active={search.filters.time?.key === bucket.key}
                     onClick={() => search.toggleTime({ key: bucket.key, from: bucket.from, to: bucket.to })}

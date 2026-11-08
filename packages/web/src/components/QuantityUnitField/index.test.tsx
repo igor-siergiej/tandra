@@ -1,6 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { narrowTo } from '../../testing/fake';
 import { QuantityUnitField } from './index';
 
 describe('QuantityUnitField', () => {
@@ -55,7 +57,7 @@ describe('QuantityUnitField', () => {
             />
         );
 
-        const quantityInput = screen.getByRole('spinbutton') as HTMLInputElement;
+        const quantityInput = narrowTo(screen.getByRole('spinbutton'), HTMLInputElement);
         await user.clear(quantityInput);
         await user.type(quantityInput, '10');
 
@@ -64,6 +66,7 @@ describe('QuantityUnitField', () => {
 
     it('calls onUnitChange when unit select changes', async () => {
         const user = userEvent.setup();
+
         const { container } = render(
             <QuantityUnitField
                 quantity="5"
@@ -73,7 +76,7 @@ describe('QuantityUnitField', () => {
             />
         );
 
-        const unitTrigger = container.querySelector('[id="unit"]') as HTMLElement;
+        const unitTrigger = narrowTo(container.querySelector('[id="unit"]'), HTMLElement);
         await user.click(unitTrigger);
 
         const kgOption = screen.getByText('kg');
@@ -92,7 +95,7 @@ describe('QuantityUnitField', () => {
             />
         );
 
-        const input = container.querySelector('input[type="number"]') as HTMLInputElement;
+        const input = narrowTo(container.querySelector('input[type="number"]'), HTMLInputElement);
         expect(input?.step).toBe('0.01');
         expect(input?.value).toBe('2.5');
     });
@@ -107,7 +110,7 @@ describe('QuantityUnitField', () => {
             />
         );
 
-        const unitTrigger = container.querySelector('[id="unit"]') as HTMLElement;
+        const unitTrigger = narrowTo(container.querySelector('[id="unit"]'), HTMLElement);
         await userEvent.setup().click(unitTrigger);
 
         const listbox = screen.getByRole('listbox');

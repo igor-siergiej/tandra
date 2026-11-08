@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
+
 import type { PushSubscription } from '@tandra/types';
+
+import { connectionTo } from '../../testing/fake';
 import { MongoPushSubscriptionRepository } from './index';
 
 class FakeCollection {
@@ -11,6 +14,7 @@ class FakeCollection {
 
     async replaceOne(filter: { endpoint: string }, doc: PushSubscription, opts: { upsert: boolean }) {
         const idx = this.docs.findIndex((d) => d.endpoint === filter.endpoint);
+
         if (idx >= 0) {
             this.docs[idx] = doc;
         } else if (opts.upsert) {
@@ -28,6 +32,7 @@ class FakeCollection {
 
     find(filter: { userId: { $in: string[] } }) {
         const matched = this.docs.filter((d) => filter.userId.$in.includes(d.userId));
+
         return { toArray: async () => matched };
     }
 }
@@ -45,7 +50,7 @@ describe('MongoPushSubscriptionRepository', () => {
 
     beforeEach(() => {
         collection = new FakeCollection();
-        const db = { getCollection: () => collection } as never;
+        const db = connectionTo(collection);
         repo = new MongoPushSubscriptionRepository(db);
     });
 

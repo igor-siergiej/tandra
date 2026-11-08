@@ -6,6 +6,7 @@ import { backfillWikibooksSlugs } from './wikibooksSlugs';
 const setup = (outcome: () => Promise<WikibooksSlugBackfill>) => {
     const logger = { info: vi.fn(), warn: vi.fn() };
     const repository = { assignWikibooksSlugs: vi.fn(outcome) };
+
     return { logger, repository };
 };
 
@@ -36,6 +37,7 @@ describe('backfillWikibooksSlugs', () => {
         const { logger, repository } = setup(async () => {
             throw Object.assign(new Error('E11000 duplicate key error'), { code: 11000 });
         });
+
         await expect(backfillWikibooksSlugs(repository, logger)).resolves.toBeUndefined();
         expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('backfill failed'), {
             error: 'Error: E11000 duplicate key error',

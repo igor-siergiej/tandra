@@ -1,14 +1,22 @@
 import type { Todo } from '@tandra/types';
 import { endOfMonth, startOfMonth } from 'date-fns';
 import { describe, expect, it } from 'vitest';
+
 import { dayKey } from '../components/Calendar/MonthGrid';
 import { buildCalendarDayData, buildWeekAgenda } from './calendar';
 import { isoDay } from './recurrence';
 
 const today = new Date();
 
-const todo = (id: string, labelId?: string): Todo =>
-    ({ id, ownerId: 'u', title: id, done: false, dateAdded: today, dueDate: isoDay(today), labelId }) as Todo;
+const todo = (id: string, labelId?: string): Todo => ({
+    id,
+    ownerId: 'u',
+    title: id,
+    done: false,
+    dateAdded: today,
+    dueDate: isoDay(today),
+    labelId,
+});
 
 const ctx = (activeLabels: string[] = []) => ({
     labelColor: new Map<string, string>([['L1', '#ff0000']]),
@@ -71,6 +79,7 @@ describe('overdue marking', () => {
             endOfMonth(yesterday),
             ctx()
         );
+
         expect(selectedItems[0].overdue).toBe(true);
     });
 
@@ -83,6 +92,7 @@ describe('overdue marking', () => {
             endOfMonth(yesterday),
             ctx()
         );
+
         expect(selectedItems[0].overdue).toBe(false);
     });
 

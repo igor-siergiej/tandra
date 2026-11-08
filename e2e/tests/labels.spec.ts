@@ -9,6 +9,7 @@ const openManageLabels = async (page: import('@playwright/test').Page) => {
     // it can render the same label text and would otherwise cause strict-mode ambiguity.
     const drawer = page.getByRole('dialog', { name: 'Manage Labels' });
     await expect(drawer.getByRole('heading', { name: 'Manage Labels' })).toBeVisible();
+
     return drawer;
 };
 

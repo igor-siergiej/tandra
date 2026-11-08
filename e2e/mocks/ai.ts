@@ -1,18 +1,24 @@
 import type { Page, Route } from '@playwright/test';
+import type { Recipe } from '@tandra/types';
 
 export interface ImportedRecipe {
     title: string;
     link?: string;
     instructions?: Array<string>;
     ingredients?: Array<{ id?: string; name: string; quantity?: number; unit?: string }>;
-    [key: string]: unknown;
+    /** ISO 8601 durations and a free-text yield, as a schema.org recipe page states them. */
+    prepTime?: string;
+    cookTime?: string;
+    recipeYield?: string;
 }
 
 export type MockOutcome<T> = { ok: T; delayMs?: number } | { status: number; error: string; delayMs?: number };
 
 const respond = async <T>(route: Route, outcome: MockOutcome<T>) => {
     if (outcome.delayMs) await new Promise((resolve) => setTimeout(resolve, outcome.delayMs));
+
     if ('ok' in outcome) return route.fulfill({ json: outcome.ok });
+
     return route.fulfill({ status: outcome.status, json: { error: outcome.error } });
 };
 
@@ -28,7 +34,7 @@ export const mockSpokenItemsParse = (
 ) => page.route('**/api/items/parse', (route) => respond(route, outcome));
 
 /** Stubs POST /api/recipes/:id/image/generate; the response is the updated recipe. */
-export const mockRecipeCoverGeneration = (page: Page, outcome: MockOutcome<Record<string, unknown>>) =>
+export const mockRecipeCoverGeneration = (page: Page, outcome: MockOutcome<Partial<Recipe>>) =>
     page.route(/\/api\/recipes\/[^/]+\/image\/generate$/, (route) => respond(route, outcome));
 
 export const mockRateLimited = (page: Page, urlGlob: string) =>

@@ -1,5 +1,6 @@
 import type { Todo } from '@tandra/types';
 import { addDays } from 'date-fns';
+
 import type { DayTodoItem } from '../components/Calendar/DayTodoList';
 import { type DayDot, dayKey } from '../components/Calendar/MonthGrid';
 import { expandOccurrences, isoDay } from './recurrence';
@@ -40,9 +41,11 @@ interface CollectCtx {
 const collectTodo = (todo: Todo, ctx: CollectCtx): void => {
     const color = todo.labelId ? ctx.labelColor.get(todo.labelId) : undefined;
     const dimmed = isDimmed(todo, ctx.activeLabels);
+
     for (const occ of expandOccurrences(todo, ctx.rangeStart, ctx.rangeEnd)) {
         const key = dayKey(occ.date);
         addOccurrenceToDots(ctx.dots, key, color, dimmed);
+
         if (key === ctx.selectedKey) ctx.items.push(toSelectedItem(todo, color, occ.date, occ.done, dimmed));
     }
 };
@@ -83,6 +86,7 @@ export const buildCalendarDayData = (
 ): CalendarDayData => {
     const dots: Record<string, DayDot[]> = {};
     const items: DayTodoItem[] = [];
+
     const ctx: CollectCtx = {
         selectedKey: dayKey(selectedDay),
         rangeStart,
@@ -114,8 +118,10 @@ const collectWeekTodo = (
 ): void => {
     const color = todo.labelId ? labelColor.get(todo.labelId) : undefined;
     const dimmed = isDimmed(todo, activeLabels);
+
     for (const occ of expandOccurrences(todo, rangeStart, rangeEnd)) {
         const bucket = byDay.get(dayKey(occ.date));
+
         if (bucket) bucket.push(toSelectedItem(todo, color, occ.date, occ.done, dimmed));
     }
 };

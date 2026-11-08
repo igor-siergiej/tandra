@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'bun:test';
 
+import { fake } from '../../testing/fake';
 import { FalItemTextParser } from './index';
 import { spokenItemsSchema } from './schema';
 
@@ -39,7 +40,7 @@ describe('FalItemTextParser', () => {
             completeStructured: vi.fn().mockResolvedValue({ value: { items: [{ name: 'milk' }] } }),
         };
 
-        const items = await new FalItemTextParser(client as never).parse('some milk');
+        const items = await new FalItemTextParser(fake(client)).parse('some milk');
 
         expect(items).toEqual([{ name: 'milk' }]);
         expect(client.completeStructured.mock.calls[0][0]).toMatchObject({

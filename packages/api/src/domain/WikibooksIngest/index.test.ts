@@ -1,10 +1,12 @@
 import { describe, expect, it, vi } from 'bun:test';
+
 import type { DiscoveryRecipe } from '@tandra/types';
 
+import { present } from '../../testing/fake';
 import { RuleIngredientStructurer } from '../RuleIngredientStructurer';
 import type { CoverOutcome } from './cover';
 import { type DiscoveryWriter, WikibooksIngestService } from './index';
-import type { RecipeEstimate, WikibooksImageInfo, WikibooksPage, WikibooksPageRef } from './types';
+import type { RecipeEstimate, RecipeEstimator, WikibooksImageInfo, WikibooksPage, WikibooksPageRef } from './types';
 
 const page = (pageId: number, revisionId: number, extra = ''): WikibooksPage => ({
     pageId,
@@ -22,22 +24,21 @@ const withImage = (p: WikibooksPage, file = 'Soup.jpg'): WikibooksPage => ({
     wikitext: p.wikitext.replace('|difficulty=2', `|difficulty=2|image=[[File:${file}|300px]]`),
 });
 
-type MockFn = ReturnType<typeof vi.fn>;
-
 const foundImage = (): WikibooksImageInfo => ({ found: true, mime: 'image/jpeg' });
 
 const ref = ({ pageId, title, revisionId }: WikibooksPage): WikibooksPageRef => ({ pageId, title, revisionId });
 
 const setup = (initial: DiscoveryRecipe[] = []) => {
     const store = new Map(initial.map((recipe) => [recipe.id, recipe]));
-    const discovery: DiscoveryWriter = {
+
+    const discovery = {
         save: vi.fn(async (recipe: DiscoveryRecipe) => {
             store.set(recipe.id, recipe);
         }),
         remove: vi.fn(async (id: string) => {
             store.delete(id);
         }),
-        getRecipe: vi.fn(async (id: string) => store.get(id) as DiscoveryRecipe),
+        getRecipe: vi.fn(async (id: string) => present(store.get(id), `stored recipe ${id}`)),
         listRevisions: vi.fn(async () =>
             [...store.values()].map(({ id, sourceRevision, imageRevision, createdAt }) => ({
                 id,
@@ -46,42 +47,50 @@ const setup = (initial: DiscoveryRecipe[] = []) => {
                 createdAt,
             }))
         ),
-    };
+    } satisfies DiscoveryWriter;
+
     const wiki = new Map<number, WikibooksPage>();
+
     const source = {
         listRecipePages: vi.fn(async () => [...wiki.values()].map(ref)),
         fetchPages: vi.fn(async (refs: WikibooksPageRef[]) =>
-            refs.flatMap((r) => (wiki.has(r.pageId) ? [wiki.get(r.pageId) as WikibooksPage] : []))
+            refs.flatMap((r) => {
+                const found = wiki.get(r.pageId);
+
+                return found ? [found] : [];
+            })
         ),
         fetchImageInfo: vi.fn(async (names: string[]) => new Map(names.map((name) => [name, foundImage()]))),
         downloadImage: vi.fn(),
     };
+
     // The cover service has its own tests; here it stores a cover for any page that names a picture.
-    const cover = vi.fn(
-        async (id: string, file: string | undefined): Promise<CoverOutcome> =>
-            file
-                ? {
-                      fields: {
-                          coverImageKey: `discovery-image/${id}/1.jpg`,
-                          coverImageAttribution: 'Photo: Jane, CC BY 2.0, via Wikimedia Commons',
-                          coverImageSourceUrl: 'https://commons.wikimedia.org/wiki/File:Soup.jpg',
-                      },
-                      decided: true,
-                  }
-                : { fields: {}, decided: true }
+    const cover = vi.fn(async (id: string, file: string | undefined): Promise<CoverOutcome> =>
+        file
+            ? {
+                  fields: {
+                      coverImageKey: `discovery-image/${id}/1.jpg`,
+                      coverImageAttribution: 'Photo: Jane, CC BY 2.0, via Wikimedia Commons',
+                      coverImageSourceUrl: 'https://commons.wikimedia.org/wiki/File:Soup.jpg',
+                  },
+                  decided: true,
+              }
+            : { fields: {}, decided: true }
     );
+
     const tagger = { generateTags: vi.fn(async (_title: string): Promise<string[]> => ['broth']) };
+
     const estimator = {
-        estimate: vi.fn(
-            async (_recipe: unknown, _fields: string[]): Promise<RecipeEstimate> => ({
-                prepTime: 7,
-                cookTime: 40,
-                servings: 3,
-                difficulty: 'hard',
-            })
-        ),
+        estimate: vi.fn(async (..._args: Parameters<RecipeEstimator['estimate']>): Promise<RecipeEstimate> => ({
+            prepTime: 7,
+            cookTime: 40,
+            servings: 3,
+            difficulty: 'hard',
+        })),
     };
+
     let n = 0;
+
     const service = new WikibooksIngestService(
         source,
         discovery,
@@ -91,6 +100,7 @@ const setup = (initial: DiscoveryRecipe[] = []) => {
         { generate: () => `ing-${++n}` },
         { resolve: cover }
     );
+
     return { service, store, wiki, source, discovery, tagger, estimator, cover };
 };
 
@@ -122,7 +132,7 @@ describe('WikibooksIngestService', () => {
         const { service, wiki, discovery, tagger, source } = setup();
         wiki.set(1, page(1, 100));
         await service.run();
-        (discovery.save as unknown as { mockClear(): void }).mockClear();
+        discovery.save.mockClear();
         tagger.generateTags.mockClear();
         source.fetchPages.mockClear();
 
@@ -146,7 +156,7 @@ describe('WikibooksIngestService', () => {
         expect(summary).toMatchObject({ updated: 1, created: 0 });
         expect(store.get('wikibooks-1')?.ingredients).toHaveLength(2);
         expect(store.get('wikibooks-1')?.sourceRevision).toBe(101);
-        expect(store.get('wikibooks-1')?.createdAt).toEqual(created as Date);
+        expect(store.get('wikibooks-1')?.createdAt).toEqual(present(created, 'createdAt'));
     });
 
     it('gives every recipe it creates or updates its id as public slug', async () => {
@@ -163,6 +173,7 @@ describe('WikibooksIngestService', () => {
 
     it('removes a recipe whose page was deleted, and one that stopped being a recipe', async () => {
         const { service, store, wiki } = setup();
+
         for (let id = 1; id <= 10; id += 1) wiki.set(id, page(id, 100 + id));
         await service.run();
         wiki.delete(1);
@@ -178,8 +189,10 @@ describe('WikibooksIngestService', () => {
 
     it('refuses to delete an implausible share of the library when the listing looks broken', async () => {
         const { service, store, wiki, discovery } = setup();
+
         for (let id = 1; id <= 10; id += 1) wiki.set(id, page(id, 100));
         await service.run();
+
         for (let id = 1; id <= 8; id += 1) wiki.delete(id);
 
         const summary = await service.run();
@@ -198,6 +211,7 @@ describe('WikibooksIngestService', () => {
         wiki.set(2, page(2, 201));
         tagger.generateTags.mockImplementation(async (title: string) => {
             if (title === 'Recipe 1') throw new Error('rate limited');
+
             return ['broth'];
         });
 
@@ -218,7 +232,11 @@ describe('WikibooksIngestService', () => {
         wiki.set(1, page(1, 100));
         wiki.set(2, page(2, 200));
         source.fetchPages.mockImplementationOnce(async (refs: WikibooksPageRef[]) =>
-            refs.filter((r) => r.pageId === 2).map((r) => wiki.get(r.pageId) as WikibooksPage)
+            refs.flatMap((r) => {
+                const found = r.pageId === 2 ? wiki.get(r.pageId) : undefined;
+
+                return found ? [found] : [];
+            })
         );
 
         const summary = await service.run();
@@ -238,6 +256,7 @@ describe('WikibooksIngestService', () => {
 
     it('limits a trial run to the first N new or changed pages', async () => {
         const { service, store, wiki } = setup();
+
         for (let id = 1; id <= 5; id += 1) wiki.set(id, page(id, 100));
 
         const summary = await service.run({ limit: 2 });
@@ -330,12 +349,13 @@ describe('WikibooksIngestService', () => {
 
         it('asks the wiki about a whole batch of pictures in one request', async () => {
             const { service, wiki, source } = setup();
+
             for (let id = 1; id <= 5; id += 1) wiki.set(id, withImage(page(id, 100), `Soup ${id}.jpg`));
 
             await service.run();
 
             expect(source.fetchImageInfo).toHaveBeenCalledTimes(1);
-            expect((source.fetchImageInfo as unknown as MockFn).mock.calls[0]?.[0]).toHaveLength(5);
+            expect(source.fetchImageInfo.mock.calls[0]?.[0]).toHaveLength(5);
         });
 
         it('stamps a page with no picture as looked at, so it is not fetched again', async () => {
@@ -398,12 +418,12 @@ describe('WikibooksIngestService', () => {
             await service.run();
             // Roll the stored recipe back to how an older ingest left it: same revision, never looked at for a
             // picture, and no slug.
-            const old = store.get('wikibooks-1') as DiscoveryRecipe;
+            const old = present(store.get('wikibooks-1'), 'stored recipe');
             const { imageRevision: _dropped, slug: _noSlug, ...legacy } = old;
-            store.set('wikibooks-1', { ...legacy, tags: ['hand-edited tag'] } as DiscoveryRecipe);
+            store.set('wikibooks-1', { ...legacy, tags: ['hand-edited tag'] });
             wiki.set(1, withImage(page(1, 100)));
             tagger.generateTags.mockClear();
-            (source.fetchImageInfo as unknown as MockFn).mockClear();
+            source.fetchImageInfo.mockClear();
 
             const summary = await service.run();
 
@@ -437,13 +457,15 @@ describe('WikibooksIngestService', () => {
             wiki.set(1, page(1, 100));
             wiki.set(2, page(2, 200));
             await service.run();
+
             for (const id of ['wikibooks-1', 'wikibooks-2']) {
-                const { imageRevision: _dropped, ...legacy } = store.get(id) as DiscoveryRecipe;
-                store.set(id, legacy as DiscoveryRecipe);
+                const { imageRevision: _dropped, ...legacy } = present(store.get(id), 'stored recipe');
+                store.set(id, legacy);
             }
+
             wiki.set(1, withImage(page(1, 100)));
             wiki.set(2, withImage(page(2, 200)));
-            (discovery.getRecipe as unknown as MockFn).mockRejectedValueOnce(new Error('mongo hiccup'));
+            discovery.getRecipe.mockRejectedValueOnce(new Error('mongo hiccup'));
 
             const summary = await service.run();
 

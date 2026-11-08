@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, type Mock, mock, spyOn, vi } from 'bun:test';
+
 import type { Item, ItemCategory, List, User } from '@tandra/types';
 import { ListType } from '@tandra/types';
 
+import { fake } from '../../testing/fake';
 import type { IdGenerator } from '../IdGenerator';
 import type { ListRepository } from '../ListRepository';
 import { ListService } from './index';
@@ -40,6 +42,7 @@ class MockListRepository implements ListRepository {
         }
 
         this.lists[index] = list;
+
         return (list.revision ?? 0) + 1;
     }
 
@@ -53,8 +56,10 @@ class MockListRepository implements ListRepository {
 
     async setCategoryIfUnset(listId: string, itemId: string, category: ItemCategory): Promise<boolean> {
         const item = this.lists.find((l) => l.id === listId)?.items.find((i) => i.id === itemId);
+
         if (!item || item.category) return false;
         item.category = category;
+
         return true;
     }
 
@@ -85,10 +90,13 @@ class MockFriends {
         return this.edges.has(this.key(a, b));
     }
     async friendIdsOf(userId: string) {
-        return [...this.edges]
-            .map((e) => e.split('|'))
-            .filter((p) => p.includes(userId))
-            .map((p) => (p[0] === userId ? p[1] : p[0]));
+        return [...this.edges].flatMap((edge) => {
+            const [a, b] = edge.split('|');
+
+            if (a === userId) return [b];
+
+            return b === userId ? [a] : [];
+        });
     }
     async listFriends(userId: string) {
         return (await this.friendIdsOf(userId)).map((id) => ({ id, username: `user-${id}` }));
@@ -239,6 +247,7 @@ describe('ListService', () => {
                     listType: ListType.SHOPPING,
                     ownerId: mockUser.id,
                 };
+
                 await mockRepository.insert(existing);
                 const insertSpy = vi.spyOn(mockRepository, 'insert');
 
@@ -820,6 +829,7 @@ describe('ListService', () => {
                     users: [mockUser],
                     ownerId: mockUser.id,
                 };
+
                 const mockList2: List = {
                     id: 'list-2',
                     title: 'Old Title',
@@ -925,6 +935,7 @@ describe('ListService', () => {
         describe('When no friend service is configured', () => {
             it('should throw a 403 error', async () => {
                 const serviceWithoutFriends = new ListService(mockRepository, mockIdGenerator);
+
                 const mockList: List = {
                     id: 'list-1',
                     title: 'Test List',
@@ -965,6 +976,7 @@ describe('ListService', () => {
             it('should throw a 400 error', async () => {
                 const existingUser: User = { id: 'friend-alice', username: 'user-friend-alice' };
                 friends.add(mockUser.id, existingUser.id);
+
                 const mockList: List = {
                     id: 'list-1',
                     title: 'Test List',
@@ -988,6 +1000,7 @@ describe('ListService', () => {
         describe('When everything is valid', () => {
             it('should add the friend and return the updated list', async () => {
                 friends.add(mockUser.id, 'friend-2');
+
                 const mockList: List = {
                     id: 'list-1',
                     title: 'Test List',
@@ -1007,6 +1020,7 @@ describe('ListService', () => {
 
             it('rejects a non-friend by id (403) after allowing a friend', async () => {
                 friends.add(mockUser.id, 'friend-2');
+
                 const mockList: List = {
                     id: 'list-1',
                     title: 'Test List',
@@ -1041,6 +1055,7 @@ describe('ListService', () => {
         describe('When the requesting user is not the owner', () => {
             it('should throw a 403 error', async () => {
                 const otherUser: User = { id: 'user-2', username: 'user2' };
+
                 const mockList: List = {
                     id: 'list-1',
                     title: 'Test List',
@@ -1061,6 +1076,7 @@ describe('ListService', () => {
         describe('When trying to remove the owner', () => {
             it('should throw a 400 error', async () => {
                 const otherUser: User = { id: 'user-2', username: 'user2' };
+
                 const mockList: List = {
                     id: 'list-1',
                     title: 'Test List',
@@ -1100,6 +1116,7 @@ describe('ListService', () => {
         describe('When the user to remove is not in the list', () => {
             it('should throw a 400 error', async () => {
                 const otherUser: User = { id: 'user-2', username: 'user2' };
+
                 const mockList: List = {
                     id: 'list-1',
                     title: 'Test List',
@@ -1120,6 +1137,7 @@ describe('ListService', () => {
         describe('When everything is valid', () => {
             it('should remove the user and return the updated list', async () => {
                 const otherUser: User = { id: 'user-2', username: 'user2' };
+
                 const mockList: List = {
                     id: 'list-1',
                     title: 'Test List',
@@ -1349,11 +1367,14 @@ describe('ListService', () => {
 
 describe('Item id-addressing', () => {
     let service: ListService;
-    let repo: {
-        getByRef: Mock<(title: string) => Promise<List | null>>;
-        replaceIfUnchanged: Mock<(title: string, list: List) => Promise<number | null>>;
-        pushItem: Mock<(title: string, item: Item) => Promise<void>>;
-    };
+
+    const makeRepo = () => ({
+        getByRef: mock(async (_title: string): Promise<List | null> => null),
+        replaceIfUnchanged: mock(async (_title: string, _list: List): Promise<number | null> => 1),
+        pushItem: mock(async (_title: string, _item: Item) => {}),
+    });
+
+    let repo = makeRepo();
 
     const makeList = (overrides: Partial<List> = {}): List => ({
         id: 'list-1',
@@ -1365,12 +1386,8 @@ describe('Item id-addressing', () => {
     });
 
     beforeEach(() => {
-        repo = {
-            getByRef: vi.fn(),
-            replaceIfUnchanged: vi.fn().mockResolvedValue(1),
-            pushItem: vi.fn().mockResolvedValue(undefined),
-        };
-        service = new ListService(repo as never, { generate: () => 'generated-id' } as never);
+        repo = makeRepo();
+        service = new ListService(fake(repo), fake({ generate: () => 'generated-id' }));
     });
 
     it('setItemSelected matches by item id, not name', async () => {
@@ -1380,9 +1397,10 @@ describe('Item id-addressing', () => {
                 { id: 'a2', name: 'Milk', isSelected: false, dateAdded: new Date() },
             ],
         });
+
         repo.getByRef.mockResolvedValue(list);
         await service.setItemSelected('Test List', 'a2', true);
-        const saved = repo.replaceIfUnchanged.mock.calls[0][1] as List;
+        const saved = repo.replaceIfUnchanged.mock.calls[0][1];
         expect(saved.items.find((i: Item) => i.id === 'a2')?.isSelected).toBe(true);
         expect(saved.items.find((i: Item) => i.id === 'a1')?.isSelected).toBe(false);
     });
@@ -1394,14 +1412,16 @@ describe('Item id-addressing', () => {
                 { id: 'a2', name: 'Bread', isSelected: false, dateAdded: new Date() },
             ],
         });
+
         repo.getByRef.mockResolvedValue(list);
         await service.deleteItem('Test List', 'a1');
-        const saved = repo.replaceIfUnchanged.mock.calls[0][1] as List;
+        const saved = repo.replaceIfUnchanged.mock.calls[0][1];
         expect(saved.items.map((i: Item) => i.id)).toEqual(['a2']);
     });
 
     it('addItem uses caller-provided id when given', async () => {
         repo.getByRef.mockResolvedValue(makeList({ items: [] }));
+
         const item = await service.addItem(
             'Test List',
             'Eggs',
@@ -1411,6 +1431,7 @@ describe('Item id-addressing', () => {
             undefined,
             'client-uuid'
         );
+
         expect(item.id).toBe('client-uuid');
     });
 
@@ -1437,14 +1458,16 @@ describe('ListService notifications', () => {
             listType: ListType.SHOPPING,
             ownerId: 'u1',
         };
-        const repo = {
+
+        const repo = fake<ListRepository>({
             getByRef: async () => list,
             pushItem: async () => {},
-        } as never;
-        const idGenerator = { generate: () => 'i1' } as never;
+        });
+
+        const idGenerator = { generate: () => 'i1' };
         const notify = { notifyItemAdded: mock(async () => {}), notifyItemsAdded: mock(async () => {}) };
 
-        const service = new ListService(repo, idGenerator, undefined, undefined, notify as never);
+        const service = new ListService(repo, idGenerator, undefined, undefined, fake(notify));
         await service.addItem('Groceries', 'Milk', new Date(), undefined, undefined, {
             id: 'u1',
             username: 'owner',
@@ -1484,7 +1507,7 @@ describe('ListService item categories', () => {
             undefined,
             undefined,
             undefined,
-            { categorise } as never,
+            fake({ categorise }),
             changed
         );
     });
@@ -1596,6 +1619,7 @@ describe('ListService item categories', () => {
             await seedUncategorised();
             categorise.mockImplementation(async () => {
                 await service.setItemCategory('Groceries', 'i1', 'household');
+
                 return 'dairy';
             });
 
@@ -1609,7 +1633,8 @@ describe('ListService item categories', () => {
     it('rejects an unknown category', async () => {
         await service.addItem('Groceries', 'milk', new Date(), undefined, undefined, undefined, 'i1');
 
-        await expect(service.setItemCategory('Groceries', 'i1', 'nope' as never)).rejects.toMatchObject({
+        // A category name as an old client might send it: a string that is not one of the aisles.
+        await expect(service.setItemCategory('Groceries', 'i1', JSON.parse('"nope"'))).rejects.toMatchObject({
             status: 400,
         });
     });

@@ -39,6 +39,7 @@ export class HttpImageFetcher implements ImageFetcher {
         }
 
         const contentType = response.headers.get('content-type') ?? '';
+
         if (!contentType.startsWith('image/')) {
             throw Object.assign(new Error(`Unsupported content type: ${contentType || 'unknown'}`), { status: 415 });
         }
@@ -51,23 +52,30 @@ export class HttpImageFetcher implements ImageFetcher {
     private async readCapped(response: Response): Promise<Buffer> {
         const tooLarge = () => Object.assign(new Error('Image exceeds maximum allowed size'), { status: 413 });
         const declared = Number(response.headers.get('content-length'));
+
         if (declared > this.maxBytes) throw tooLarge();
 
         const reader = response.body?.getReader();
+
         if (!reader) return Buffer.alloc(0);
 
         const chunks: Array<Uint8Array> = [];
         let received = 0;
+
         for (;;) {
             const { done, value } = await reader.read();
+
             if (done) break;
             received += value.byteLength;
+
             if (received > this.maxBytes) {
                 await reader.cancel().catch(() => {});
                 throw tooLarge();
             }
+
             chunks.push(value);
         }
+
         return Buffer.concat(chunks);
     }
 }

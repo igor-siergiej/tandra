@@ -1,17 +1,22 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
+
 import CalendarPage from './index';
 
 // ToolBar pulls in auth/user/router providers; stub it for this unit test.
 vi.mock('../../components/ToolBar', () => ({ default: () => null }));
+
 vi.mock('../../auth', async () => {
     const actual = await vi.importActual<object>('../../auth');
+
     return { ...actual, useUser: () => ({ user: { id: 'u', username: 'owner' } }) };
 });
+
 vi.mock('../../contexts/PullToRefreshContext', () => ({
     usePullToRefreshContext: () => ({ registerRefresh: () => () => {} }),
 }));
+
 vi.mock('../../hooks/useTodos', () => ({
     useTodos: () => ({
         todos: [
@@ -34,6 +39,7 @@ vi.mock('../../hooks/useTodos', () => ({
         refetch: vi.fn(),
     }),
 }));
+
 vi.mock('../../hooks/useLabels', () => ({
     useLabels: () => ({ labels: [], isLoading: false, refetch: vi.fn() }),
 }));

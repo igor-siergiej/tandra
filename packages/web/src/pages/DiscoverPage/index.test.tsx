@@ -4,12 +4,16 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import * as api from '../../api';
+import { narrowTo } from '../../testing/fake';
 import DiscoverPage from './index';
 
 const mockNavigate = vi.fn();
+
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+
     return { ...actual, useNavigate: () => mockNavigate };
 });
 
@@ -168,7 +172,7 @@ describe('DiscoverPage', () => {
         );
 
         const clear = await screen.findAllByRole('button', { name: 'Clear filters' });
-        await userEvent.click(clear[0] as HTMLElement);
+        await userEvent.click(narrowTo(clear[0], HTMLElement));
         await waitFor(() => expect(screen.getByRole('button', { name: 'Filters' })).toBeInTheDocument());
     });
 });

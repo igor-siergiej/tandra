@@ -12,7 +12,7 @@ export interface SwipeableRowProps {
 export const SwipeableRow = ({ children, onDelete }: SwipeableRowProps) => {
     const x = useMotionValue(0);
 
-    const handleDragEnd = (_: unknown, info: PanInfo): void => {
+    const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo): void => {
         if (info.offset.x < DELETE_THRESHOLD) {
             onDelete();
         } else {

@@ -1,9 +1,20 @@
 import sharp from 'sharp';
+import { z } from 'zod';
 
 import type { ImageGenerator } from '../../domain/ImageService/types';
-import { processImage } from '../imageProcessor';
+import { processImage, type SharpFactory } from '../imageProcessor';
 
 const FETCH_TIMEOUT_MS = 30_000;
+
+// fal.ai answers with more than we read; only the first image's url matters, and anything malformed means "no image".
+const falResponseSchema = z
+    .looseObject({
+        images: z
+            .array(z.looseObject({ url: z.string().optional().catch(undefined) }).catch({}))
+            .optional()
+            .catch(undefined),
+    })
+    .catch({});
 
 export interface FalImageGeneratorOptions {
     model?: string;
@@ -12,7 +23,7 @@ export interface FalImageGeneratorOptions {
     outputFormat?: 'jpeg' | 'png';
     outputSize?: number;
     processor?: typeof processImage;
-    sharpFactory?: typeof sharp;
+    sharpFactory?: SharpFactory;
 }
 
 export class FalImageGenerator implements ImageGenerator {
@@ -22,7 +33,7 @@ export class FalImageGenerator implements ImageGenerator {
     private readonly outputFormat: 'jpeg' | 'png';
     private readonly outputSize: number;
     private readonly processor: typeof processImage;
-    private readonly sharpFactory: typeof sharp;
+    private readonly sharpFactory: SharpFactory;
 
     constructor(
         private readonly apiKey: string,
@@ -68,22 +79,25 @@ export class FalImageGenerator implements ImageGenerator {
             throw Object.assign(new Error(`fal.ai API error: ${error}`), { status: 502 });
         }
 
-        const data = (await response.json()) as unknown;
+        const data = falResponseSchema.parse(await response.json());
 
-        const image = (data as { images?: Array<{ url?: string }> }).images?.[0];
+        const image = data.images?.[0];
         let originalBuffer: Buffer;
 
-        if (image && typeof image === 'object' && typeof image.url === 'string') {
+        if (image?.url !== undefined) {
             const { url } = image;
+
             if (url.startsWith('data:')) {
                 // Data URI: strip the "data:<mime>;base64," prefix and decode.
                 const b64 = url.slice(url.indexOf(',') + 1);
                 originalBuffer = Buffer.from(b64, 'base64');
             } else {
                 const imageResponse = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+
                 if (!imageResponse.ok) {
                     throw Object.assign(new Error('Failed to download image from fal.ai'), { status: 502 });
                 }
+
                 originalBuffer = Buffer.from(await imageResponse.arrayBuffer());
             }
         } else {

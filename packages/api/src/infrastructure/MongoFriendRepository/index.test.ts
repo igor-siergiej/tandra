@@ -1,4 +1,8 @@
 import { describe, expect, it } from 'bun:test';
+
+import type { CreateIndexesOptions, IndexSpecification } from 'mongodb';
+
+import { connectionTo } from '../../testing/fake';
 import { canonicalPair, MongoFriendRepository } from './index';
 
 describe('canonicalPair', () => {
@@ -8,18 +12,23 @@ describe('canonicalPair', () => {
     });
 });
 
+type IndexCall = [IndexSpecification, CreateIndexesOptions?];
+
 describe('MongoFriendRepository indexes', () => {
     it('indexes friendships by member and pairing codes by code, keeping the TTL on code expiry', async () => {
-        const created: Record<string, unknown[][]> = { friendships: [], pairingCodes: [] };
-        const db = {
-            getCollection: (name: string) => ({
-                createIndex: async (...args: unknown[]) => {
-                    created[name].push(args);
-                },
-            }),
+        const opened: string[] = [];
+        const created = { friendships: new Array<IndexCall>(), pairingCodes: new Array<IndexCall>() };
+
+        const collection = {
+            // The repository opens a collection and indexes it straight away, so the last name opened owns the call.
+            createIndex: async (...args: IndexCall) => {
+                if (opened.at(-1) === 'friendships') created.friendships.push(args);
+
+                if (opened.at(-1) === 'pairingCodes') created.pairingCodes.push(args);
+            },
         };
 
-        const repo = new MongoFriendRepository(db as never);
+        const repo = new MongoFriendRepository(connectionTo(collection, opened));
         await repo.ensureIndexes();
 
         expect(created.friendships).toEqual([[{ userIds: 1 }]]);

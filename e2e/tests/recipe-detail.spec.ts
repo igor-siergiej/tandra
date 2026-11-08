@@ -120,6 +120,7 @@ test.describe('Recipe detail page', () => {
         const item = authenticatedPage.getByText('Garlic');
         await item.scrollIntoViewIfNeeded();
         const box = await item.boundingBox();
+
         if (box) {
             const cx = box.x + box.width / 2;
             const cy = box.y + box.height / 2;
@@ -129,6 +130,7 @@ test.describe('Recipe detail page', () => {
             await authenticatedPage.mouse.up();
             await authenticatedPage.waitForTimeout(300);
             const deleteBtn = authenticatedPage.locator('button[class*="hover:bg-destructive\\/90"]').first();
+
             if (await deleteBtn.isVisible()) {
                 await deleteBtn.click();
                 await expect(authenticatedPage.getByText('Garlic', { exact: true })).not.toBeVisible({
@@ -146,6 +148,7 @@ test.describe('Recipe detail page', () => {
         const item = authenticatedPage.getByText('Basil');
         await item.scrollIntoViewIfNeeded();
         const box = await item.boundingBox();
+
         if (!box) throw new Error('ingredient row has no bounding box');
         const cx = box.x + box.width / 2;
         const cy = box.y + box.height / 2;

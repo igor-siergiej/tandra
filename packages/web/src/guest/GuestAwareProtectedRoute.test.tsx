@@ -2,13 +2,19 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const session = { user: null as { id: string; username: string } | null, needsUsername: false, isGuest: false };
+type Session = { user: User | null; needsUsername: boolean; isGuest: boolean };
+
+const session: Session = { user: null, needsUsername: false, isGuest: false };
+
 vi.mock('../auth', () => ({
     useUser: () => ({ user: session.user, needsUsername: session.needsUsername }),
     useAuth: () => ({ isAuthenticated: Boolean(session.user) || session.needsUsername, isLoading: false }),
     ProtectedRoute: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
+
 vi.mock('./GuestContext', () => ({ useGuest: () => ({ isGuest: session.isGuest, enterGuestMode: vi.fn() }) }));
+
+import { type User } from '@tandra/types';
 
 import { GuestAwareProtectedRoute, RequireAuth } from './GuestAwareProtectedRoute';
 

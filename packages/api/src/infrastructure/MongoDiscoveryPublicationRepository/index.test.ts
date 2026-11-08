@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'bun:test';
 
+import { connectionTo } from '../../testing/fake';
 import { MongoDiscoveryPublicationRepository } from './index';
 
 const setup = () => {
@@ -10,15 +11,17 @@ const setup = () => {
         replaceOne: vi.fn(),
         deleteOne: vi.fn(),
     };
-    const db = { getCollection: vi.fn(() => collection) };
-    return { repo: new MongoDiscoveryPublicationRepository(db as never), collection, db };
+
+    const opened: string[] = [];
+
+    return { repo: new MongoDiscoveryPublicationRepository(connectionTo(collection, opened)), collection, opened };
 };
 
 describe('MongoDiscoveryPublicationRepository', () => {
     it('keeps the back-reference in its own collection, never on the public library documents', async () => {
-        const { repo, db } = setup();
+        const { repo, opened } = setup();
         await repo.getByRecipeId('r1');
-        expect(db.getCollection).toHaveBeenCalledWith('discoveryPublications');
+        expect(opened).toContain('discoveryPublications');
     });
 
     it('guarantees one publication per personal recipe and one per library recipe', async () => {

@@ -1,4 +1,5 @@
 import type { Context, Next } from 'hono';
+
 import { dependencyContainer } from '../dependencies/container';
 import { DependencyToken } from '../dependencies/types';
 import type { Auth } from '../infrastructure/BetterAuth';
@@ -15,7 +16,9 @@ type AuthVariables = { Variables: { user: AuthUser } };
 // container, but tests install a `memoryAdapter` instance and reset it per case without
 // poking into the container's internals.
 type AuthGetter = () => Auth | undefined;
+
 let getAuthForRequest: AuthGetter = () => dependencyContainer.resolve(DependencyToken.Auth);
+
 // fallow-ignore-next-line unused-export
 export const __setAuthGetterForTests = (next: AuthGetter) => {
     getAuthForRequest = next;
@@ -26,34 +29,45 @@ const sessionToAuthUser = (
     c: Context<AuthVariables>
 ): AuthUser | Response => {
     const username = session.user.displayUsername ?? session.user.username;
+
     if (!username) {
         return c.json({ error: 'username_required' }, 403);
     }
+
     return { id: session.user.id, username };
 };
 
 const resolveBetterAuthSession = async (c: Context<AuthVariables>): Promise<AuthUser | undefined | Response> => {
     const auth = getAuthForRequest();
+
     if (!auth) return undefined;
+
     try {
         const session = await auth.api.getSession({ headers: c.req.raw.headers });
+
         if (!session) return undefined;
+
         return sessionToAuthUser(session, c);
     } catch (error) {
         console.error('Better Auth getSession failed:', error);
+
         return undefined;
     }
 };
 
 export const authenticate = async (c: Context<AuthVariables>, next: Next) => {
     const sessionUser = await resolveBetterAuthSession(c);
+
     if (sessionUser instanceof Response) {
         return sessionUser;
     }
+
     if (!sessionUser) {
         return c.json({ error: 'Unauthorized' }, 401);
     }
+
     c.set('user', sessionUser);
+
     return next();
 };
 
@@ -61,8 +75,10 @@ export const authenticate = async (c: Context<AuthVariables>, next: Next) => {
 // routes/index.ts): sets `user` when a usable session is present, never rejects the request.
 export const optionalAuthenticate = async (c: Context<AuthVariables>, next: Next) => {
     const sessionUser = await resolveBetterAuthSession(c);
+
     if (sessionUser && !(sessionUser instanceof Response)) {
         c.set('user', sessionUser);
     }
+
     return next();
 };

@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'bun:test';
+
 import { Hono } from 'hono';
+import { z } from 'zod';
 
 import { ListRealtimeHub } from '../../domain/ListRealtimeHub';
 import { WsTicketStore } from '../../domain/WsTicketStore';
@@ -10,6 +12,7 @@ import { createRealtimeHandlers } from './index';
 const hub = new ListRealtimeHub();
 const tickets = new WsTicketStore();
 const listService = { getList: vi.fn() };
+
 const { issueListSocketTicket, connectListSocket } = createRealtimeHandlers({
     hub,
     tickets,
@@ -19,18 +22,30 @@ const { issueListSocketTicket, connectListSocket } = createRealtimeHandlers({
 const ALICE = { id: 'u-alice', username: 'alice' };
 const BOB = { id: 'u-bob', username: 'bob' };
 const MALLORY = { id: 'u-mallory', username: 'mallory' };
-const LISTS: Record<string, { id: string; users: Array<{ id: string; username: string }> }> = {
-    Groceries: { id: 'list-groceries', users: [ALICE, BOB] },
-    Private: { id: 'list-private', users: [ALICE] },
-};
-const GROCERIES_ID = LISTS.Groceries.id;
+
+const GROCERIES = { id: 'list-groceries', users: [ALICE, BOB] };
+const PRIVATE = { id: 'list-private', users: [ALICE] };
+
+const GROCERIES_ID = GROCERIES.id;
+
+const LISTS = new Map([
+    ['Groceries', GROCERIES],
+    ['Private', PRIVATE],
+]);
+
 // Lists resolve by id or by (legacy) title, as ListService.getList does.
-const findList = (ref: string) => Object.values(LISTS).find((list) => list.id === ref) ?? LISTS[ref];
+const findList = (ref: string) => [...LISTS.values()].find((list) => list.id === ref) ?? LISTS.get(ref);
 
 // Stands in for `authenticate`: the bearer token IS the user id, resolved from a fixed directory.
-const USERS: Record<string, typeof ALICE> = { alice: ALICE, bob: BOB, mallory: MALLORY };
+const USERS = new Map([
+    ['alice', ALICE],
+    ['bob', BOB],
+    ['mallory', MALLORY],
+]);
+
 const fakeAuth = async (c: any, next: any) => {
-    const user = USERS[(c.req.header('authorization') ?? '').replace('Bearer ', '')];
+    const user = USERS.get((c.req.header('authorization') ?? '').replace('Bearer ', ''));
+
     if (!user) return c.json({ error: 'Invalid or expired token' }, 401);
     c.set('user', user);
     await next();
@@ -57,17 +72,22 @@ afterAll(() => server.stop(true));
 beforeEach(() => {
     listService.getList.mockImplementation(async (title: string) => {
         const list = findList(title);
+
         if (!list) throw new Error('not found');
+
         return list;
     });
 });
+
+const ticketBody = z.object({ ticket: z.string() });
 
 const getTicket = async (token: string, title: string) => {
     const res = await app.request(`/api/lists/${title}/socket-ticket`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
     });
-    return { status: res.status, ticket: res.ok ? ((await res.json()) as { ticket: string }).ticket : undefined };
+
+    return { status: res.status, ticket: res.ok ? ticketBody.parse(await res.json()).ticket : undefined };
 };
 
 type Message = { type: string; users?: Array<{ id: string }> };
@@ -119,20 +139,23 @@ describe('list websocket', () => {
 
     it('rejects a ticket once its holder has been removed from the list', async () => {
         const { ticket } = await getTicket('bob', 'Groceries');
-        LISTS.Groceries.users = [ALICE];
+        GROCERIES.users = [ALICE];
+
         try {
             expect(await connect('Groceries', ticket)).toEqual({ rejected: true });
         } finally {
-            LISTS.Groceries.users = [ALICE, BOB];
+            GROCERIES.users = [ALICE, BOB];
         }
     });
 
     it('tells members who else has the list open, and updates when they leave', async () => {
         const a = await connect('Groceries', (await getTicket('alice', 'Groceries')).ticket);
+
         if ('rejected' in a) throw new Error('alice was rejected');
         await until(() => a.messages.some((m) => m.type === 'presence' && m.users?.length === 1));
 
         const b = await connect('Groceries', (await getTicket('bob', 'Groceries')).ticket);
+
         if ('rejected' in b) throw new Error('bob was rejected');
         await until(() => a.messages.some((m) => m.type === 'presence' && m.users?.length === 2));
         await until(() => b.messages.some((m) => m.type === 'presence' && m.users?.length === 2));
@@ -144,8 +167,10 @@ describe('list websocket', () => {
 
     it('puts a socket opened by title and one opened by id in the same room', async () => {
         const byTitle = await connect('Groceries', (await getTicket('alice', 'Groceries')).ticket);
+
         if ('rejected' in byTitle) throw new Error('alice was rejected');
         const byId = await connect(GROCERIES_ID, (await getTicket('bob', GROCERIES_ID)).ticket);
+
         if ('rejected' in byId) throw new Error('bob was rejected');
 
         await until(() => byTitle.messages.some((m) => m.type === 'presence' && m.users?.length === 2));
@@ -158,11 +183,12 @@ describe('list websocket', () => {
 
     it('does not leak events from a list the socket did not subscribe to', async () => {
         const a = await connect('Groceries', (await getTicket('alice', 'Groceries')).ticket);
+
         if ('rejected' in a) throw new Error('alice was rejected');
         await until(() => a.messages.length > 0);
         const before = a.messages.length;
 
-        hub.notifyChanged(LISTS.Private.id);
+        hub.notifyChanged(PRIVATE.id);
         await Bun.sleep(50);
         expect(a.messages.length).toBe(before);
         a.socket.close();
@@ -172,6 +198,7 @@ describe('list websocket', () => {
 describe('notifyListChanged', () => {
     it('broadcasts after a successful mutation but not after a failed one', async () => {
         const a = await connect('Groceries', (await getTicket('alice', 'Groceries')).ticket);
+
         if ('rejected' in a) throw new Error('alice was rejected');
         await until(() => a.messages.length > 0);
 
@@ -192,6 +219,7 @@ describe('notifyListChanged', () => {
 
     it('closes the sockets of a removed member', async () => {
         const b = await connect('Groceries', (await getTicket('bob', 'Groceries')).ticket);
+
         if ('rejected' in b) throw new Error('bob was rejected');
         await until(() => b.messages.length > 0);
 

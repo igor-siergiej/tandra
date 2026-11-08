@@ -47,10 +47,13 @@ export class DiscoveryModerationService {
     async listReports(admin: User): Promise<DiscoveryReportSummary[]> {
         this.assertAdmin(admin);
         const byRecipe = new Map<string, { reasons: string[]; count: number; last: Date }>();
+
         for (const report of await this.reports.listAll()) {
             const entry = byRecipe.get(report.recipeId) ?? { reasons: [], count: 0, last: report.createdAt };
             entry.count += 1;
+
             if (report.reason) entry.reasons.push(report.reason);
+
             if (report.createdAt > entry.last) entry.last = report.createdAt;
             byRecipe.set(report.recipeId, entry);
         }
@@ -59,8 +62,10 @@ export class DiscoveryModerationService {
         const recipes = new Map((await this.discovery.getRecipes([...byRecipe.keys()])).map((r) => [r.id, r]));
 
         const summaries: DiscoveryReportSummary[] = [];
+
         for (const [recipeId, entry] of byRecipe) {
             const recipe = recipes.get(recipeId);
+
             if (!recipe) continue;
             summaries.push({
                 recipeId,
@@ -71,6 +76,7 @@ export class DiscoveryModerationService {
                 lastReportedAt: entry.last,
             });
         }
+
         return summaries.sort((a, b) => b.lastReportedAt.getTime() - a.lastReportedAt.getTime());
     }
 
@@ -81,9 +87,11 @@ export class DiscoveryModerationService {
     async delist(libraryId: string, admin: User): Promise<void> {
         this.assertAdmin(admin);
         const recipe = await this.discovery.getRecipe(libraryId);
+
         if (recipe.source !== 'user') {
             throw fail('Only user-published recipes can be delisted; Wikibooks recipes are managed by the ingest', 400);
         }
+
         await this.discovery.remove(libraryId);
         await this.publications.deleteByLibraryId(libraryId);
         await this.reports.deleteByRecipeId(libraryId);

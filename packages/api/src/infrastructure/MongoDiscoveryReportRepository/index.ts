@@ -23,7 +23,7 @@ export class MongoDiscoveryReportRepository implements DiscoveryReportRepository
     }
 
     async listAll(): Promise<DiscoveryReport[]> {
-        return this.collection().find({}, NO_OBJECT_ID).sort({ createdAt: -1 }).toArray() as Promise<DiscoveryReport[]>;
+        return this.collection().find({}, NO_OBJECT_ID).sort({ createdAt: -1 }).toArray();
     }
 
     async deleteByRecipeId(recipeId: string): Promise<void> {

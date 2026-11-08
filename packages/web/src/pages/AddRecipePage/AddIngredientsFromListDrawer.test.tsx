@@ -3,6 +3,7 @@ import { ListType } from '@tandra/types';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+
 import { AddIngredientsFromListDrawer } from './AddIngredientsFromListDrawer';
 
 const shoppingList: ListResponse = {
@@ -16,6 +17,9 @@ const shoppingList: ListResponse = {
         { id: 'item-2', name: 'Eggs', isSelected: false, dateAdded: new Date() },
     ],
 };
+
+// A list type from the server this build does not know: anything that is not a shopping list.
+const NOT_SHOPPING: ListType = JSON.parse('"other"');
 
 describe('AddIngredientsFromListDrawer', () => {
     it('lets the user pick a list then selected items merge in as ingredients', async () => {
@@ -36,7 +40,7 @@ describe('AddIngredientsFromListDrawer', () => {
         const otherList: ListResponse = { ...shoppingList, id: 'list-2', title: 'Not Shopping', items: [] };
         render(
             <AddIngredientsFromListDrawer
-                lists={[shoppingList, { ...otherList, listType: 'other' as ListType }]}
+                lists={[shoppingList, { ...otherList, listType: NOT_SHOPPING }]}
                 onAdd={vi.fn()}
             />
         );

@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+
 import { ChoiceScreen } from './ChoiceScreen';
 
 // Regression coverage for tandra-add-recipe-choice-dialog: the choice is now a modal

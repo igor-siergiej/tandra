@@ -4,12 +4,16 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { generateRecipeAiImage, importRecipe, importRecipeImage, uploadRecipeImage } from '../../api';
+import { fake, narrowTo } from '../../testing/fake';
 import AddRecipePage from './index';
 
 const mockNavigate = vi.fn();
+
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+
     return { ...actual, useNavigate: () => mockNavigate };
 });
 
@@ -33,6 +37,7 @@ vi.mock('sonner', () => ({
 }));
 
 const mockCreateRecipe = vi.fn();
+
 vi.mock('../../hooks/useRecipeMutations', () => ({
     useRecipeMutations: () => ({
         createRecipe: mockCreateRecipe,
@@ -53,6 +58,7 @@ vi.mock('../../api', () => ({
 
 const renderPage = (initialEntry = '/recipes/new') => {
     const queryClient = new QueryClient();
+
     const result = render(
         <QueryClientProvider client={queryClient}>
             <MemoryRouter initialEntries={[initialEntry]}>
@@ -62,6 +68,7 @@ const renderPage = (initialEntry = '/recipes/new') => {
             </MemoryRouter>
         </QueryClientProvider>
     );
+
     return { ...result, queryClient };
 };
 
@@ -172,7 +179,7 @@ describe('AddRecipePage', () => {
 
         await userEvent.type(screen.getByPlaceholderText('Enter recipe title...'), 'Another Recipe');
         const imageFile = new File(['image'], 'test.jpg', { type: 'image/jpeg' });
-        const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+        const fileInput = narrowTo(document.querySelector('input[type="file"]'), HTMLInputElement);
         fireEvent.change(fileInput, { target: { files: [imageFile] } });
 
         await userEvent.click(screen.getByRole('button', { name: /Create Recipe/ }));
@@ -189,7 +196,7 @@ describe('AddRecipePage', () => {
 
         await userEvent.type(screen.getByPlaceholderText('Enter recipe title...'), 'Another Recipe');
         const imageFile = new File(['image'], 'test.jpg', { type: 'image/jpeg' });
-        const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+        const fileInput = narrowTo(document.querySelector('input[type="file"]'), HTMLInputElement);
         fireEvent.change(fileInput, { target: { files: [imageFile] } });
 
         await userEvent.click(screen.getByRole('button', { name: /Create Recipe/ }));
@@ -231,7 +238,7 @@ describe('AddRecipePage', () => {
 
         renderPage('/recipes/new?sharedUrl=https%3A%2F%2Fexample.com%2Frecipe');
 
-        const input = screen.getByPlaceholderText('https://...') as HTMLInputElement;
+        const input = narrowTo(screen.getByPlaceholderText('https://...'), HTMLInputElement);
         expect(input.value).toBe('https://example.com/recipe');
         expect(screen.getByPlaceholderText('Enter recipe title...')).toBeTruthy();
         expect(screen.getByRole('button', { name: /create recipe/i })).toBeTruthy();
@@ -255,7 +262,7 @@ describe('AddRecipePage', () => {
     it('splits pasted text into steps on blur', async () => {
         renderPage();
         await enterManualMode();
-        const textarea = screen.getByPlaceholderText(/Paste instructions here/) as HTMLTextAreaElement;
+        const textarea = narrowTo(screen.getByPlaceholderText(/Paste instructions here/), HTMLTextAreaElement);
         await userEvent.type(textarea, 'Step one{enter}Step two{enter}Step three');
         fireEvent.blur(textarea);
         await waitFor(() => {
@@ -269,7 +276,7 @@ describe('AddRecipePage', () => {
         vi.mocked(importRecipe).mockImplementation(() => new Promise(() => {}));
         renderPage('/recipes/new?sharedUrl=https%3A%2F%2Fexample.com%2Frecipe');
 
-        const textarea = screen.getByPlaceholderText(/Paste instructions here/) as HTMLTextAreaElement;
+        const textarea = narrowTo(screen.getByPlaceholderText(/Paste instructions here/), HTMLTextAreaElement);
         await waitFor(() => {
             expect(textarea.disabled).toBe(true);
         });
@@ -337,6 +344,7 @@ describe('AddRecipePage', () => {
             const image = Promise.withResolvers<File>();
             imageSignal = signal;
             signal?.addEventListener('abort', () => image.reject(new DOMException('Aborted', 'AbortError')));
+
             return image.promise;
         });
 
@@ -410,7 +418,7 @@ describe('AddRecipePage', () => {
 
         const titleInput = await screen.findByPlaceholderText('Enter recipe title...');
         await waitFor(() => {
-            expect((titleInput as HTMLInputElement).value).toBe('Imported Dish');
+            expect(narrowTo(titleInput, HTMLInputElement).value).toBe('Imported Dish');
         });
         expect(titleInput).not.toHaveFocus();
     });
@@ -448,6 +456,7 @@ describe('AddRecipePage', () => {
         await enterManualMode();
         mockCreateRecipe.mockImplementation(async () => {
             mockRecipesData = [{ id: 'recipe-1', title: 'Pizza Margherita', ingredients: [] }];
+
             return 'recipe-1';
         });
 
@@ -463,7 +472,7 @@ describe('AddRecipePage', () => {
         await userEvent.type(screen.getByPlaceholderText('Enter recipe title...'), 'My Recipe');
         await userEvent.type(screen.getByPlaceholderText('https://...'), 'https://example.com');
 
-        const textarea = screen.getByPlaceholderText(/Paste instructions here/) as HTMLTextAreaElement;
+        const textarea = narrowTo(screen.getByPlaceholderText(/Paste instructions here/), HTMLTextAreaElement);
         await userEvent.type(textarea, 'Step one{enter}Step two');
         fireEvent.blur(textarea);
 
@@ -551,7 +560,7 @@ describe('AddRecipePage', () => {
     it('clicking Add manually shows the full form, empty, and autofocuses the title field', async () => {
         renderPage();
         await enterManualMode();
-        const titleInput = screen.getByPlaceholderText('Enter recipe title...') as HTMLInputElement;
+        const titleInput = narrowTo(screen.getByPlaceholderText('Enter recipe title...'), HTMLInputElement);
         expect(titleInput.value).toBe('');
         expect(titleInput).toHaveFocus();
     });
@@ -579,7 +588,9 @@ describe('AddRecipePage', () => {
         await waitFor(() => {
             expect(screen.getByPlaceholderText('Enter recipe title...')).toBeTruthy();
         });
-        expect((screen.getByPlaceholderText('Enter recipe title...') as HTMLInputElement).value).toBe('Imported Dish');
+        expect(narrowTo(screen.getByPlaceholderText('Enter recipe title...'), HTMLInputElement).value).toBe(
+            'Imported Dish'
+        );
         expect(screen.getByText('flour')).toBeTruthy();
         expect(screen.getByText('200 g')).toBeTruthy();
         expect(screen.getByText('Mix.')).toBeTruthy();
@@ -625,7 +636,9 @@ describe('AddRecipePage', () => {
         await waitFor(() => {
             expect(screen.getByPlaceholderText('Enter recipe title...')).toBeTruthy();
         });
-        expect((screen.getByPlaceholderText('Enter recipe title...') as HTMLInputElement).value).toBe('Recovered');
+        expect(narrowTo(screen.getByPlaceholderText('Enter recipe title...'), HTMLInputElement).value).toBe(
+            'Recovered'
+        );
     });
 
     it('clicking Switch to manual after a failure moves to form with the link retained and everything else empty', async () => {
@@ -645,8 +658,8 @@ describe('AddRecipePage', () => {
         await waitFor(() => {
             expect(screen.getByPlaceholderText('Enter recipe title...')).toBeTruthy();
         });
-        expect((screen.getByPlaceholderText('Enter recipe title...') as HTMLInputElement).value).toBe('');
-        expect((screen.getByPlaceholderText('https://...') as HTMLInputElement).value).toBe(
+        expect(narrowTo(screen.getByPlaceholderText('Enter recipe title...'), HTMLInputElement).value).toBe('');
+        expect(narrowTo(screen.getByPlaceholderText('https://...'), HTMLInputElement).value).toBe(
             'https://example.com/blocked'
         );
         expect(screen.queryByText('This site blocks automated requests')).toBeFalsy();
@@ -673,7 +686,9 @@ describe('AddRecipePage', () => {
         await waitFor(() => {
             expect(screen.queryByText('This site blocks automated requests')).toBeFalsy();
         });
-        expect((screen.getByPlaceholderText('Enter recipe title...') as HTMLInputElement).value).toBe('Recovered');
+        expect(narrowTo(screen.getByPlaceholderText('Enter recipe title...'), HTMLInputElement).value).toBe(
+            'Recovered'
+        );
     });
 
     it('clicking "or add manually instead" with no error moves straight to an empty, focused form', async () => {
@@ -682,7 +697,7 @@ describe('AddRecipePage', () => {
 
         await userEvent.click(screen.getByRole('button', { name: /or add manually instead/i }));
 
-        const titleInput = screen.getByPlaceholderText('Enter recipe title...') as HTMLInputElement;
+        const titleInput = narrowTo(screen.getByPlaceholderText('Enter recipe title...'), HTMLInputElement);
         expect(titleInput.value).toBe('');
         expect(titleInput).toHaveFocus();
     });
@@ -695,7 +710,7 @@ describe('AddRecipePage', () => {
 
         await userEvent.type(screen.getByPlaceholderText('Enter recipe title...'), 'Another Recipe');
         const imageFile = new File(['image'], 'test.jpg', { type: 'image/jpeg' });
-        const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+        const fileInput = narrowTo(document.querySelector('input[type="file"]'), HTMLInputElement);
         fireEvent.change(fileInput, { target: { files: [imageFile] } });
         await userEvent.click(screen.getByRole('button', { name: /Create Recipe/ }));
 
@@ -706,7 +721,7 @@ describe('AddRecipePage', () => {
 
     it('writes the AI-generated recipe straight into the single-recipe query cache', async () => {
         const aiGenerated = { id: 'recipe-1', title: 'Test Recipe', coverImageKey: 'recipe-image/recipe-1/ai.jpg' };
-        vi.mocked(generateRecipeAiImage).mockResolvedValue(aiGenerated as never);
+        vi.mocked(generateRecipeAiImage).mockResolvedValue(fake(aiGenerated));
         const { queryClient } = renderPage();
         await enterManualMode();
 

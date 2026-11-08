@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const isUsernameAvailable = vi.fn();
 const updateUser = vi.fn();
+
 vi.mock('../../auth/client', () => ({
     authClient: {
         isUsernameAvailable: (...args: unknown[]) => isUsernameAvailable(...args),
@@ -13,12 +14,12 @@ vi.mock('../../auth/client', () => ({
     },
 }));
 
-const session = {
-    user: null as { id: string; username: string } | null,
-    needsUsername: true,
-    isLoading: false,
-};
+type Session = { user: User | null; needsUsername: boolean; isLoading: boolean };
+
+const session: Session = { user: null, needsUsername: true, isLoading: false };
+
 const refreshSession = vi.fn();
+
 vi.mock('../../auth', () => ({
     useUser: () => ({ user: session.user, needsUsername: session.needsUsername }),
     useAuth: () => ({
@@ -30,7 +31,10 @@ vi.mock('../../auth', () => ({
 }));
 
 const migrateAfterAuth = vi.fn();
+
 vi.mock('../../guest/useMigration', () => ({ useMigration: () => ({ migrateAfterAuth }) }));
+
+import { type User } from '@tandra/types';
 
 import ChooseUsernamePage from './index';
 
@@ -55,6 +59,7 @@ describe('ChooseUsernamePage', () => {
         refreshSession.mockReset().mockImplementation(async () => {
             const user = { id: 'u1', username: 'NewName' };
             Object.assign(session, { user, needsUsername: false });
+
             return user;
         });
         migrateAfterAuth.mockReset().mockResolvedValue(undefined);

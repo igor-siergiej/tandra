@@ -3,7 +3,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import * as api from '../../api';
+import { fake } from '../../testing/fake';
 import { PublishSection } from './PublishSection';
 
 const recipe = (overrides: Partial<Recipe> = {}): Recipe => ({
@@ -20,10 +22,13 @@ const recipe = (overrides: Partial<Recipe> = {}): Recipe => ({
 const published = (): PublishedRecipeRef => ({ recipeId: 'r1', libraryId: 'user-9', publishedAt: new Date(0) });
 
 const renderSection = (r: Recipe, mine: PublishedRecipeRef[] = []) => {
-    vi.spyOn(api, 'getPublishedRecipesQuery').mockReturnValue({
-        queryKey: ['discover-published'],
-        queryFn: async () => mine,
-    } as never);
+    vi.spyOn(api, 'getPublishedRecipesQuery').mockReturnValue(
+        fake({
+            queryKey: ['discover-published'],
+            queryFn: async () => mine,
+        })
+    );
+
     return render(
         <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
             <PublishSection recipe={r} />
@@ -65,6 +70,7 @@ describe('PublishSection', () => {
     describe('licence step', () => {
         const openDrawer = async () => {
             await userEvent.click(await screen.findByRole('button', { name: 'Make public' }));
+
             return screen.findByRole('dialog');
         };
 

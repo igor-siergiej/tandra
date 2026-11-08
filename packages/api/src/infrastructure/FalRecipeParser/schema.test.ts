@@ -2,7 +2,8 @@ import { describe, expect, it } from 'bun:test';
 
 import { parsedRecipeSchema } from './schema';
 
-const parse = (input: unknown) => parsedRecipeSchema.parse(input);
+// The schema is the boundary decoder for a model reply, so the tests feed it raw values of any shape.
+const parse: typeof parsedRecipeSchema.parse = (input) => parsedRecipeSchema.parse(input);
 
 describe('parsedRecipeSchema', () => {
     it('keeps clean ingredients with name, quantity and unit', () => {
@@ -36,6 +37,7 @@ describe('parsedRecipeSchema', () => {
             ingredients: [{ name: 'onion', quantity: 'one', unit: 'pcs' }],
             instructions: ['Do.'],
         });
+
         expect(result.ingredients).toEqual([{ name: 'onion' }]);
     });
 
@@ -62,6 +64,7 @@ describe('parsedRecipeSchema', () => {
             ingredients: [{ name: 'eggs', quantity: 3, unit: '   ' }],
             instructions: ['Do.'],
         });
+
         expect(result.ingredients).toEqual([{ name: 'eggs', quantity: 3, unit: 'pcs' }]);
     });
 
@@ -71,6 +74,7 @@ describe('parsedRecipeSchema', () => {
             ingredients: [{ name: 'salt', quantity: 0, unit: 'g' }],
             instructions: ['Do.'],
         });
+
         expect(result.ingredients).toEqual([{ name: 'salt', quantity: 0, unit: 'g' }]);
     });
 
@@ -80,6 +84,7 @@ describe('parsedRecipeSchema', () => {
             ingredients: [{ name: 'salt' }],
             instructions: ['Do.', 5, 'Then.'],
         });
+
         expect(result.instructions).toEqual(['Do.', 'Then.']);
     });
 

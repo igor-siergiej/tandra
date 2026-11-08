@@ -1,5 +1,6 @@
 import { render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import RouterErrorHandler from './index';
 
 // Mock ErrorPage to avoid rendering it
@@ -10,6 +11,7 @@ vi.mock('../ErrorPage', () => ({
 // Mock useRouteError
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
+
     return {
         ...actual,
         useRouteError: vi.fn(),
@@ -25,7 +27,7 @@ describe('RouterErrorHandler', () => {
 
     it('renders ErrorPage component', () => {
         const testError = new Error('Test error');
-        (useRouteError as any).mockReturnValue(testError);
+        vi.mocked(useRouteError).mockReturnValue(testError);
 
         const { getByTestId } = render(<RouterErrorHandler />);
 
@@ -34,7 +36,7 @@ describe('RouterErrorHandler', () => {
 
     it('handles Error instances', () => {
         const testError = new Error('Network failed');
-        (useRouteError as any).mockReturnValue(testError);
+        vi.mocked(useRouteError).mockReturnValue(testError);
 
         const { getByText } = render(<RouterErrorHandler />);
 
@@ -42,7 +44,7 @@ describe('RouterErrorHandler', () => {
     });
 
     it('converts string errors to Error objects', () => {
-        (useRouteError as any).mockReturnValue('Something went wrong');
+        vi.mocked(useRouteError).mockReturnValue('Something went wrong');
 
         const { getByText } = render(<RouterErrorHandler />);
 
@@ -50,7 +52,7 @@ describe('RouterErrorHandler', () => {
     });
 
     it('converts object with message property to Error', () => {
-        (useRouteError as any).mockReturnValue({ message: 'Object error' });
+        vi.mocked(useRouteError).mockReturnValue({ message: 'Object error' });
 
         const { getByText } = render(<RouterErrorHandler />);
 
@@ -58,7 +60,7 @@ describe('RouterErrorHandler', () => {
     });
 
     it('handles unknown error types with default message', () => {
-        (useRouteError as any).mockReturnValue({ someField: 'value' });
+        vi.mocked(useRouteError).mockReturnValue({ someField: 'value' });
 
         const { getByText } = render(<RouterErrorHandler />);
 
@@ -66,7 +68,7 @@ describe('RouterErrorHandler', () => {
     });
 
     it('handles null/undefined errors with default message', () => {
-        (useRouteError as any).mockReturnValue(null);
+        vi.mocked(useRouteError).mockReturnValue(null);
 
         const { getByText } = render(<RouterErrorHandler />);
 

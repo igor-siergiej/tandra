@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from 'bun:test';
+
 import { errors } from '@opensearch-project/opensearch';
 import type { DiscoveryRecipe } from '@tandra/types';
 
 import type { NormalizedDiscoveryQuery } from '../../domain/DiscoveryService/types';
+import { fake } from '../../testing/fake';
 import { toIndexDocument } from './document';
 import { type OpenSearchApi, OpenSearchDiscoveryIndex } from './index';
 
@@ -35,9 +37,9 @@ const normalizeQuery = (query: Partial<NormalizedDiscoveryQuery>): NormalizedDis
 });
 
 const responseError = (statusCode: number, type = 'x') =>
-    new errors.ResponseError({ statusCode, body: { error: { type } }, headers: {}, meta: {} as never, warnings: null });
+    new errors.ResponseError({ statusCode, body: { error: { type } }, headers: {}, meta: fake({}), warnings: null });
 
-const fakeApi = (overrides: Partial<Record<string, unknown>> = {}) => {
+const fakeApi = (overrides: Partial<Record<'search' | 'bulk' | 'index' | 'delete', ReturnType<typeof vi.fn>>> = {}) => {
     const api = {
         indices: {
             existsAlias: vi.fn().mockResolvedValue({ body: true }),
@@ -53,9 +55,11 @@ const fakeApi = (overrides: Partial<Record<string, unknown>> = {}) => {
         bulk: vi.fn().mockResolvedValue({ body: { errors: false, items: [] } }),
         ...overrides,
     };
+
     return api;
 };
-const asApi = (api: unknown) => api as OpenSearchApi;
+
+const asApi = (api: ReturnType<typeof fakeApi>) => fake<OpenSearchApi>(api);
 
 describe('toIndexDocument', () => {
     it('flattens ingredients to names and derives total time from whichever times exist', () => {
@@ -71,9 +75,9 @@ describe('toIndexDocument', () => {
     });
 
     it('keeps instructions and quantities out of the index', () => {
-        const doc = toIndexDocument(recipe()) as Record<string, unknown>;
-        expect(doc.instructions).toBeUndefined();
-        expect(doc.ingredients).toBeUndefined();
+        const doc = toIndexDocument(recipe());
+        expect(doc).not.toHaveProperty('instructions');
+        expect(doc).not.toHaveProperty('ingredients');
     });
 });
 
@@ -88,7 +92,7 @@ describe('OpenSearchDiscoveryIndex availability', () => {
     it.each([
         ['connection refused', new errors.ConnectionError('ECONNREFUSED')],
         ['timeout', new errors.TimeoutError('Request timed out')],
-        ['no living connections', new errors.NoLivingConnectionsError('none', {} as never)],
+        ['no living connections', new errors.NoLivingConnectionsError('none', fake({}))],
         ['gateway 503 from the engine', responseError(503)],
     ])('turns "%s" into a 503', async (_name, failure) => {
         const api = fakeApi({ search: vi.fn().mockRejectedValue(failure) });

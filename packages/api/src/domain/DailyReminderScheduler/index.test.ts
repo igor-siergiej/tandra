@@ -1,7 +1,18 @@
 import { describe, expect, it, mock } from 'bun:test';
+
+import { fake } from '../../testing/fake';
+import type { ReminderSummary } from '../TodoReminderService';
 import { DailyReminderScheduler, nextRunAt } from './index';
 
 const iso = (d: Date) => d.toISOString();
+
+/** A real timer handle that will never fire, for a schedule double to return. */
+const inertTimer = () => {
+    const handle = setTimeout(() => {}, 0);
+    clearTimeout(handle);
+
+    return handle;
+};
 
 describe('nextRunAt (08:30 Europe/London)', () => {
     it('before 08:30 -> today 08:30, BST = 07:30Z', () => {
@@ -24,18 +35,31 @@ describe('nextRunAt (08:30 Europe/London)', () => {
 
 describe('DailyReminderScheduler', () => {
     it('schedules the reminder and runs it once per UK day on fire', async () => {
-        const reminder = { sendDailyReminders: mock(async () => {}) };
+        const reminder = {
+            sendDailyReminders: mock(async () => ({
+                configured: true,
+                due: 0,
+                recipients: 0,
+                subscriptions: 0,
+                sent: 0,
+            })),
+        };
+
         let captured: (() => void) | undefined;
+
         const schedule = mock((fn: () => void, _ms: number) => {
             captured = fn;
-            return 0 as unknown as ReturnType<typeof setTimeout>;
+
+            return inertTimer();
         });
+
         let current = new Date('2026-06-25T06:00:00Z');
 
-        const scheduler = new DailyReminderScheduler(reminder as never, {
+        const scheduler = new DailyReminderScheduler(fake(reminder), {
             now: () => current,
-            schedule: schedule as never,
+            schedule: fake(schedule),
         });
+
         scheduler.start();
         expect(schedule).toHaveBeenCalledTimes(1);
 
@@ -53,19 +77,24 @@ describe('DailyReminderScheduler', () => {
 
     it('never throws if the reminder rejects, and still re-arms', async () => {
         const reminder = {
-            sendDailyReminders: mock(async () => {
+            sendDailyReminders: mock(async (): Promise<ReminderSummary> => {
                 throw new Error('boom');
             }),
         };
+
         let captured: (() => void) | undefined;
+
         const schedule = mock((fn: () => void) => {
             captured = fn;
-            return 0 as never;
+
+            return inertTimer();
         });
-        const scheduler = new DailyReminderScheduler(reminder as never, {
+
+        const scheduler = new DailyReminderScheduler(fake(reminder), {
             now: () => new Date('2026-06-25T07:30:00Z'),
-            schedule: schedule as never,
+            schedule: fake(schedule),
         });
+
         scheduler.start();
         await expect(captured?.()).resolves.toBeUndefined();
         expect(schedule).toHaveBeenCalledTimes(2); // re-armed despite the error

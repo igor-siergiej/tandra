@@ -31,6 +31,7 @@ const NO_JSON_BODY = new Set([
 ]);
 
 const source = readFileSync(join(import.meta.dir, 'index.ts'), 'utf8');
+
 const routes = [...source.matchAll(/router\.(put|post|delete)\(\s*'([^']+)',([^;]*?)\);/gs)].map((match) => ({
     key: `${match[1]} ${match[2]}`,
     validated: match[3].includes('validateJson('),

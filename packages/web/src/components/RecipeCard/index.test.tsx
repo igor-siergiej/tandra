@@ -1,6 +1,9 @@
 import type { Recipe } from '@tandra/types';
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { narrowTo } from '../../testing/fake';
+import { fake } from '../../testing/fake';
 import { RecipeCard } from './index';
 
 describe('RecipeCard', () => {
@@ -28,10 +31,12 @@ describe('RecipeCard', () => {
     beforeEach(() => {
         // Mock fetch for image loading
         global.fetch = vi.fn(() =>
-            Promise.resolve({
-                ok: true,
-                blob: () => Promise.resolve(new Blob(['image data'])),
-            } as Response)
+            Promise.resolve(
+                fake<Response>({
+                    ok: true,
+                    blob: () => Promise.resolve(new Blob(['image data'])),
+                })
+            )
         );
 
         // Mock URL.createObjectURL and revokeObjectURL
@@ -80,6 +85,7 @@ describe('RecipeCard', () => {
         const { container } = render(<RecipeCard recipe={mockRecipe} currentUserId="user-1" onClick={mockClick} />);
 
         const card = container.querySelector('[role="button"]');
+
         if (card) {
             card.dispatchEvent(new MouseEvent('click', { bubbles: true }));
         }
@@ -89,9 +95,11 @@ describe('RecipeCard', () => {
 
     it('handles image fetch error gracefully', async () => {
         global.fetch = vi.fn(() =>
-            Promise.resolve({
-                ok: false,
-            } as Response)
+            Promise.resolve(
+                fake<Response>({
+                    ok: false,
+                })
+            )
         );
 
         const { container } = render(<RecipeCard recipe={mockRecipe} currentUserId="user-1" onClick={vi.fn()} />);
@@ -119,17 +127,17 @@ describe('RecipeCard', () => {
         const unsharedRecipe: Recipe = { ...mockRecipe, users: [{ id: 'user-1', username: 'owner' }] };
         render(<RecipeCard recipe={unsharedRecipe} currentUserId="user-1" onClick={vi.fn()} />);
 
-        const meta = screen.getByText('2 ingredients').parentElement as HTMLElement;
+        const meta = narrowTo(screen.getByText('2 ingredients').parentElement, HTMLElement);
         expect(meta.className).toContain('flex-col');
-        expect((meta.parentElement as HTMLElement).className).toContain('justify-center');
+        expect(narrowTo(meta.parentElement, HTMLElement).className).toContain('justify-center');
     });
 
     it('stacks the meta chips with the avatar stack directly beneath when the recipe is shared', () => {
         render(<RecipeCard recipe={mockRecipe} currentUserId="user-1" onClick={vi.fn()} />);
 
-        const meta = screen.getByText('2 ingredients').parentElement as HTMLElement;
+        const meta = narrowTo(screen.getByText('2 ingredients').parentElement, HTMLElement);
         expect(meta.className).toContain('flex-col');
-        expect((meta.parentElement as HTMLElement).className).toContain('justify-center');
+        expect(narrowTo(meta.parentElement, HTMLElement).className).toContain('justify-center');
         expect(meta.nextElementSibling?.contains(screen.getByTitle('friend'))).toBe(true);
     });
 
@@ -140,6 +148,7 @@ describe('RecipeCard', () => {
             cookTime: 15,
             servings: 4,
         };
+
         render(<RecipeCard recipe={recipeWithTimes} currentUserId="user-1" onClick={vi.fn()} />);
 
         expect(screen.getByText('20m prep')).toBeTruthy();

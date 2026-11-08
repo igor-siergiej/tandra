@@ -1,5 +1,4 @@
 import 'dotenv/config';
-
 import { config } from '../config';
 import { dependencyContainer, registerDepdendencies } from '../dependencies';
 import { DependencyToken } from '../dependencies/types';

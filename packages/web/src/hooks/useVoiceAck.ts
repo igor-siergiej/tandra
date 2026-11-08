@@ -16,6 +16,7 @@ export const useVoiceAck = (): [boolean, () => void] => {
 
     const acknowledge = useCallback(() => {
         setAcknowledged(true);
+
         try {
             localStorage.setItem(STORAGE_KEY, 'true');
         } catch {

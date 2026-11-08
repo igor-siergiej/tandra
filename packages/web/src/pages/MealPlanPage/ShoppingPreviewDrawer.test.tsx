@@ -1,5 +1,8 @@
+import { type ListResponse } from '@tandra/types';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+
+import { fake } from '../../testing/fake';
 import type { ShoppingRow } from '../../utils/mealPlan';
 import { ShoppingPreviewDrawer } from './ShoppingPreviewDrawer';
 
@@ -15,10 +18,8 @@ const rows: ShoppingRow[] = [
     { key: 'a', name: 'spaghetti', quantity: 400, unit: 'g', recipeTitle: 'Pasta' },
     { key: 'b', name: 'garlic', recipeTitle: 'Pasta' },
 ];
-const lists = [
-    { id: 'l1', title: 'Weekly' },
-    { id: 'l2', title: 'Party' },
-] as never;
+
+const lists = [fake<ListResponse>({ id: 'l1', title: 'Weekly' }), fake<ListResponse>({ id: 'l2', title: 'Party' })];
 
 const setup = (onConfirm = vi.fn().mockResolvedValue(undefined)) => {
     const onOpenChange = vi.fn();
@@ -32,6 +33,7 @@ const setup = (onConfirm = vi.fn().mockResolvedValue(undefined)) => {
             onOpenChange={onOpenChange}
         />
     );
+
     return { onConfirm, onOpenChange };
 };
 

@@ -1,11 +1,15 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
+
 import type { Label } from '@tandra/types';
+
+import { fake } from '../../testing/fake';
 import { LabelService } from './index';
 
 class MockLabelRepo {
     store = new Map<string, Label>();
     async insert(l: Label) {
         this.store.set(l.id, l);
+
         return l;
     }
     async getById(id: string) {
@@ -16,6 +20,7 @@ class MockLabelRepo {
     }
     async update(id: string, l: Label) {
         this.store.set(id, l);
+
         return l;
     }
     async deleteById(id: string) {
@@ -34,6 +39,7 @@ class MockIds {
     private n = 0;
     generate() {
         this.n += 1;
+
         return `L-${this.n}`;
     }
 }
@@ -46,7 +52,7 @@ describe('LabelService', () => {
     beforeEach(() => {
         labels = new MockLabelRepo();
         todos = new MockTodoRepo();
-        svc = new LabelService(labels as never, todos as never, new MockIds() as never);
+        svc = new LabelService(fake(labels), fake(todos), fake(new MockIds()));
     });
 
     it('creates a label for the owner', async () => {

@@ -1,6 +1,7 @@
 import type { Recipe } from '@tandra/types';
 import { renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+
 import { useRecipeSearch } from './useRecipeSearch';
 
 const makeRecipe = (overrides: Partial<Recipe> & { id: string; title: string }): Recipe => ({

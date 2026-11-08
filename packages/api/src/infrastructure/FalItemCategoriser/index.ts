@@ -37,6 +37,7 @@ export class FalItemCategoriser {
             ...(this.model !== undefined && { model: this.model }),
             ...(this.timeoutMs !== undefined && { timeoutMs: this.timeoutMs }),
         });
+
         return value.category;
     }
 }

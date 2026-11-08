@@ -2,6 +2,7 @@ import type { DiscoveryRecipe, DiscoveryRecipeSummary, Ingredient } from '@tandr
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, ArrowLeft, Check, ExternalLink, Plus } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+
 import {
     copyDiscoveryRecipe,
     getDiscoveryRecipeQuery,
@@ -23,11 +24,13 @@ const NOT_FOUND = 404;
 const formatIngredient = ({ name, quantity, unit }: Ingredient): string => {
     // "pcs" is the structurer's marker for a bare count ("2 eggs"), not something a person would write.
     const measure = [quantity, unit && unit !== 'pcs' ? unit : undefined].filter((part) => part !== undefined);
+
     return [...measure, name].join(' ');
 };
 
 const SimilarStrip = ({ recipes, onSelect }: { recipes: DiscoveryRecipeSummary[]; onSelect: (id: string) => void }) => {
     if (recipes.length === 0) return null;
+
     return (
         <section aria-label="Similar recipes" className="space-y-2">
             <h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Similar recipes</h3>
@@ -258,7 +261,9 @@ const DiscoverRecipePage = () => {
     const { data: recipe, isLoading, isError, error, refetch } = useQuery(getDiscoveryRecipeQuery(recipeId));
 
     let body: React.ReactNode;
+
     if (isError) {
+        // SAFETY: react-query errors from makeRequest are Errors carrying an optional numeric `status`.
         body = (
             <Problem
                 notFound={(error as { status?: number } | null)?.status === NOT_FOUND}

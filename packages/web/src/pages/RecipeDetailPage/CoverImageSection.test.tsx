@@ -3,6 +3,8 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { fake } from '../../testing/fake';
+
 const revertRecipeAiImage = vi.fn();
 const uploadRecipeImage = vi.fn();
 
@@ -26,7 +28,7 @@ const baseRecipe: Recipe = {
 describe('CoverImageSection revert control', () => {
     beforeEach(() => {
         revertRecipeAiImage.mockReset().mockResolvedValue(baseRecipe);
-        global.fetch = vi.fn().mockResolvedValue({ ok: false }) as unknown as typeof fetch;
+        global.fetch = fake<typeof fetch>(vi.fn().mockResolvedValue({ ok: false }));
     });
 
     it('shows "Use AI image" when cover differs from the ai image', async () => {

@@ -22,7 +22,7 @@ describe('UuidGenerator', () => {
             it('should return a string value', () => {
                 const uuid = generator.generate();
 
-                expect(typeof uuid).toBe('string');
+                expect(uuid).toEqual(expect.any(String));
             });
 
             it('should have the correct length', () => {

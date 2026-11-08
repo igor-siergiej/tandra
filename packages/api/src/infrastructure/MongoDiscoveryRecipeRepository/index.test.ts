@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from 'bun:test';
-import type { DiscoveryRecipe } from '@tandra/types';
 
+import type { DiscoveryRecipe } from '@tandra/types';
+import type { Filter, Sort } from 'mongodb';
+
+import { connectionTo } from '../../testing/fake';
 import { MongoDiscoveryRecipeRepository } from './index';
 
 const NO_OBJECT_ID = { projection: { _id: 0 } } as const;
@@ -34,15 +37,17 @@ const setup = (docs: DiscoveryRecipe[] = []) => {
                 })(),
         })),
     };
-    const db = { getCollection: vi.fn(() => collection) };
-    return { repo: new MongoDiscoveryRecipeRepository(db as never), collection, db };
+
+    const opened: string[] = [];
+
+    return { repo: new MongoDiscoveryRecipeRepository(connectionTo(collection, opened)), collection, opened };
 };
 
 describe('MongoDiscoveryRecipeRepository', () => {
     it('uses the dedicated discoveryRecipes collection, not the personal recipe collection', async () => {
-        const { repo, db } = setup();
+        const { repo, opened } = setup();
         await repo.getById('a');
-        expect(db.getCollection).toHaveBeenCalledWith('discoveryRecipes');
+        expect(opened).toContain('discoveryRecipes');
     });
 
     it('guarantees one document per library id', async () => {
@@ -77,6 +82,7 @@ describe('MongoDiscoveryRecipeRepository', () => {
     it('streams the whole library in bounded batches, including the short final one', async () => {
         const { repo } = setup([recipe('a'), recipe('b'), recipe('c'), recipe('d'), recipe('e')]);
         const sizes: number[] = [];
+
         for await (const batch of repo.batches(2)) sizes.push(batch.length);
         expect(sizes).toEqual([2, 2, 1]);
     });
@@ -84,6 +90,7 @@ describe('MongoDiscoveryRecipeRepository', () => {
     it('yields nothing for an empty library', async () => {
         const { repo } = setup([]);
         const sizes: number[] = [];
+
         for await (const batch of repo.batches(2)) sizes.push(batch.length);
         expect(sizes).toEqual([]);
     });
@@ -134,10 +141,11 @@ describe('MongoDiscoveryRecipeRepository', () => {
 
     it('listPublic returns only recipes that have a slug and sorts them newest-first', async () => {
         const { repo, collection } = setup();
-        let capturedSort: unknown;
+        let capturedSort: Sort | undefined;
         collection.find = vi.fn().mockReturnValue({
-            sort: (s: unknown) => {
+            sort: (s: Sort) => {
                 capturedSort = s;
+
                 return { limit: () => ({ toArray: async () => [] }) };
             },
         });
@@ -148,9 +156,10 @@ describe('MongoDiscoveryRecipeRepository', () => {
 
     it('listPublic seeks past the cursor with _id < after', async () => {
         const { repo, collection } = setup();
-        const findCalls: unknown[][] = [];
-        collection.find = vi.fn((filter: unknown) => {
+        const findCalls: Array<[Filter<DiscoveryRecipe>]> = [];
+        collection.find = vi.fn((filter: Filter<DiscoveryRecipe>) => {
             findCalls.push([filter]);
+
             return {
                 sort: () => ({ limit: () => ({ toArray: async () => [] }) }),
             };
@@ -168,57 +177,91 @@ describe('MongoDiscoveryRecipeRepository', () => {
     });
 });
 
-type Doc = Record<string, unknown>;
-type Condition = { $ne?: unknown; $exists?: boolean; $in?: unknown[]; $nin?: unknown[]; $regex?: RegExp };
+/** The library fields the slug backfill reads and writes. */
+type Doc = { id: string; source: string; slug?: string };
+
+type Field = keyof Doc;
+
+const FIELDS: readonly Field[] = ['id', 'source', 'slug'];
+
+/** The field a `$field` pipeline path names. */
+const fieldAt = (path: string): Field | undefined => FIELDS.find((field) => `$${field}` === path);
+
+type Operators = { $ne?: string; $exists?: boolean; $in?: string[]; $nin?: string[]; $regex?: RegExp };
+
+/** A field condition: a plain value to equal, or the operators the slug backfill uses. */
+type Condition = string | Operators;
+
+type Query = Partial<Record<Field, Condition>>;
+
+const isOperators = (condition: Condition): condition is Operators => condition instanceof Object;
 
 // Just the query operators the slug backfill uses, with Mongo's meaning.
-const matchesCondition = (value: unknown, condition: unknown): boolean => {
-    if (typeof condition !== 'object' || condition === null) return value === condition;
-    const c = condition as Condition;
+const matchesCondition = (value: string | undefined, condition: Condition): boolean => {
+    if (!isOperators(condition)) return value === condition;
+    const c = condition;
+
     return (
         (c.$ne === undefined || value !== c.$ne) &&
         (c.$exists === undefined || (value !== undefined) === c.$exists) &&
-        (c.$in === undefined || c.$in.includes(value)) &&
-        (c.$nin === undefined || !c.$nin.includes(value)) &&
-        (c.$regex === undefined || (typeof value === 'string' && c.$regex.test(value)))
+        (c.$in === undefined || (value !== undefined && c.$in.includes(value))) &&
+        (c.$nin === undefined || value === undefined || !c.$nin.includes(value)) &&
+        (c.$regex === undefined || (value !== undefined && c.$regex.test(value)))
     );
 };
 
-const matches = (doc: Doc, filter: Doc): boolean =>
-    Object.entries(filter).every(([field, condition]) => matchesCondition(doc[field], condition));
+const matches = (doc: Doc, filter: Query): boolean =>
+    FIELDS.every((field) => {
+        const condition = filter[field];
+
+        return condition === undefined || matchesCondition(doc[field], condition);
+    });
 
 /**
  * In-memory `discoveryRecipes` with the unique sparse slug index: like Mongo, a multi-document update that hits a
  * duplicate slug throws and stops there.
  */
 const libraryCollection = (docs: Doc[]) => ({
-    distinct: vi.fn(async (field: string, filter: Doc) => [
-        ...new Set(docs.filter((doc) => matches(doc, filter)).map((doc) => doc[field])),
+    distinct: vi.fn(async (field: Field, filter: Query) => [
+        ...new Set(docs.flatMap((doc) => (matches(doc, filter) ? [doc[field]] : []))),
     ]),
-    updateMany: vi.fn(async (filter: Doc, pipeline: Array<{ $set: Record<string, string> }>) => {
+    updateMany: vi.fn(async (filter: Query, pipeline: Array<{ $set: Partial<Record<Field, string>> }>) => {
         let modifiedCount = 0;
+
         for (const doc of docs.filter((candidate) => matches(candidate, filter))) {
             const next = { ...doc };
+
             for (const stage of pipeline) {
-                for (const [field, path] of Object.entries(stage.$set)) next[field] = doc[path.replace(/^\$/, '')];
+                for (const field of FIELDS) {
+                    const source = fieldAt(stage.$set[field] ?? '');
+                    const value = source === undefined ? undefined : doc[source];
+
+                    if (field === 'slug') next.slug = value;
+                    else if (value !== undefined) next[field] = value;
+                }
             }
+
             if (docs.some((other) => other !== doc && other.slug !== undefined && other.slug === next.slug)) {
                 throw Object.assign(new Error('E11000 duplicate key error collection: discoveryRecipes'), {
                     code: 11000,
                 });
             }
+
             Object.assign(doc, next);
             modifiedCount += 1;
         }
+
         return { modifiedCount };
     }),
 });
 
 describe('MongoDiscoveryRecipeRepository.assignWikibooksSlugs', () => {
-    const doc = (id: string, source: string, slug?: string): Doc => ({ id, source, ...(slug && { slug }) });
+    const doc = (id: string, source: string, slug?: string) => ({ id, source, ...(slug && { slug }) });
+
     const setupLibrary = (docs: Doc[]) => {
         const collection = libraryCollection(docs);
-        const repo = new MongoDiscoveryRecipeRepository({ getCollection: () => collection } as never);
+        const repo = new MongoDiscoveryRecipeRepository(connectionTo(collection));
+
         return { repo, collection, slugs: () => Object.fromEntries(docs.map((d) => [d.id, d.slug])) };
     };
 

@@ -23,11 +23,15 @@ export interface SpeechRecognitionLike {
 
 export type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
 
-export const getSpeechRecognition = (): SpeechRecognitionCtor | null => {
-    if (typeof window === 'undefined') return null;
-    const w = window as unknown as {
+declare global {
+    interface Window {
         SpeechRecognition?: SpeechRecognitionCtor;
         webkitSpeechRecognition?: SpeechRecognitionCtor;
-    };
-    return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
+    }
+}
+
+export const getSpeechRecognition = (): SpeechRecognitionCtor | null => {
+    if (typeof window === 'undefined') return null;
+
+    return window.SpeechRecognition ?? window.webkitSpeechRecognition ?? null;
 };

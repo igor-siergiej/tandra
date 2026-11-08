@@ -1,6 +1,7 @@
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { useState } from 'react';
+
 import { Button } from '../../components/ui/button';
 import { Calendar } from '../../components/ui/calendar';
 import { Input } from '../../components/ui/input';
@@ -51,6 +52,7 @@ const NaturalDateInput = ({ onCommit }: { onCommit: (date: Date) => void }) => {
 };
 
 export const DueDateField = ({ value, onChange, captionLayout }: DueDateFieldProps) => {
+    // SAFETY: CSS custom properties are valid style keys but are missing from React.CSSProperties.
     return (
         <div className="space-y-2">
             <Label>Due Date (Optional)</Label>

@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'bun:test';
+
 import { memoryAdapter } from 'better-auth/adapters/memory';
 import type { Context } from 'hono';
+import { z } from 'zod';
 
 import { type Auth, createAuth } from '../infrastructure/BetterAuth';
+import { fake, handlerContext } from '../testing/fake';
 import { __setAuthGetterForTests, authenticate, optionalAuthenticate } from './auth';
 
 type AuthVars = { Variables: { user: { id: string; username: string } } };
@@ -12,11 +15,12 @@ const createMockContext = (
     requestHeaders: Record<string, string> = {}
 ): Context<AuthVars> => {
     const allHeaders = { ...headers, ...requestHeaders };
+
     const req = new Request('http://localhost/', {
         headers: allHeaders,
     });
 
-    const ctx = {
+    const ctx = handlerContext<Context<AuthVars>>({
         req: {
             header: (name: string) => allHeaders[name.toLowerCase()] ?? allHeaders[name],
             raw: req,
@@ -30,10 +34,13 @@ const createMockContext = (
         ),
         set: vi.fn(),
         get: vi.fn(),
-    } as unknown as Context<AuthVars>;
+    });
 
     return ctx;
 };
+
+/** The part of a Better Auth sign-up response these tests read. */
+const signUpBody = z.object({ user: z.object({ id: z.string() }) });
 
 const mockNext = vi.fn().mockResolvedValue(undefined);
 
@@ -42,7 +49,7 @@ const mockNext = vi.fn().mockResolvedValue(undefined);
 //
 // The memory adapter is `better-auth/adapters/memory`; its deep-shape parameter and the
 // `createAuth` factory parameter are structurally identical but the inference path treats
-// them as unrelated. Named alias keeps the cast honest and out of the call site.
+// them as unrelated. The named alias is what `fake` hands the adapter to.
 type AuthDatabase = Parameters<typeof createAuth>[0]['database'];
 
 describe('authenticate middleware with Better Auth session', () => {
@@ -51,22 +58,27 @@ describe('authenticate middleware with Better Auth session', () => {
         username?: string;
         displayUsername?: string;
     }
-    const buildAuth = (): { auth: Auth; db: { user: UserRow[] } } => {
-        const db: Record<string, unknown[]> = {
-            user: [],
-            session: [],
-            account: [],
-            verification: [],
-            rateLimit: [],
+
+    const buildAuth = () => {
+        // The memory adapter's tables, typed by the rows these tests read; the others only need an id.
+        const db = {
+            user: new Array<UserRow>(),
+            session: new Array<{ id: string }>(),
+            account: new Array<{ id: string }>(),
+            verification: new Array<{ id: string }>(),
+            rateLimit: new Array<{ id: string }>(),
         };
-        const memoryAuthDb = memoryAdapter(db) as unknown as AuthDatabase;
+
+        const memoryAuthDb = fake<AuthDatabase>(memoryAdapter(db));
+
         const auth = createAuth({
             database: memoryAuthDb,
             secret: 'test-secret-test-secret-test-secret-123',
             baseURL: 'http://localhost:4000',
             trustedOrigins: ['http://localhost:4000'],
         });
-        return { auth, db: db as unknown as { user: UserRow[] } };
+
+        return { auth, db };
     };
 
     const signUpAndGetCookie = async (
@@ -76,9 +88,12 @@ describe('authenticate middleware with Better Auth session', () => {
             body: { email: 'x@y.z', name: 'Alice', password: 'password123', username: 'Alice' },
             asResponse: true,
         });
+
         const setCookie = signUp.headers.get('set-cookie');
+
         if (!setCookie) throw new Error('sign-up did not set the session cookie');
-        const userId = ((await signUp.json()) as { user: { id: string } }).user.id;
+        const userId = signUpBody.parse(await signUp.json()).user.id;
+
         return { cookieHeader: setCookie.split(';')[0], userId, username: 'Alice' };
     };
 
@@ -103,6 +118,7 @@ describe('authenticate middleware with Better Auth session', () => {
     it('returns 403 username_required when the session user has no username yet', async () => {
         const { auth, db } = buildAuth();
         __setAuthGetterForTests(() => auth);
+
         // Sign up normally so Better Auth hands back a properly-signed session cookie, then
         // mutate the in-memory user row to clear its username — Better Auth's username
         // validation hook rejects an empty username over its HTTP/adapter surface, but the
@@ -117,14 +133,18 @@ describe('authenticate middleware with Better Auth session', () => {
             },
             asResponse: true,
         });
+
         const cookieHeader = signUp.headers.get('set-cookie')?.split(';')[0];
+
         if (!cookieHeader) throw new Error('sign-up did not set the session cookie');
-        const userId = ((await signUp.json()) as { user: { id: string } }).user.id;
+        const userId = signUpBody.parse(await signUp.json()).user.id;
         const target = db.user.find((u) => u.id === userId);
+
         if (target) {
             delete target.username;
             delete target.displayUsername;
         }
+
         const reqCtx = createMockContext({}, { cookie: cookieHeader });
         const result = await authenticate(reqCtx, mockNext);
 

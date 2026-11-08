@@ -1,6 +1,7 @@
 import { type Item, type ItemCategory, type ListType, ListType as ListTypeEnum } from '@tandra/types';
 import { motion } from 'motion/react';
 import { type MouseEvent, useId, useRef, useState } from 'react';
+
 import { QuantityUnitField } from '../../components/QuantityUnitField';
 import { Button } from '../../components/ui/button';
 import {
@@ -41,8 +42,10 @@ const ItemCheckBox = ({ item, listTitle, listType, showImage }: ItemCheckBoxProp
     const { imageBlobUrl, hasLoadedImage, hasImageError, onImageLoad, onImageError } = useItemImage(
         showImage ? item.name : null
     );
+
     const { toggleMutation, deleteMutation, updateNameMutation, updateQuantityMutation, updateCategoryMutation } =
         useItemMutations(listTitle, item.id);
+
     const drawerState = useItemEditDrawer();
     const isPending = usePendingItemIds(listTitle).has(item.id);
 
@@ -84,9 +87,11 @@ const ItemCheckBox = ({ item, listTitle, listType, showImage }: ItemCheckBoxProp
         const hasQuantityChange = newQuantity !== item.quantity || newUnit !== item.unit;
 
         if (hasNameChange) updateNameMutation.mutate(values.name.trim());
+
         if (hasQuantityChange) updateQuantityMutation.mutate({ quantity: newQuantity, unit: newUnit });
 
         if (values.category && values.category !== (item.category ?? '')) {
+            // SAFETY: the category Select only offers ItemCategory values, and '' is excluded by the check above.
             updateCategoryMutation.mutate(values.category as ItemCategory);
         }
 

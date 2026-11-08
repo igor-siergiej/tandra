@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+
 import { getVapidPublicKey, subscribeToPush, unsubscribeFromPush } from '../api';
 import { logger } from '../utils/logger';
 import { urlBase64ToUint8Array } from '../utils/push';
@@ -12,9 +13,11 @@ const isPushSupported = (): boolean =>
 
 export const usePushNotifications = () => {
     const [isSupported] = useState(isPushSupported);
+
     const [permission, setPermission] = useState<NotificationPermission>(
         isPushSupported() ? Notification.permission : 'denied'
     );
+
     const [isSubscribed, setIsSubscribed] = useState(false);
     const [isBusy, setIsBusy] = useState(false);
 
@@ -29,27 +32,34 @@ export const usePushNotifications = () => {
     const subscribe = useCallback(async () => {
         if (!isSupported || isBusy) return;
         setIsBusy(true);
+
         try {
             const result = await Notification.requestPermission();
             setPermission(result);
+
             if (result !== 'granted') return;
 
             const { publicKey } = await getVapidPublicKey();
+
             if (!publicKey) {
                 logger.warn('Push not configured on the server (no VAPID key)');
+
                 return;
             }
 
             const reg = await navigator.serviceWorker.ready;
+
             const sub = await reg.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: urlBase64ToUint8Array(publicKey),
             });
 
+            // SAFETY: a PushSubscription's JSON always carries endpoint and the p256dh/auth keys for a Web Push subscription; the DOM type marks them optional.
             const json = sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } };
             await subscribeToPush({ endpoint: json.endpoint, keys: json.keys });
             setIsSubscribed(true);
         } catch (error) {
+            // SAFETY: only the message of whatever was thrown is logged; a non-Error reads as undefined.
             logger.error('Failed to subscribe to push', { error: (error as Error).message });
         } finally {
             setIsBusy(false);
@@ -59,16 +69,20 @@ export const usePushNotifications = () => {
     const unsubscribe = useCallback(async () => {
         if (!isSupported || isBusy) return;
         setIsBusy(true);
+
         try {
             const reg = await navigator.serviceWorker.ready;
             const sub = await reg.pushManager.getSubscription();
+
             if (sub) {
                 const { endpoint } = sub;
                 await sub.unsubscribe();
                 await unsubscribeFromPush(endpoint);
             }
+
             setIsSubscribed(false);
         } catch (error) {
+            // SAFETY: only the message of whatever was thrown is logged; a non-Error reads as undefined.
             logger.error('Failed to unsubscribe from push', { error: (error as Error).message });
         } finally {
             setIsBusy(false);

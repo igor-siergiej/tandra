@@ -26,15 +26,18 @@ export class MongoLabelRepository implements LabelRepository {
 
     async insert(label: Label): Promise<Label> {
         await this.collection().insertOne(label);
+
         return label;
     }
 
     async update(labelId: string, label: Label): Promise<Label> {
         await this.collection().findOneAndReplace({ id: labelId }, label);
         const updated = await this.getById(labelId);
+
         if (!updated) {
             throw new Error('Label not found');
         }
+
         return updated;
     }
 

@@ -16,6 +16,7 @@ import type {
     Todo,
     User,
 } from '@tandra/types';
+
 import {
     foldPendingItems,
     foldPendingLabels,
@@ -53,6 +54,7 @@ export const getListSocketTicket = async (listTitle: string): Promise<string> =>
         method: MethodType.POST,
         operationString: 'get list socket ticket',
     });
+
     return ticket;
 };
 
@@ -75,8 +77,9 @@ export const addList = async (
     selectedUsers?: Array<string>,
     listType?: ListType,
     id?: string
-): Promise<unknown> => {
+): Promise<void> => {
     const dateAdded = generateTimestamp(new Date());
+
     const requestBody = {
         title: listTitle,
         dateAdded,
@@ -86,14 +89,12 @@ export const addList = async (
         ...(id !== undefined && { id }),
     };
 
-    const result = await makeRequest({
+    await makeRequest({
         pathname: '/api/lists',
         method: MethodType.PUT,
         operationString: 'add list',
         body: JSON.stringify(requestBody),
     });
-
-    return result;
 };
 
 export const addItem = async (
@@ -102,10 +103,10 @@ export const addItem = async (
     quantity?: number,
     unit?: string,
     id?: string
-): Promise<unknown> => {
+): Promise<void> => {
     const dateAdded = generateTimestamp(new Date());
 
-    const result = await makeRequest({
+    await makeRequest({
         pathname: `/api/lists/${encodeURIComponent(listTitle)}/items`,
         method: MethodType.PUT,
         operationString: 'add item',
@@ -119,8 +120,6 @@ export const addItem = async (
     });
 
     void fetch(`/api/image/${encodeURIComponent(itemName)}`).catch(() => {});
-
-    return result;
 };
 
 export interface SpokenItem {
@@ -136,6 +135,8 @@ export const parseSpokenItems = async (transcript: string): Promise<Array<Spoken
         operationString: 'parse spoken items',
         body: JSON.stringify({ transcript }),
     });
+
+    // SAFETY: POST /api/items/parse answers { items } (see ItemParseHandlers).
     return (result as { items: Array<SpokenItem> }).items;
 };
 
@@ -298,6 +299,7 @@ export const addRecipe = async (
     tags?: string[]
 ): Promise<Recipe> => {
     const dateAdded = generateTimestamp(new Date());
+
     const requestBody = {
         title,
         dateAdded,
@@ -321,6 +323,7 @@ export const addRecipe = async (
         body: JSON.stringify(requestBody),
     });
 
+    // SAFETY: PUT /api/recipes answers with the created recipe.
     return result as Recipe;
 };
 
@@ -352,12 +355,14 @@ export const importRecipeImage = async (imageUrl: string, signal?: AbortSignal):
     const response = await fetch(`/api/recipes/import/image?url=${encodeURIComponent(imageUrl)}`, {
         ...(signal && { signal }),
     });
+
     if (!response.ok) {
         throw new Error(`Failed to fetch recipe cover image: ${response.status}`);
     }
 
     const blob = await response.blob();
     const extension = blob.type.split('/')[1]?.split('+')[0] || 'jpg';
+
     return new File([blob], `imported-cover.${extension}`, { type: blob.type });
 };
 
@@ -635,15 +640,19 @@ export const unfriend = async (friendId: string): Promise<void> => {
 // fallow-ignore-next-line complexity
 const discoveryQueryString = (query: DiscoverySearchQuery): string => {
     const params = new URLSearchParams();
+
     for (const [key, value] of Object.entries(query)) {
         if (value === undefined || value === '') continue;
+
         for (const entry of Array.isArray(value) ? value : [value]) params.append(key, String(entry));
     }
+
     return params.toString();
 };
 
 export const searchDiscoveryRecipes = async (query: DiscoverySearchQuery): Promise<DiscoverySearchResult> => {
     const queryString = discoveryQueryString(query);
+
     return await makeRequest({
         pathname: `/api/discover/recipes${queryString ? `?${queryString}` : ''}`,
         method: MethodType.GET,

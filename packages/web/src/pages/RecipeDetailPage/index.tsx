@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ExternalLink, Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+
 import { addItemsBulk, getListsQuery, getRecipeQuery } from '../../api';
 import { useUser } from '../../auth';
 import { ManageUsersDrawer } from '../../components/ManageUsersDrawer';
@@ -50,6 +51,7 @@ const RecipeDetailPage = () => {
     const queryClient = useQueryClient();
     const { updateRecipe, deleteRecipe } = useRecipeMutations(user ?? undefined);
     const { confirm, isOpen, config: confirmConfig, handleConfirm, handleCancel } = useConfirmation();
+
     const { addUserMutation, removeUserMutation } = useManageRecipeUsers({
         recipeId: recipeId ?? '',
         userId: user?.id ?? '',
@@ -128,8 +130,7 @@ const RecipeDetailPage = () => {
             );
             await refetch();
         } catch (error) {
-            const err = error as { message?: string };
-            notifyError(err.message || 'Failed to add ingredient');
+            notifyError(error.message || 'Failed to add ingredient');
         }
     };
 
@@ -159,8 +160,10 @@ const RecipeDetailPage = () => {
     // fallow-ignore-next-line complexity
     const handleSaveAll = async () => {
         if (!recipe) return;
+
         if (!editedTitle.trim()) {
             notifyError('Recipe title is required');
+
             return;
         }
 
@@ -183,8 +186,7 @@ const RecipeDetailPage = () => {
             notifySuccess('Recipe updated');
             logger.info('Recipe updated', { recipeId, title: editedTitle });
         } catch (error) {
-            const err = error as { message?: string };
-            notifyError(err.message || 'Failed to update recipe');
+            notifyError(error.message || 'Failed to update recipe');
         }
     };
 
@@ -209,11 +211,11 @@ const RecipeDetailPage = () => {
                 recipe.difficulty
             );
             await refetch();
+
             if (!options?.silent) notifySuccess('Ingredients updated');
             logger.info('Recipe ingredients updated', { recipeId, ingredientCount: ingredients.length });
         } catch (error) {
-            const err = error as { message?: string };
-            notifyError(err.message || 'Failed to update ingredients');
+            notifyError(error.message || 'Failed to update ingredients');
             throw error;
         }
     };
@@ -232,8 +234,7 @@ const RecipeDetailPage = () => {
                     notifySuccess('Recipe deleted successfully');
                     navigate('/recipes');
                 } catch (error) {
-                    const err = error as { message?: string };
-                    notifyError(err.message || 'Failed to delete recipe');
+                    notifyError(error.message || 'Failed to delete recipe');
                 }
             },
         });
@@ -257,8 +258,7 @@ const RecipeDetailPage = () => {
                 skipped: result.skipped,
             });
         } catch (error) {
-            const err = error as { message?: string };
-            notifyError(err.message || 'Failed to add ingredients to list');
+            notifyError(error.message || 'Failed to add ingredients to list');
         }
     };
 

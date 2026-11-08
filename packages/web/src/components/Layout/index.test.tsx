@@ -1,7 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
+
 import { PullToRefreshProvider } from '../../contexts/PullToRefreshContext';
+import { narrowTo } from '../../testing/fake';
 import { Layout } from './index';
 
 const renderAtPath = (path: string, ui: React.ReactElement) =>
@@ -54,6 +56,7 @@ describe('Layout', () => {
                 <p>Content</p>
             </Layout>
         );
+
         const { container: wide } = renderAtPath(
             '/recipes',
             <Layout>
@@ -73,7 +76,7 @@ describe('Layout', () => {
             </Layout>
         );
 
-        const scrollDiv = (container.firstChild as HTMLElement).lastElementChild as HTMLElement;
+        const scrollDiv = narrowTo(narrowTo(container.firstChild, HTMLElement).lastElementChild, HTMLElement);
         expect(scrollDiv).toHaveClass('flex-col');
         expect(scrollDiv).not.toHaveClass('flex-col-reverse');
     });
@@ -86,9 +89,9 @@ describe('Layout', () => {
             </Layout>
         );
 
-        const outerDiv = container.firstChild as HTMLElement;
+        const outerDiv = narrowTo(container.firstChild, HTMLElement);
         // The scroll container is the last child (after PullToRefreshIndicator)
-        const scrollDiv = outerDiv.lastElementChild as HTMLElement;
+        const scrollDiv = narrowTo(outerDiv.lastElementChild, HTMLElement);
         expect(scrollDiv).toHaveClass('flex-col-reverse', 'overflow-y-auto', 'h-full', 'overscroll-y-contain');
     });
 
@@ -100,8 +103,8 @@ describe('Layout', () => {
             </Layout>
         );
 
-        const outerDiv = container.firstChild as HTMLElement;
-        const scrollDiv = outerDiv.lastElementChild as HTMLElement;
+        const outerDiv = narrowTo(container.firstChild, HTMLElement);
+        const scrollDiv = narrowTo(outerDiv.lastElementChild, HTMLElement);
         expect(scrollDiv).toHaveClass('flex-col', 'overflow-y-auto', 'h-full', 'overscroll-y-contain');
         expect(scrollDiv).not.toHaveClass('flex-col-reverse');
     });
@@ -114,8 +117,8 @@ describe('Layout', () => {
             </Layout>
         );
 
-        const outerDiv = container.firstChild as HTMLElement;
-        const scrollDiv = outerDiv.lastElementChild as HTMLElement;
+        const outerDiv = narrowTo(container.firstChild, HTMLElement);
+        const scrollDiv = narrowTo(outerDiv.lastElementChild, HTMLElement);
         expect(scrollDiv).toHaveClass('flex-col', 'overflow-y-auto', 'h-full', 'overscroll-y-contain');
         expect(scrollDiv).not.toHaveClass('flex-col-reverse');
     });
@@ -127,6 +130,7 @@ describe('Layout', () => {
                 <p>Content</p>
             </Layout>
         );
+
         const { container: useUp } = renderAtPath(
             '/recipes/use-up',
             <Layout>
@@ -135,8 +139,8 @@ describe('Layout', () => {
         );
 
         // /recipes/new is full-bleed and reversed by default (own header/footer, not a list).
-        expect((addRecipe.firstChild as HTMLElement).lastElementChild).toHaveClass('flex-col-reverse');
+        expect(narrowTo(addRecipe.firstChild, HTMLElement).lastElementChild).toHaveClass('flex-col-reverse');
         // /recipes/use-up was already a NORMAL_SCROLL_ROUTES entry before this change.
-        expect((useUp.firstChild as HTMLElement).lastElementChild).toHaveClass('flex-col');
+        expect(narrowTo(useUp.firstChild, HTMLElement).lastElementChild).toHaveClass('flex-col');
     });
 });

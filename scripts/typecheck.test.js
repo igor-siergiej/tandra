@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+
 import { diff, parseErrors, tally } from './typecheck.js';
 
 const tscOutput = (lines) => lines.join('\n');

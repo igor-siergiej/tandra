@@ -2,7 +2,8 @@ import { Edit2, Loader2, Trash2 } from 'lucide-react';
 import type { AnimationControls, MotionValue } from 'motion/react';
 import { motion } from 'motion/react';
 import type { MouseEvent, ReactNode } from 'react';
-import type { PanInfo } from '../../hooks/useSwipeGesture';
+
+import type { DragEndEvent, PanInfo } from '../../hooks/useSwipeGesture';
 import { SWIPE_REVEAL_DISTANCE } from '../../hooks/useSwipeGesture';
 import { Button } from '../ui/button';
 
@@ -11,7 +12,7 @@ export interface SwipeRevealShellProps {
     x: MotionValue<number>;
     controls: AnimationControls;
     swipeState: 'closed' | 'left' | 'right';
-    onDragEnd: (event: unknown, info: PanInfo) => void;
+    onDragEnd: (event: DragEndEvent, info: PanInfo) => void;
     onCloseSwipe: () => void;
     onDelete: (e?: MouseEvent) => void;
     onEdit?: (e?: MouseEvent) => void;
@@ -51,8 +52,11 @@ const RevealedActionButton = ({
 // SwipeRevealShell's own complexity score.
 const handleContentClick =
     (swipeState: 'closed' | 'left' | 'right', onCloseSwipe: () => void) => (e: MouseEvent<HTMLElement>) => {
+        // SAFETY: click events on this shell originate from elements, so the target is an HTMLElement.
         const target = e.target as HTMLElement;
+
         if (target.closest('button')) return;
+
         if (swipeState !== 'closed') onCloseSwipe();
     };
 

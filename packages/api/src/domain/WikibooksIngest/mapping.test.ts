@@ -18,8 +18,8 @@ describe('mapDifficulty', () => {
         ['3', 'medium'],
         ['4', 'hard'],
         ['5', 'hard'],
-    ])('maps wiki rating %s to %s', (raw, expected) => {
-        expect(mapDifficulty(raw)).toBe(expected as never);
+    ] as const)('maps wiki rating %s to %s', (raw, expected) => {
+        expect(mapDifficulty(raw)).toBe(expected);
     });
 
     it('leaves out-of-range and missing ratings unknown so they are estimated', () => {

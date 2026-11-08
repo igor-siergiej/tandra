@@ -1,5 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 import { config } from 'dotenv';
+
 import { resolveMongoUri } from './e2e/mongo-uri';
 import { allStacks, E2E_WORKERS } from './e2e/stack';
 

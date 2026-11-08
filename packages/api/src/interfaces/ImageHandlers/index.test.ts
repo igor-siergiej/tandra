@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'bun:test';
 
+import type { Context } from 'hono';
+
+import { handlerContext } from '../../testing/fake';
+import type { AuthUser, HonoVars } from '../handlerUtils';
 import * as imageHandlers from './index';
 
 const mockDependencyContainer = {
@@ -10,11 +14,7 @@ vi.mock('../../dependencies', () => ({
     dependencyContainer: mockDependencyContainer,
 }));
 
-const mockImageService = {
-    getImage: vi.fn(),
-} as {
-    getImage: ReturnType<typeof vi.fn>;
-};
+const mockImageService = { getImage: vi.fn() };
 
 const mockLogger = {
     info: vi.fn(),
@@ -33,31 +33,28 @@ const mockBucketStore = {
     putObject: vi.fn(),
 };
 
-type HonoVars = { Variables: { user: { id: string; username: string } } };
+const createMockContext = (params: Record<string, string> = {}, user?: AuthUser) => {
+    let currentUser = user;
 
-const createMockContext = (params: Record<string, string> = {}, user?: { id: string; username: string }) => {
-    const vars: Record<string, unknown> = {};
-    if (user) vars.user = user;
-
-    return {
+    return handlerContext<Context<HonoVars>>({
         req: {
             param: (name: string) => params[name],
             header: (_name: string): undefined => undefined,
         },
         header: vi.fn(),
         json: vi.fn().mockImplementation(
-            (body: unknown, status: number): Response =>
+            <T>(body: T, status: number): Response =>
                 new Response(JSON.stringify(body), {
                     status,
                     headers: { 'Content-Type': 'application/json' },
                 })
         ),
-        body: vi.fn().mockImplementation((stream: unknown) => new Response(stream as BodyInit)),
-        get: (key: string) => vars[key],
-        set: (key: string, val: unknown) => {
-            vars[key] = val;
+        body: vi.fn().mockImplementation((stream: BodyInit) => new Response(stream)),
+        get: (_key: 'user') => currentUser,
+        set: (_key: 'user', next: AuthUser) => {
+            currentUser = next;
         },
-    } as unknown as import('hono').Context<HonoVars>;
+    });
 };
 
 describe('ImageHandlers', () => {
@@ -65,9 +62,13 @@ describe('ImageHandlers', () => {
         vi.clearAllMocks();
         mockDependencyContainer.resolve.mockImplementation((token: string) => {
             if (token === 'ImageService') return mockImageService;
+
             if (token === 'Logger') return mockLogger;
+
             if (token === 'ImageStore') return mockBucketStore;
+
             if (token === 'RecipeService') return mockRecipeService;
+
             return null;
         });
     });

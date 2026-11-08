@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
+
 import type { Logger } from '@imapps/api-utils';
 import type { Recipe, User } from '@tandra/types';
 
+import { caughtErrorSchema } from '../../infrastructure/caughtError';
 import { copyImage } from '../DiscoveryPublish/copyImage';
 import type { DiscoveryService } from '../DiscoveryService';
 import type { ImageStore } from '../ImageService/types';
@@ -30,15 +32,19 @@ export class DiscoveryCopyService {
 
         // The page link is what ties a copy to its source, so the same page twice is a duplicate, not a second recipe.
         const mine = await this.recipes.getRecipesByUserId(owner.id);
+
         if (mine.some((recipe) => recipe.link === library.sourceUrl)) {
             throw Object.assign(new Error('This recipe is already in your recipes'), { status: 409 });
         }
 
         // The cover is copied first so its credit can travel with it, but only when there really is a cover to credit.
         const id = library.coverImageKey ? randomUUID() : undefined;
-        const coverKey = library.coverImageKey
-            ? await this.copyCover(library.coverImageKey, owner, id as string)
-            : undefined;
+
+        const coverKey =
+            library.coverImageKey && id !== undefined
+                ? await this.copyCover(library.coverImageKey, owner, id)
+                : undefined;
+
         const credit = coverKey && library.coverImageAttribution ? ` ${library.coverImageAttribution}.` : '';
 
         const created = await this.recipes.createRecipe(
@@ -58,6 +64,7 @@ export class DiscoveryCopyService {
             library.difficulty,
             `${library.attribution}${credit}`
         );
+
         return coverKey ? this.recipes.setCoverImageKey(created.id, coverKey, owner.id) : created;
     }
 
@@ -68,8 +75,9 @@ export class DiscoveryCopyService {
         } catch (error) {
             this.logger?.warn('Library cover could not be copied to the new recipe', {
                 recipeId,
-                error: (error as Error).message,
+                error: caughtErrorSchema.parse(error).message,
             });
+
             return undefined;
         }
     }

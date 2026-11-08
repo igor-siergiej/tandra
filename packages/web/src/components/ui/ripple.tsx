@@ -76,6 +76,7 @@ function RippleButton({
     const [ripples, setRipples] = React.useState<Array<Ripple>>([]);
     const buttonRef = React.useRef<HTMLButtonElement>(null);
 
+    // SAFETY: useImperativeHandle runs after mount, when buttonRef is attached.
     React.useImperativeHandle(ref, () => buttonRef.current as HTMLButtonElement);
 
     const createRipple = React.useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
@@ -103,6 +104,7 @@ function RippleButton({
     const handleClick = React.useCallback(
         (event: React.MouseEvent<HTMLButtonElement>) => {
             createRipple(event);
+
             if (onClick) {
                 onClick(event);
             }

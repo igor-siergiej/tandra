@@ -1,5 +1,6 @@
 import type { MealPlanEntry, Recipe } from '@tandra/types';
 import { describe, expect, it } from 'vitest';
+
 import { buildShoppingRows, dayKey, weekDays, weekStart } from './mealPlan';
 
 const entry = (over: Partial<MealPlanEntry>): MealPlanEntry => ({
@@ -12,19 +13,19 @@ const entry = (over: Partial<MealPlanEntry>): MealPlanEntry => ({
     ...over,
 });
 
-const recipe = (over: Partial<Recipe> = {}): Recipe =>
-    ({
-        id: 'r1',
-        title: 'Pasta',
-        servings: 2,
-        users: [],
-        ownerId: 'u1',
-        ingredients: [
-            { id: 'a', name: 'spaghetti', quantity: 200, unit: 'g' },
-            { id: 'b', name: 'garlic' },
-        ],
-        ...over,
-    }) as Recipe;
+const recipe = (over: Partial<Recipe> = {}): Recipe => ({
+    id: 'r1',
+    title: 'Pasta',
+    servings: 2,
+    users: [],
+    ownerId: 'u1',
+    ingredients: [
+        { id: 'a', name: 'spaghetti', quantity: 200, unit: 'g' },
+        { id: 'b', name: 'garlic' },
+    ],
+    dateAdded: new Date(0),
+    ...over,
+});
 
 describe('week helpers', () => {
     it('starts the week on Monday', () => {

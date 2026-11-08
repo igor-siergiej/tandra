@@ -2,6 +2,7 @@ import { Ellipsis } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import type { ComponentType } from 'react';
 import { useState } from 'react';
+
 import { ToolBarButton } from '../ToolBarButton';
 
 export interface ActionItem {
@@ -19,7 +20,9 @@ interface ActionsFabProps {
 
 const rowClasses = (variant: ActionItem['variant'], disabled: boolean | undefined) => {
     if (disabled) return 'text-muted-foreground opacity-50 cursor-not-allowed';
+
     if (variant === 'destructive') return 'text-destructive hover:bg-destructive/10';
+
     return 'text-popover-foreground hover:bg-accent hover:text-accent-foreground';
 };
 
@@ -48,6 +51,7 @@ export const ActionsFab = ({ actionItems }: ActionsFabProps) => {
                         <div className="flex flex-col gap-0.5">
                             {visibleItems.map((item) => {
                                 const Icon = item.icon;
+
                                 return (
                                     <button
                                         key={item.label}

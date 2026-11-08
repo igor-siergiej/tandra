@@ -20,12 +20,15 @@ export const ImageUploadField = ({
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
+
         if (file) {
             onFileSelected(file);
             const reader = new FileReader();
             reader.onload = (event) => {
+                // SAFETY: the reader was started with readAsDataURL, so its result is a string.
                 onPreviewReady(event.target?.result as string);
             };
+
             reader.readAsDataURL(file);
         }
     };
@@ -33,6 +36,7 @@ export const ImageUploadField = ({
     const handleClear = (e: React.MouseEvent) => {
         e.stopPropagation();
         onClear();
+
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
