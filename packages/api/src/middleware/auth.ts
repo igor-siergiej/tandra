@@ -25,7 +25,9 @@ const sessionToAuthUser = (
     session: { user: { id: string; username?: string | null; displayUsername?: string | null } },
     c: Context<AuthVariables>
 ): AuthUser | Response => {
-    const username = session.user.displayUsername ?? session.user.username;
+    // The display name is only a casing of the unique username; one that names somebody else is ignored.
+    const { displayUsername: display, username: unique } = session.user;
+    const username = display && unique && display.toLowerCase() === unique.toLowerCase() ? display : unique;
     if (!username) {
         return c.json({ error: 'username_required' }, 403);
     }

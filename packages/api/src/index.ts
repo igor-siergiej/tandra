@@ -13,6 +13,8 @@ import {
     startDefaultMetrics,
 } from './infrastructure/metrics';
 import { csrfForFormPosts } from './middleware/csrf';
+import { directOnly } from './middleware/directOnly';
+import { limitRequestBodies } from './middleware/limitRequestBodies';
 import { backfillWikibooksSlugs } from './migrations/wikibooksSlugs';
 import { createRoutes } from './routes';
 
@@ -43,8 +45,8 @@ export const onStartup = async () => {
 
         const app = createApp({ logger, allowedOrigins });
 
-        // Metrics endpoint — exposed before auth
-        app.get('/api/metrics', async (c) => {
+        // Metrics endpoint: unauthenticated, so only for the scrape over the container network, never via a proxy.
+        app.get('/api/metrics', directOnly, async (c) => {
             c.header('Content-Type', metricsRegister.contentType);
             return c.body(await metricsRegister.metrics());
         });
@@ -62,6 +64,7 @@ export const onStartup = async () => {
         // Better Auth session cookie. Mounted on GET + POST so `/api/auth/get-session` (HEAD/GET)
         // and the form POSTs land on the same handler. `c.req.raw` is passed through — Hono does
         // not consume the body before reaching this point, so a full sign-up round-trip works.
+        app.use('/api/*', limitRequestBodies);
         mountBetterAuth(app);
 
         logger.info('Starting API server - connecting to database and object store');

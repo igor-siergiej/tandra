@@ -17,7 +17,19 @@ import { csrf } from 'hono/csrf';
  * genuine form post always carries one, and a request without one has no body for a browser
  * to submit cross-site in the first place.
  */
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
 export const csrfForFormPosts = (allowedOrigins: Array<string>) => {
     const checkOrigin = csrf({ origin: allowedOrigins });
-    return async (c: Context, next: Next) => (c.req.header('content-type') ? checkOrigin(c, next) : next());
+    return async (c: Context, next: Next) => {
+        if (c.req.header('content-type')) return checkOrigin(c, next);
+        // A bodyless request still changes state (copy a recipe, issue an invite), and a cross-site page can send one
+        // with `fetch(..., { method: 'POST', mode: 'no-cors' })`. Browsers always attach Origin to those, so refuse
+        // one that names a foreign origin; a request without Origin is not from a browser page.
+        const origin = c.req.header('origin');
+        if (!SAFE_METHODS.has(c.req.method) && origin && !allowedOrigins.includes(origin)) {
+            return c.text('Forbidden', 403);
+        }
+        return next();
+    };
 };

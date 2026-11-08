@@ -21,6 +21,20 @@ export type ClearableTodoField = 'dueDate' | 'time' | 'labelId' | 'recurrence';
 
 export type UpdateTodoInput = Partial<Omit<Todo, 'id' | 'ownerId' | 'dateAdded'>> & { clear?: ClearableTodoField[] };
 
+const CLEARABLE_FIELDS: readonly ClearableTodoField[] = ['dueDate', 'time', 'labelId', 'recurrence'];
+
+// Fields an update may change. Identity and ownership (id, ownerId, dateAdded) are never taken from the body, and
+// users[] is handled separately because only the owner may change it.
+const EDITABLE_FIELDS = ['title', 'done', 'dueDate', 'time', 'labelId', 'recurrence', 'completedDates'] as const;
+
+const pickEditable = (input: UpdateTodoInput): UpdateTodoInput => {
+    const picked: Record<string, unknown> = {};
+    for (const field of EDITABLE_FIELDS) {
+        if (input[field] !== undefined) picked[field] = input[field];
+    }
+    return picked as UpdateTodoInput;
+};
+
 const forbidden = () => Object.assign(new Error('Forbidden'), { status: 403 });
 const notFound = () => Object.assign(new Error('Todo not found'), { status: 404 });
 
@@ -106,11 +120,21 @@ export class TodoService {
 
     async updateTodo(todoId: string, actorId: string, rawInput: UpdateTodoInput, actor?: User): Promise<Todo> {
         const existing = await this.getOwnedOrMember(todoId, actorId);
-        const { clear, ...input } = normalizeDays(rawInput);
+        const normalized = normalizeDays(rawInput);
+        const input: UpdateTodoInput = pickEditable(normalized);
         // Membership (sharing) is owner-only; a member editing content must not re-scope who it's shared with.
-        if (existing.ownerId !== actorId) delete input.users;
+        // The owner may only share with current friends, and the stored names come from the friend list.
+        if (existing.ownerId === actorId && Array.isArray(normalized.users)) {
+            input.users = await resolveFriendMembers(
+                this.friendService,
+                actorId,
+                normalized.users.map((u) => u.id)
+            );
+        }
         const merged: Todo = { ...existing, ...input };
-        for (const field of clear ?? []) delete merged[field];
+        for (const field of normalized.clear ?? []) {
+            if (CLEARABLE_FIELDS.includes(field)) delete merged[field];
+        }
         const updated = await this.repo.update(todoId, merged);
 
         if (actor && input.users) {

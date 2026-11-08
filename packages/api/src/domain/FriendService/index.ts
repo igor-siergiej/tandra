@@ -25,12 +25,11 @@ export class FriendService {
         private readonly mealPlanRepo?: ItemRepo
     ) {}
 
+    // A pairing code is a short-lived secret, so it comes from the CSPRNG. 256 is a multiple of the 32-letter
+    // alphabet, so taking each byte modulo its length keeps every letter equally likely.
     private randomCode(): string {
-        let out = '';
-        for (let i = 0; i < CODE_LEN; i += 1) {
-            out += ALPHABET[Math.floor(Math.random() * ALPHABET.length)];
-        }
-        return out;
+        const bytes = crypto.getRandomValues(new Uint8Array(CODE_LEN));
+        return Array.from(bytes, (byte) => ALPHABET[byte % ALPHABET.length]).join('');
     }
 
     async generateCode(creatorId: string, creatorUsername: string): Promise<{ code: string; expiresAt: Date }> {

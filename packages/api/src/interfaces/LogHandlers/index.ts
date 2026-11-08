@@ -51,12 +51,13 @@ export const receiveLogs = async (c: Context) => {
     }
 
     try {
+        // The client's context goes first so it can never overwrite what the server records about the request.
         const logContext = {
+            ...(log.context && typeof log.context === 'object' ? log.context : {}),
             source: 'frontend',
             clientIp,
             userAgent: log.userAgent || 'unknown',
             url: log.url || 'unknown',
-            ...log.context,
         };
 
         (logger as unknown as Record<string, (msg: string, ctx: unknown) => void>)[log.level](log.message, logContext);

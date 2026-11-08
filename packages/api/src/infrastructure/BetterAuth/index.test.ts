@@ -95,6 +95,38 @@ describe('createAuth', () => {
         await expect(auth.api.signInEmail({ body: { email, password: 'password123' } })).rejects.toThrow();
     });
 
+    describe('display name', () => {
+        const signUpWithCookie = async (auth: ReturnType<typeof makeAuth>['auth'], username: string) => {
+            const res = await auth.api.signUpEmail({
+                body: { email: 'x@y.z', name: 'x', password: 'password123', username },
+                asResponse: true,
+            });
+            return new Headers({ cookie: res.headers.get('set-cookie')?.split(';')[0] ?? '' });
+        };
+
+        it("refuses a display name that is another user's name", async () => {
+            const { auth, db } = makeAuth();
+            await signUpWithCookie(auth, 'alice');
+            const headers = await signUpWithCookie(auth, 'mallory');
+
+            await expect(auth.api.updateUser({ headers, body: { displayUsername: 'Alice' } })).rejects.toThrow();
+            await expect(
+                auth.api.updateUser({ headers, body: { username: 'mallory', displayUsername: 'Alice' } })
+            ).rejects.toThrow();
+            const mallory = (db.user as Array<StoredUser>).find((u) => u.username === 'mallory');
+            expect(mallory?.displayUsername).toBe('mallory');
+        });
+
+        it('treats a lone display name as a rename, so the casing change still works', async () => {
+            const { auth, db } = makeAuth();
+            const headers = await signUpWithCookie(auth, 'carol');
+
+            await auth.api.updateUser({ headers, body: { displayUsername: 'CaroL' } });
+            const carol = (db.user as Array<StoredUser>)[0];
+            expect(carol).toMatchObject({ username: 'carol', displayUsername: 'CaroL' });
+        });
+    });
+
     it('verifies a legacy bcrypt hash', async () => {
         const { auth } = makeAuth();
         const ctx = await auth.$context;

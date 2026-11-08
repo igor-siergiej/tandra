@@ -66,6 +66,13 @@ describe('LabelService', () => {
         expect(updated).toMatchObject({ name: 'Home', color: '#22c55e' });
     });
 
+    it('keeps id and ownerId as stored whatever the update body carries', async () => {
+        const l = await svc.createLabel('u1', { name: 'A', color: '#111' });
+        const body = { name: 'B', ownerId: 'u2', id: 'other' } as never;
+        const updated = await svc.updateLabel(l.id, 'u1', body);
+        expect(updated).toMatchObject({ id: l.id, ownerId: 'u1', name: 'B', color: '#111' });
+    });
+
     it('rejects update by non-owner with 403', async () => {
         const l = await svc.createLabel('u1', { name: 'A', color: '#111' });
         expect(svc.updateLabel(l.id, 'intruder', { name: 'x' })).rejects.toMatchObject({ status: 403 });

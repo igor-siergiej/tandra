@@ -18,8 +18,8 @@ class FakeCollection {
         }
     }
 
-    async deleteOne(filter: { endpoint: string }) {
-        this.docs = this.docs.filter((d) => d.endpoint !== filter.endpoint);
+    async deleteOne(filter: { endpoint: string; userId: string }) {
+        this.docs = this.docs.filter((d) => d.endpoint !== filter.endpoint || d.userId !== filter.userId);
     }
 
     async deleteMany(filter: { endpoint: { $in: string[] } }) {
@@ -71,8 +71,14 @@ describe('MongoPushSubscriptionRepository', () => {
 
     it('deletes by endpoint', async () => {
         await repo.upsert(makeSub('e1', 'u1'));
-        await repo.deleteByEndpoint('e1');
+        await repo.deleteByEndpoint('e1', 'u1');
         expect(collection.docs.length).toBe(0);
+    });
+
+    it("leaves another user's subscription in place", async () => {
+        await repo.upsert(makeSub('e1', 'u1'));
+        await repo.deleteByEndpoint('e1', 'u2');
+        expect(collection.docs.length).toBe(1);
     });
 
     it('bulk-deletes by endpoints', async () => {

@@ -5,6 +5,7 @@ import { config } from '../../config';
 import { dependencyContainer } from '../../dependencies';
 import { DependencyToken } from '../../dependencies/types';
 import type { PushSubscriptionRepository } from '../../domain/PushSubscriptionRepository';
+import { assertPushEndpoint } from '../../infrastructure/pushEndpoint';
 import type { HonoVars } from '../handlerUtils';
 
 const getRepo = (): PushSubscriptionRepository =>
@@ -25,6 +26,13 @@ export const subscribe = async (c: Context<HonoVars>) => {
     const user = c.get('user');
     const logger = getLogger();
     const body = await c.req.json<{ endpoint?: string; keys?: { p256dh: string; auth: string } }>();
+
+    try {
+        await assertPushEndpoint(body.endpoint ?? '');
+    } catch (error: unknown) {
+        logger.warn('Rejected push subscription endpoint', { userId: user.id });
+        return c.json({ error: (error as Error).message }, 400);
+    }
 
     const sub: PushSubscription = {
         endpoint: body.endpoint,
@@ -49,7 +57,7 @@ export const unsubscribe = async (c: Context<HonoVars>) => {
     const body = await c.req.json<{ endpoint?: string }>();
 
     try {
-        await getRepo().deleteByEndpoint(body.endpoint);
+        await getRepo().deleteByEndpoint(body.endpoint, user.id);
         logger.info('Push subscription removed', { userId: user.id });
         return c.json({ success: true }, 200);
     } catch (error: unknown) {

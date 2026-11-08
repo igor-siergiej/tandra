@@ -121,6 +121,24 @@ describe('LogHandlers', () => {
                     expect.objectContaining({ userId: 'u1', userAgent: 'Mozilla', url: '/some/page' })
                 );
             });
+
+            it('does not let the client context overwrite server-recorded fields', async () => {
+                const ctx = createMockContext({
+                    ip: '198.51.100.4',
+                    body: {
+                        level: 'info',
+                        message: 'msg',
+                        context: { clientIp: '1.2.3.4', source: 'backend', userId: 'u1' },
+                    },
+                });
+
+                await receiveLogs(ctx);
+
+                expect(mockLogger.info).toHaveBeenCalledWith(
+                    'msg',
+                    expect.objectContaining({ clientIp: '198.51.100.4', source: 'frontend', userId: 'u1' })
+                );
+            });
         });
 
         describe('When the rate limit is exceeded', () => {

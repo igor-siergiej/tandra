@@ -53,6 +53,22 @@ describe('csrfForFormPosts', () => {
         expect(res.status).toBe(201);
     });
 
+    it('rejects a bodyless cross-origin POST', async () => {
+        const res = await appWithCsrf().request('/api/lists/Groceries/invites', {
+            method: 'POST',
+            headers: { Origin: 'https://evil.example' },
+        });
+        expect(res.status).toBe(403);
+    });
+
+    it('allows a bodyless same-origin POST', async () => {
+        const res = await appWithCsrf().request('/api/lists/Groceries/invites', {
+            method: 'POST',
+            headers: { Origin: 'https://app.tandra.uk' },
+        });
+        expect(res.status).toBe(201);
+    });
+
     it('allows a bodyless DELETE with no Content-Type (revoke-invite verb)', async () => {
         const res = await appWithCsrf().request('/api/lists/Groceries/invites/abc123', { method: 'DELETE' });
         expect(res.status).toBe(204);
