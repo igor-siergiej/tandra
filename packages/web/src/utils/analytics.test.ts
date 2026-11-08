@@ -3,9 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { identify, loadTracker, startReplay, stopReplay, track } from './analytics';
 
 // Mock the config module so analytics can resolve getConfig().
-const configState = vi.hoisted(() => ({
-    value: {} as { analytics?: { host?: string; websiteId?: string; enabled?: boolean } } | null,
-}));
+type AnalyticsConfig = { analytics?: { host?: string; websiteId?: string; enabled?: boolean } };
+
+type ConfigState = { value: AnalyticsConfig | null };
+
+const configState = vi.hoisted((): ConfigState => ({ value: {} }));
 
 vi.mock('./config', () => ({
     getConfig: () => {

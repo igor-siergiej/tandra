@@ -1,12 +1,16 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { fake, present } from '../testing/fake';
 import type { SpeechRecognitionLike } from '../utils/speechRecognition';
 import { useSpeechRecognition } from './useSpeechRecognition';
 
-let instance: SpeechRecognitionLike & { started: boolean; startCount: number; aborted: boolean };
+/** Every recognition the hook has constructed; a test drives the latest. */
+const created: FakeRecognition[] = [];
 
-class FakeRecognition {
+const latest = () => present(created.at(-1), 'speech recognition');
+
+class FakeRecognition implements SpeechRecognitionLike {
     lang = '';
     continuous = true;
     interimResults = false;
@@ -17,7 +21,7 @@ class FakeRecognition {
     startCount = 0;
     aborted = false;
     constructor() {
-        instance = this as never;
+        created.push(this);
     }
     start() {
         this.started = true;
@@ -35,15 +39,15 @@ const phrase = (transcript: string) => ({ isFinal: true, 0: { transcript } });
 
 describe('useSpeechRecognition', () => {
     beforeEach(() => {
-        (window as unknown as { webkitSpeechRecognition: unknown }).webkitSpeechRecognition = FakeRecognition;
+        fake<{ webkitSpeechRecognition: unknown }>(window).webkitSpeechRecognition = FakeRecognition;
     });
 
     afterEach(() => {
-        delete (window as unknown as { webkitSpeechRecognition?: unknown }).webkitSpeechRecognition;
+        delete fake<{ webkitSpeechRecognition?: unknown }>(window).webkitSpeechRecognition;
     });
 
     it('reports unsupported when the browser has no speech recognition', () => {
-        delete (window as unknown as { webkitSpeechRecognition?: unknown }).webkitSpeechRecognition;
+        delete fake<{ webkitSpeechRecognition?: unknown }>(window).webkitSpeechRecognition;
 
         expect(renderHook(() => useSpeechRecognition()).result.current.supported).toBe(false);
     });
@@ -52,11 +56,11 @@ describe('useSpeechRecognition', () => {
         const { result } = renderHook(() => useSpeechRecognition({ lang: 'en-GB' }));
 
         act(() => result.current.start());
-        expect(instance.started).toBe(true);
-        expect(instance.lang).toBe('en-GB');
+        expect(latest().started).toBe(true);
+        expect(latest().lang).toBe('en-GB');
         expect(result.current.listening).toBe(true);
 
-        act(() => instance.onresult?.({ resultIndex: 0, results: [phrase('two loaves'), phrase('of bread')] }));
+        act(() => latest().onresult?.({ resultIndex: 0, results: [phrase('two loaves'), phrase('of bread')] }));
         expect(result.current.transcript).toBe('two loaves of bread');
 
         act(() => result.current.stop());
@@ -67,7 +71,7 @@ describe('useSpeechRecognition', () => {
         const { result } = renderHook(() => useSpeechRecognition());
 
         act(() => result.current.start());
-        act(() => instance.onerror?.({ error: 'not-allowed' }));
+        act(() => latest().onerror?.({ error: 'not-allowed' }));
 
         expect(result.current.error).toMatch(/Microphone access was blocked/);
         expect(result.current.listening).toBe(false);
@@ -77,11 +81,11 @@ describe('useSpeechRecognition', () => {
         const { result } = renderHook(() => useSpeechRecognition());
 
         act(() => result.current.start());
-        expect(instance.continuous).toBe(false);
+        expect(latest().continuous).toBe(false);
 
-        act(() => instance.onend?.());
+        act(() => latest().onend?.());
         expect(result.current.listening).toBe(false);
-        expect(instance.startCount).toBe(1);
+        expect(latest().startCount).toBe(1);
     });
 
     describe('keepListening', () => {
@@ -89,14 +93,14 @@ describe('useSpeechRecognition', () => {
             const { result } = renderHook(() => useSpeechRecognition({ keepListening: true }));
 
             act(() => result.current.start());
-            expect(instance.continuous).toBe(true);
-            act(() => instance.onresult?.({ resultIndex: 0, results: [phrase('two loaves')] }));
+            expect(latest().continuous).toBe(true);
+            act(() => latest().onresult?.({ resultIndex: 0, results: [phrase('two loaves')] }));
 
-            act(() => instance.onend?.());
+            act(() => latest().onend?.());
             expect(result.current.listening).toBe(true);
-            expect(instance.startCount).toBe(2);
+            expect(latest().startCount).toBe(2);
 
-            act(() => instance.onresult?.({ resultIndex: 0, results: [phrase('of bread')] }));
+            act(() => latest().onresult?.({ resultIndex: 0, results: [phrase('of bread')] }));
             expect(result.current.transcript).toBe('two loaves of bread');
         });
 
@@ -104,11 +108,11 @@ describe('useSpeechRecognition', () => {
             const { result } = renderHook(() => useSpeechRecognition({ keepListening: true }));
             act(() => result.current.start());
 
-            act(() => instance.onerror?.({ error: 'not-allowed' }));
-            act(() => instance.onend?.());
+            act(() => latest().onerror?.({ error: 'not-allowed' }));
+            act(() => latest().onend?.());
 
             expect(result.current.listening).toBe(false);
-            expect(instance.startCount).toBe(1);
+            expect(latest().startCount).toBe(1);
         });
 
         it('does not restart after an explicit stop', () => {
@@ -118,7 +122,7 @@ describe('useSpeechRecognition', () => {
             act(() => result.current.stop());
 
             expect(result.current.listening).toBe(false);
-            expect(instance.startCount).toBe(1);
+            expect(latest().startCount).toBe(1);
         });
     });
 
@@ -128,6 +132,6 @@ describe('useSpeechRecognition', () => {
 
         unmount();
 
-        expect(instance.aborted).toBe(true);
+        expect(latest().aborted).toBe(true);
     });
 });

@@ -23,17 +23,19 @@ const makeSubscription = (endpoint: string) => ({
     unsubscribe: vi.fn(async () => true),
 });
 
+const makePushManager = () => ({
+    getSubscription: vi.fn(async (): Promise<ReturnType<typeof makeSubscription> | null> => null),
+    subscribe: vi.fn(async () => makeSubscription('e-new')),
+});
+
 describe('usePushNotifications', () => {
-    let pushManager: { getSubscription: ReturnType<typeof vi.fn>; subscribe: ReturnType<typeof vi.fn> };
+    let pushManager = makePushManager();
 
     beforeEach(() => {
         subscribeToPush.mockClear();
         unsubscribeFromPush.mockClear();
 
-        pushManager = {
-            getSubscription: vi.fn(async () => null),
-            subscribe: vi.fn(async () => makeSubscription('e-new')),
-        };
+        pushManager = makePushManager();
 
         vi.stubGlobal('navigator', {
             serviceWorker: { ready: Promise.resolve({ pushManager }) },

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { fake } from '../testing/fake';
 import { applyItemIntent, applyLabelIntent, applyListIntent, applyRecipeIntent, applyTodoIntent } from './intents';
 import type { OutboxIntent } from './outboxStore';
 
@@ -92,20 +93,20 @@ describe('applyTodoIntent', () => {
     });
     it('todo.create is idempotent when id already present', () => {
         const existing = [{ id: 'T1', ownerId: 'user-1', title: 'Buy milk', done: false, dateAdded: new Date() }];
-        expect(applyTodoIntent(existing as never, todoIntent('todo.create', 'T1', { title: 'x' }))).toHaveLength(1);
+        expect(applyTodoIntent(fake(existing), todoIntent('todo.create', 'T1', { title: 'x' }))).toHaveLength(1);
     });
     it('todo.update merges fields by id', () => {
         const existing = [{ id: 'T1', ownerId: 'user-1', title: 'Buy milk', done: false, dateAdded: new Date() }];
-        const r = applyTodoIntent(existing as never, todoIntent('todo.update', 'T1', { title: 'Buy oat milk' }));
+        const r = applyTodoIntent(fake(existing), todoIntent('todo.update', 'T1', { title: 'Buy oat milk' }));
         expect(r[0].title).toBe('Buy oat milk');
     });
     it('todo.delete removes by id', () => {
         const existing = [{ id: 'T1', ownerId: 'user-1', title: 'Buy milk', done: false, dateAdded: new Date() }];
-        expect(applyTodoIntent(existing as never, todoIntent('todo.delete', 'T1'))).toHaveLength(0);
+        expect(applyTodoIntent(fake(existing), todoIntent('todo.delete', 'T1'))).toHaveLength(0);
     });
     it('todo.complete toggles done for a non-recurring todo', () => {
         const existing = [{ id: 'T1', ownerId: 'user-1', title: 'Buy milk', done: false, dateAdded: new Date() }];
-        expect(applyTodoIntent(existing as never, todoIntent('todo.complete', 'T1'))[0].done).toBe(true);
+        expect(applyTodoIntent(fake(existing), todoIntent('todo.complete', 'T1'))[0].done).toBe(true);
     });
 });
 
@@ -131,13 +132,13 @@ describe('applyLabelIntent', () => {
     });
     it('label.update merges fields by id', () => {
         const existing = [{ id: 'L1', ownerId: 'user-1', name: 'Home', color: '#fff' }];
-        expect(applyLabelIntent(existing as never, labelIntent('label.update', 'L1', { color: '#000' }))[0].color).toBe(
+        expect(applyLabelIntent(fake(existing), labelIntent('label.update', 'L1', { color: '#000' }))[0].color).toBe(
             '#000'
         );
     });
     it('label.delete removes by id', () => {
         const existing = [{ id: 'L1', ownerId: 'user-1', name: 'Home', color: '#fff' }];
-        expect(applyLabelIntent(existing as never, labelIntent('label.delete', 'L1'))).toHaveLength(0);
+        expect(applyLabelIntent(fake(existing), labelIntent('label.delete', 'L1'))).toHaveLength(0);
     });
 });
 
@@ -164,7 +165,7 @@ describe('applyRecipeIntent', () => {
         ];
 
         expect(
-            applyRecipeIntent(existing as never, recipeIntent('recipe.update', 'R1', { title: 'Risotto' }))[0].title
+            applyRecipeIntent(fake(existing), recipeIntent('recipe.update', 'R1', { title: 'Risotto' }))[0].title
         ).toBe('Risotto');
     });
     it('recipe.create carries tags through', () => {
@@ -189,7 +190,7 @@ describe('applyRecipeIntent', () => {
         ];
 
         expect(
-            applyRecipeIntent(existing as never, recipeIntent('recipe.update', 'R1', { tags: ['dinner', 'quick'] }))[0]
+            applyRecipeIntent(fake(existing), recipeIntent('recipe.update', 'R1', { tags: ['dinner', 'quick'] }))[0]
                 .tags
         ).toEqual(['dinner', 'quick']);
     });
@@ -214,7 +215,7 @@ describe('applyRecipeIntent', () => {
         ];
 
         const updated = applyRecipeIntent(
-            existing as never,
+            fake(existing),
             recipeIntent('recipe.update', 'R1', { prepTime: 15, cookTime: 25, servings: 6, difficulty: 'hard' })
         )[0];
 
@@ -225,6 +226,6 @@ describe('applyRecipeIntent', () => {
             { id: 'R1', title: 'Pasta', ingredients: [], ownerId: 'user-1', users: [], dateAdded: new Date() },
         ];
 
-        expect(applyRecipeIntent(existing as never, recipeIntent('recipe.delete', 'R1'))).toHaveLength(0);
+        expect(applyRecipeIntent(fake(existing), recipeIntent('recipe.delete', 'R1'))).toHaveLength(0);
     });
 });

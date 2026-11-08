@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { fake } from '../testing/fake';
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const indexHtmlPath = path.resolve(__dirname, '../../index.html');
 const indexHtml = fs.readFileSync(indexHtmlPath, 'utf-8');
@@ -21,18 +23,17 @@ const extractBootScript = (): string => {
 const bootScript = extractBootScript();
 
 const setSystemPrefersDark = (matches: boolean) => {
-    vi.spyOn(window, 'matchMedia').mockImplementation(
-        (query: string) =>
-            ({
-                matches,
-                media: query,
-                onchange: null,
-                addListener: vi.fn(),
-                removeListener: vi.fn(),
-                addEventListener: vi.fn(),
-                removeEventListener: vi.fn(),
-                dispatchEvent: vi.fn(),
-            }) as MediaQueryList
+    vi.spyOn(window, 'matchMedia').mockImplementation((query: string) =>
+        fake<MediaQueryList>({
+            matches,
+            media: query,
+            onchange: null,
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            dispatchEvent: vi.fn(),
+        })
     );
 };
 

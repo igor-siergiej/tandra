@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchSession } from './fetchSession';
 import { sessionCache } from './sessionCache';
 
-const respond = (status: number, body: unknown) =>
+const respond = <Body>(status: number, body: Body) =>
     vi.stubGlobal(
         'fetch',
         vi.fn(async () => new Response(JSON.stringify(body), { status }))

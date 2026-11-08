@@ -23,7 +23,7 @@ describe('ConfigLoader', () => {
     });
 
     it('shows loading spinner while loading config', async () => {
-        (loadConfig as any).mockImplementation(() => new Promise(() => {}));
+        vi.mocked(loadConfig).mockImplementation(() => new Promise(() => {}));
 
         render(<ConfigLoader>Test Content</ConfigLoader>);
 
@@ -31,7 +31,7 @@ describe('ConfigLoader', () => {
     });
 
     it('renders children when config loads successfully', async () => {
-        (loadConfig as any).mockResolvedValue(undefined);
+        vi.mocked(loadConfig).mockResolvedValue(undefined);
 
         render(<ConfigLoader>Test Content</ConfigLoader>);
 
@@ -44,7 +44,7 @@ describe('ConfigLoader', () => {
 
     it('shows error page when config loading fails', async () => {
         const testError = new Error('Config load failed');
-        (loadConfig as any).mockRejectedValue(testError);
+        vi.mocked(loadConfig).mockRejectedValue(testError);
 
         render(<ConfigLoader>Test Content</ConfigLoader>);
 
@@ -56,7 +56,7 @@ describe('ConfigLoader', () => {
     });
 
     it('handles non-Error objects during config load', async () => {
-        (loadConfig as any).mockRejectedValue({ someProperty: 'value' });
+        vi.mocked(loadConfig).mockRejectedValue({ someProperty: 'value' });
 
         render(<ConfigLoader>Test Content</ConfigLoader>);
 
@@ -68,7 +68,7 @@ describe('ConfigLoader', () => {
     });
 
     it('handles unknown error objects gracefully', async () => {
-        (loadConfig as any).mockRejectedValue({ someField: 'value' });
+        vi.mocked(loadConfig).mockRejectedValue({ someField: 'value' });
 
         render(<ConfigLoader>Test Content</ConfigLoader>);
 

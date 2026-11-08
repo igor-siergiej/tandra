@@ -3,8 +3,13 @@ import { describe, expect, it } from 'vitest';
 
 import { groupByCategory } from './itemCategories';
 
-const item = (id: string, category?: Item['category']): Item =>
-    ({ id, name: id, isSelected: false, dateAdded: new Date(), category }) as Item;
+const item = (id: string, category?: Item['category']): Item => ({
+    id,
+    name: id,
+    isSelected: false,
+    dateAdded: new Date(),
+    category,
+});
 
 describe('itemCategories', () => {
     it('treats an unclassified item as other', () => {

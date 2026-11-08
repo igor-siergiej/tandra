@@ -2,6 +2,7 @@ import { fireEvent, render, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useGenerateFriendCode, useRedeemFriendCode } from '../../../hooks/useFriends';
+import { fake, narrowTo } from '../../../testing/fake';
 import { AddFriendDrawer } from './index';
 
 vi.mock('../../../hooks/useFriends', () => ({
@@ -12,7 +13,7 @@ vi.mock('../../../hooks/useFriends', () => ({
 const mockedUseGenerateFriendCode = vi.mocked(useGenerateFriendCode);
 const mockedUseRedeemFriendCode = vi.mocked(useRedeemFriendCode);
 
-const drawerContent = () => within(document.querySelector('[data-vaul-drawer]') as HTMLElement);
+const drawerContent = () => within(narrowTo(document.querySelector('[data-vaul-drawer]'), HTMLElement));
 
 describe('AddFriendDrawer', () => {
     const noop = () => {};
@@ -22,34 +23,40 @@ describe('AddFriendDrawer', () => {
     beforeEach(() => {
         generateMutate = vi.fn();
         redeemMutate = vi.fn();
-        mockedUseGenerateFriendCode.mockReturnValue({
-            mutate: generateMutate,
-            data: undefined,
-            isLoading: false,
-            error: null,
-            isError: false,
-            reset: vi.fn(),
-        } as never);
-        mockedUseRedeemFriendCode.mockReturnValue({
-            mutate: redeemMutate,
-            data: undefined,
-            isLoading: false,
-            error: null,
-            isError: false,
-            reset: vi.fn(),
-        } as never);
+        mockedUseGenerateFriendCode.mockReturnValue(
+            fake({
+                mutate: generateMutate,
+                data: undefined,
+                isPending: false,
+                error: null,
+                isError: false,
+                reset: vi.fn(),
+            })
+        );
+        mockedUseRedeemFriendCode.mockReturnValue(
+            fake({
+                mutate: redeemMutate,
+                data: undefined,
+                isPending: false,
+                error: null,
+                isError: false,
+                reset: vi.fn(),
+            })
+        );
     });
 
     it('invite mode: clicking "Generate invite code" calls generate and shows the returned code', () => {
         generateMutate.mockImplementation(() => {
-            mockedUseGenerateFriendCode.mockReturnValue({
-                mutate: generateMutate,
-                data: { code: 'ABC123', expiresAt: new Date(Date.now() + 60_000).toISOString() },
-                isLoading: false,
-                error: null,
-                isError: false,
-                reset: vi.fn(),
-            } as never);
+            mockedUseGenerateFriendCode.mockReturnValue(
+                fake({
+                    mutate: generateMutate,
+                    data: { code: 'ABC123', expiresAt: new Date(Date.now() + 60_000).toISOString() },
+                    isPending: false,
+                    error: null,
+                    isError: false,
+                    reset: vi.fn(),
+                })
+            );
         });
 
         const { rerender } = render(<AddFriendDrawer open onOpenChange={noop} />);
@@ -68,7 +75,7 @@ describe('AddFriendDrawer', () => {
         render(<AddFriendDrawer open onOpenChange={noop} />);
         fireEvent.click(drawerContent().getByRole('button', { name: 'Enter a code' }));
 
-        const otpInput = document.querySelector('input[data-input-otp]') as HTMLInputElement;
+        const otpInput = narrowTo(document.querySelector('input[data-input-otp]'), HTMLInputElement);
         fireEvent.change(otpInput, { target: { value: 'ABC123' } });
 
         fireEvent.click(drawerContent().getByRole('button', { name: 'Add friend' }));
@@ -80,7 +87,7 @@ describe('AddFriendDrawer', () => {
         render(<AddFriendDrawer open onOpenChange={noop} />);
         fireEvent.click(drawerContent().getByRole('button', { name: 'Enter a code' }));
 
-        const otpInput = document.querySelector('input[data-input-otp]') as HTMLInputElement;
+        const otpInput = narrowTo(document.querySelector('input[data-input-otp]'), HTMLInputElement);
         fireEvent.paste(otpInput, { clipboardData: { getData: () => 'ab-cd 12' } });
 
         fireEvent.click(drawerContent().getByRole('button', { name: 'Add friend' }));
@@ -89,14 +96,16 @@ describe('AddFriendDrawer', () => {
     });
 
     it('shows the expired-code error message on a rejected redeem', async () => {
-        mockedUseRedeemFriendCode.mockReturnValue({
-            mutate: redeemMutate,
-            data: undefined,
-            isLoading: false,
-            error: Object.assign(new Error('This code has expired'), { status: 410 }),
-            isError: true,
-            reset: vi.fn(),
-        } as never);
+        mockedUseRedeemFriendCode.mockReturnValue(
+            fake({
+                mutate: redeemMutate,
+                data: undefined,
+                isPending: false,
+                error: Object.assign(new Error('This code has expired'), { status: 410 }),
+                isError: true,
+                reset: vi.fn(),
+            })
+        );
 
         render(<AddFriendDrawer open onOpenChange={noop} />);
         fireEvent.click(drawerContent().getByRole('button', { name: 'Enter a code' }));

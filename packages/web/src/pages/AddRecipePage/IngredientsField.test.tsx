@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import { type Ingredient, IngredientsField } from './IngredientsField';
 
-const Harness = ({ initialIngredients = [] as Ingredient[] }) => {
+const Harness = ({ initialIngredients = new Array<Ingredient>() }) => {
     const [ingredients, setIngredients] = useState<Ingredient[]>(initialIngredients);
     const [showIngredientsPaste, setShowIngredientsPaste] = useState(initialIngredients.length === 0);
     const [ingredientsPasteText, setIngredientsPasteText] = useState('');

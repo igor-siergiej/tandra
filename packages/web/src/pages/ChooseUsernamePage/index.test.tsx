@@ -14,11 +14,9 @@ vi.mock('../../auth/client', () => ({
     },
 }));
 
-const session = {
-    user: null as { id: string; username: string } | null,
-    needsUsername: true,
-    isLoading: false,
-};
+type Session = { user: User | null; needsUsername: boolean; isLoading: boolean };
+
+const session: Session = { user: null, needsUsername: true, isLoading: false };
 
 const refreshSession = vi.fn();
 
@@ -35,6 +33,8 @@ vi.mock('../../auth', () => ({
 const migrateAfterAuth = vi.fn();
 
 vi.mock('../../guest/useMigration', () => ({ useMigration: () => ({ migrateAfterAuth }) }));
+
+import { type User } from '@tandra/types';
 
 import ChooseUsernamePage from './index';
 

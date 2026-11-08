@@ -14,13 +14,17 @@ vi.mock('../../auth/client', () => ({
     },
 }));
 
-const session = { user: { id: 'u1', username: 'Igor' } as { id: string; username: string } | null };
+type Session = { user: User | null };
+
+const session: Session = { user: { id: 'u1', username: 'Igor' } };
 
 vi.mock('../../auth', () => ({ useUser: () => ({ user: session.user, needsUsername: false }) }));
 
 const features = { googleSignIn: true };
 
 vi.mock('../../utils/useAiFeatures', () => ({ useAuthFeatures: () => features }));
+
+import { type User } from '@tandra/types';
 
 import { AccountSection } from './AccountSection';
 

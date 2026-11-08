@@ -1,11 +1,21 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const speech = vi.hoisted(() => ({
+type SpeechState = {
+    supported: boolean;
+    listening: boolean;
+    transcript: string;
+    error: string | null;
+    start: () => void;
+    stop: () => void;
+    reset: () => void;
+};
+
+const speech = vi.hoisted((): SpeechState => ({
     supported: true,
     listening: false,
     transcript: '',
-    error: null as string | null,
+    error: null,
     start: vi.fn(),
     stop: vi.fn(),
     reset: vi.fn(),

@@ -3,6 +3,7 @@ import { cleanup, render } from '@testing-library/react';
 import { useForm } from 'react-hook-form';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { narrowTo } from '../../../testing/fake';
 import { LoginFormFields } from './index';
 
 describe('LoginFormFields', () => {
@@ -43,8 +44,8 @@ describe('LoginFormFields', () => {
     it('has correct input placeholders', () => {
         const { container } = render(<TestWrapper />);
 
-        const usernameInput = container.querySelector('input[type="text"]') as HTMLInputElement;
-        const passwordInput = container.querySelector('input[type="password"]') as HTMLInputElement;
+        const usernameInput = narrowTo(container.querySelector('input[type="text"]'), HTMLInputElement);
+        const passwordInput = narrowTo(container.querySelector('input[type="password"]'), HTMLInputElement);
 
         expect(usernameInput?.placeholder).toBe('Enter your username');
         expect(passwordInput?.placeholder).toBe('Enter your password');
@@ -66,7 +67,7 @@ describe('LoginFormFields', () => {
 
         const inputs = container.querySelectorAll('input');
         inputs.forEach((input) => {
-            expect((input as HTMLInputElement).disabled).toBe(true);
+            expect(narrowTo(input, HTMLInputElement).disabled).toBe(true);
         });
     });
 });

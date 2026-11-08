@@ -31,14 +31,14 @@ test.describe('List invite API', () => {
             throw new Error(`PUT /api/lists returned ${status}: ${body}`);
         }
 
-        const { title } = (await created.json()) as { title: string };
+        const { title }: { title: string } = await created.json();
 
         const issued = await request.post(`/api/lists/${encodeURIComponent(title)}/invites`, {
             headers: await authA(),
         });
 
         expect(issued.status()).toBe(201);
-        const { token, ownerId } = (await issued.json()) as { token: string; ownerId: string };
+        const { token, ownerId }: { token: string; ownerId: string } = await issued.json();
         expect(token).toBeTruthy();
         expect(ownerId).toBe(MOCK_USER.id);
 
@@ -46,11 +46,11 @@ test.describe('List invite API', () => {
         const preview = await request.get(`/api/lists/invites/${token}`);
         expect(preview.status()).toBe(200);
 
-        const previewBody = (await preview.json()) as {
+        const previewBody: {
             listTitle: string;
             ownerUsername: string;
             isClosed: boolean;
-        };
+        } = await preview.json();
 
         expect(previewBody.listTitle).toBe(title);
         expect(previewBody.ownerUsername).toBe('testuser');
@@ -81,19 +81,19 @@ test.describe('List invite API', () => {
             headers: await authA(),
         });
 
-        const { title } = (await created.json()) as { title: string };
+        const { title }: { title: string } = await created.json();
 
         const issued = await request.post(`/api/lists/${encodeURIComponent(title)}/invites`, {
             headers: await authA(),
         });
 
-        const { token } = (await issued.json()) as { token: string };
+        const { token }: { token: string } = await issued.json();
 
         const revoked = await request.delete(`/api/lists/invites/${token}`, { headers: await authA() });
         expect(revoked.status()).toBe(204);
 
         const preview = await request.get(`/api/lists/invites/${token}`);
-        const body = (await preview.json()) as { isClosed: boolean };
+        const body: { isClosed: boolean } = await preview.json();
         expect(body.isClosed).toBe(true);
     });
 });

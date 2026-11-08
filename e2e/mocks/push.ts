@@ -45,22 +45,23 @@ export const installFakePush = async (page: Page, opts: FakePushOptions) => {
             configurable: true,
             get: () => Promise.resolve({ pushManager }),
         });
-        (window as unknown as { PushManager: unknown }).PushManager = function PushManager() {};
+        Object.defineProperty(window, 'PushManager', {
+            configurable: true,
+            writable: true,
+            value: function PushManager() {},
+        });
 
         let permission = o.permission;
 
-        const FakeNotification = function Notification() {} as unknown as {
-            permission: NotificationPermission;
-            requestPermission: () => Promise<NotificationPermission>;
-        };
+        const FakeNotification = Object.assign(function Notification() {}, {
+            requestPermission: async () => {
+                permission = o.requestResult ?? o.permission;
+
+                return permission;
+            },
+        });
 
         Object.defineProperty(FakeNotification, 'permission', { get: () => permission });
-        FakeNotification.requestPermission = async () => {
-            permission = o.requestResult ?? o.permission;
-
-            return permission;
-        };
-
-        (window as unknown as { Notification: unknown }).Notification = FakeNotification;
+        Object.defineProperty(window, 'Notification', { configurable: true, writable: true, value: FakeNotification });
     }, opts);
 };

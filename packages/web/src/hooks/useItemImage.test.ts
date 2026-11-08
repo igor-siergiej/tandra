@@ -26,10 +26,7 @@ describe('useItemImage', () => {
 
     it('fetches image on mount with correct item name', async () => {
         const mockBlob = new Blob(['test'], { type: 'image/png' });
-        (global.fetch as any).mockResolvedValueOnce({
-            ok: true,
-            blob: vi.fn().mockResolvedValueOnce(mockBlob),
-        });
+        vi.mocked(global.fetch).mockResolvedValueOnce(new Response(mockBlob));
 
         renderHook(() => useItemImage('apple'));
 
@@ -48,10 +45,7 @@ describe('useItemImage', () => {
 
     it('creates object URL from blob response', async () => {
         const mockBlob = new Blob(['test'], { type: 'image/png' });
-        (global.fetch as any).mockResolvedValueOnce({
-            ok: true,
-            blob: vi.fn().mockResolvedValueOnce(mockBlob),
-        });
+        vi.mocked(global.fetch).mockResolvedValueOnce(new Response(mockBlob));
 
         const { result } = renderHook(() => useItemImage('test-item'));
 
@@ -61,10 +55,7 @@ describe('useItemImage', () => {
     });
 
     it('sets error when response is not ok', async () => {
-        (global.fetch as any).mockResolvedValueOnce({
-            ok: false,
-            status: 404,
-        });
+        vi.mocked(global.fetch).mockResolvedValueOnce(new Response(null, { status: 404 }));
 
         const { result } = renderHook(() => useItemImage('nonexistent'));
 
@@ -74,7 +65,7 @@ describe('useItemImage', () => {
     });
 
     it('sets error on network failure', async () => {
-        (global.fetch as any).mockRejectedValueOnce(new Error('Network error'));
+        vi.mocked(global.fetch).mockRejectedValueOnce(new Error('Network error'));
 
         const { result } = renderHook(() => useItemImage('test-item'));
 
@@ -86,21 +77,18 @@ describe('useItemImage', () => {
     it('provides onImageLoad callback', () => {
         const { result } = renderHook(() => useItemImage('test-item'));
 
-        expect(typeof result.current.onImageLoad).toBe('function');
+        expect(result.current.onImageLoad).toEqual(expect.any(Function));
     });
 
     it('provides onImageError callback', () => {
         const { result } = renderHook(() => useItemImage('test-item'));
 
-        expect(typeof result.current.onImageError).toBe('function');
+        expect(result.current.onImageError).toEqual(expect.any(Function));
     });
 
     it('cleans up blob URL on unmount', async () => {
         const mockBlob = new Blob(['test'], { type: 'image/png' });
-        (global.fetch as any).mockResolvedValueOnce({
-            ok: true,
-            blob: vi.fn().mockResolvedValueOnce(mockBlob),
-        });
+        vi.mocked(global.fetch).mockResolvedValueOnce(new Response(mockBlob));
 
         const revokeObjectURLSpy = vi.spyOn(URL, 'revokeObjectURL');
 
@@ -119,10 +107,7 @@ describe('useItemImage', () => {
 
     it('refetches when item name changes', async () => {
         const mockBlob = new Blob(['test'], { type: 'image/png' });
-        (global.fetch as any).mockResolvedValue({
-            ok: true,
-            blob: vi.fn().mockResolvedValue(mockBlob),
-        });
+        vi.mocked(global.fetch).mockResolvedValue(new Response(mockBlob));
 
         const { rerender } = renderHook(({ name }: { name: string }) => useItemImage(name), {
             initialProps: { name: 'apple' },

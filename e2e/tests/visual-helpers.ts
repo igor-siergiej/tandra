@@ -12,5 +12,7 @@ import { expect, type Page } from '@playwright/test';
 export const settle = async (page: Page) => {
     await page.evaluate(() => document.fonts.ready);
     await expect.poll(() => page.evaluate(() => document.fonts.check('600 16px "Montserrat Variable"'))).toBe(true);
-    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await page.evaluate(() => {
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    });
 };

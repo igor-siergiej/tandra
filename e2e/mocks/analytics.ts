@@ -15,7 +15,7 @@ export interface CollectedHit {
         hostname: string;
         url: string;
         name?: string;
-        data?: Record<string, unknown>;
+        data?: Record<string, string | number | boolean>;
     };
 }
 
@@ -41,7 +41,8 @@ export const mockAnalytics = async (page: Page): Promise<Array<CollectedHit>> =>
         route.fulfill({ contentType: 'application/javascript', body: '' })
     );
     await page.route('**/pulse/p', async (route) => {
-        hits.push(route.request().postDataJSON() as CollectedHit);
+        const hit: CollectedHit = route.request().postDataJSON();
+        hits.push(hit);
         await route.fulfill({ contentType: 'application/json', body: '{}' });
     });
 

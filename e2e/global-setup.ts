@@ -2,7 +2,7 @@ import { MongoClient, ObjectId } from 'mongodb';
 
 import { E2E_OPENSEARCH_URL, seedDiscoveryLibrary } from './db-helpers';
 import { DISCOVERY_FIXTURES } from './discovery-fixtures';
-import { MOCK_USER, MOCK_USER_2, PASSWORDS } from './mocks/data/users';
+import { MOCK_USER, MOCK_USER_2, passwordFor } from './mocks/data/users';
 import { resolveMongoUri } from './mongo-uri';
 import { allStacks } from './stack';
 
@@ -35,7 +35,7 @@ const seedUsers = async (client: MongoClient, dbName: string) => {
                 userId: _id,
                 providerId: 'credential',
                 accountId: user.id,
-                password: await Bun.password.hash(PASSWORDS[user.username], { algorithm: 'argon2id' }),
+                password: await Bun.password.hash(passwordFor(user), { algorithm: 'argon2id' }),
                 createdAt: now,
                 updatedAt: now,
             },

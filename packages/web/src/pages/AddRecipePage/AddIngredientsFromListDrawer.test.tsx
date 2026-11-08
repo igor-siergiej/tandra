@@ -18,6 +18,9 @@ const shoppingList: ListResponse = {
     ],
 };
 
+// A list type from the server this build does not know: anything that is not a shopping list.
+const NOT_SHOPPING: ListType = JSON.parse('"other"');
+
 describe('AddIngredientsFromListDrawer', () => {
     it('lets the user pick a list then selected items merge in as ingredients', async () => {
         const user = userEvent.setup();
@@ -37,7 +40,7 @@ describe('AddIngredientsFromListDrawer', () => {
         const otherList: ListResponse = { ...shoppingList, id: 'list-2', title: 'Not Shopping', items: [] };
         render(
             <AddIngredientsFromListDrawer
-                lists={[shoppingList, { ...otherList, listType: 'other' as ListType }]}
+                lists={[shoppingList, { ...otherList, listType: NOT_SHOPPING }]}
                 onAdd={vi.fn()}
             />
         );

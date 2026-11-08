@@ -38,7 +38,7 @@ describe('LoginForm', () => {
         searchParams = new URLSearchParams();
         mockUseLoginForm.mockReturnValue({
             register: vi.fn(),
-            handleSubmit: (fn: (data: unknown) => void) => (e: Event) => {
+            handleSubmit: (fn: (data: Record<string, string>) => void) => (e: Event) => {
                 e.preventDefault();
                 fn({});
             },
@@ -72,7 +72,7 @@ describe('LoginForm', () => {
     it('shows loading state when submitting', () => {
         mockUseLoginForm.mockReturnValue({
             register: vi.fn(),
-            handleSubmit: (fn: (data: unknown) => void) => (e: Event) => {
+            handleSubmit: (fn: (data: Record<string, string>) => void) => (e: Event) => {
                 e.preventDefault();
                 fn({});
             },
@@ -90,7 +90,7 @@ describe('LoginForm', () => {
     it('displays root error when present', () => {
         mockUseLoginForm.mockReturnValue({
             register: vi.fn(),
-            handleSubmit: (fn: (data: unknown) => void) => (e: Event) => {
+            handleSubmit: (fn: (data: Record<string, string>) => void) => (e: Event) => {
                 e.preventDefault();
                 fn({});
             },

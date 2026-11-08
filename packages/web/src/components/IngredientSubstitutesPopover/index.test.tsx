@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { suggestIngredientSubstitutes } from '../../api';
+import { fake } from '../../testing/fake';
 import { IngredientSubstitutesPopover } from './index';
 
 vi.mock('../../api', () => ({
@@ -14,18 +15,20 @@ const fetchMock = vi.fn();
 beforeEach(() => {
     vi.clearAllMocks();
     fetchMock.mockReset();
-    fetchMock.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-            imageGeneration: true,
-            recipeImport: true,
-            ingredientSubstitutes: true,
-            itemCategorisation: true,
-            itemParse: true,
-            recipeTagger: true,
-        }),
-    } as Response);
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    fetchMock.mockResolvedValue(
+        fake<Response>({
+            ok: true,
+            json: async () => ({
+                imageGeneration: true,
+                recipeImport: true,
+                ingredientSubstitutes: true,
+                itemCategorisation: true,
+                itemParse: true,
+                recipeTagger: true,
+            }),
+        })
+    );
+    globalThis.fetch = fake<typeof fetch>(fetchMock);
 });
 
 afterEach(() => {

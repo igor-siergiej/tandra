@@ -1,5 +1,15 @@
 import type { Page } from '@playwright/test';
 
+declare global {
+    interface Window {
+        /** How many times the fake recognition was started, for specs to assert on. */
+        __speechStarts?: number;
+    }
+}
+
+/** What the fake recognition hands `onresult`: the subset of a SpeechRecognitionEvent the app reads. */
+type FakeResultEvent = { resultIndex: number; results: Array<{ isFinal: boolean; 0: { transcript: string } }> };
+
 export type FakeSpeechScript =
     | { kind: 'transcript'; transcript: string; delayMs?: number }
     | { kind: 'sessions'; transcripts: Array<string> }
@@ -15,11 +25,9 @@ export interface FakeSpeechOptions {
 export const installFakeSpeech = async (page: Page, script: FakeSpeechScript, options: FakeSpeechOptions = {}) => {
     if (!options.showNotice) await page.addInitScript(() => localStorage.setItem('tandra.voiceAck', 'true'));
     await page.addInitScript((s: FakeSpeechScript) => {
-        const w = window as unknown as Record<string, unknown>;
-
         if (s.kind === 'unsupported') {
-            delete w.SpeechRecognition;
-            delete w.webkitSpeechRecognition;
+            Reflect.deleteProperty(window, 'SpeechRecognition');
+            Reflect.deleteProperty(window, 'webkitSpeechRecognition');
 
             return;
         }
@@ -28,13 +36,12 @@ export const installFakeSpeech = async (page: Page, script: FakeSpeechScript, op
             lang = '';
             continuous = false;
             interimResults = false;
-            onresult: ((event: unknown) => void) | null = null;
+            onresult: ((event: FakeResultEvent) => void) | null = null;
             onerror: ((event: { error: string }) => void) | null = null;
             onend: (() => void) | null = null;
             start() {
-                const w2 = window as unknown as { __speechStarts?: number };
-                const n = w2.__speechStarts ?? 0;
-                w2.__speechStarts = n + 1;
+                const n = window.__speechStarts ?? 0;
+                window.__speechStarts = n + 1;
 
                 if (s.kind === 'sessions') {
                     // Each start() is one browser session: it hears the next phrase, and the browser ends it on a
@@ -69,7 +76,8 @@ export const installFakeSpeech = async (page: Page, script: FakeSpeechScript, op
             abort() {}
         }
 
-        w.SpeechRecognition = FakeRecognition;
-        w.webkitSpeechRecognition = FakeRecognition;
+        for (const name of ['SpeechRecognition', 'webkitSpeechRecognition']) {
+            Object.defineProperty(window, name, { configurable: true, writable: true, value: FakeRecognition });
+        }
     }, script);
 };

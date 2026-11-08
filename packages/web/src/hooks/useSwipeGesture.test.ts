@@ -24,13 +24,13 @@ describe('useSwipeGesture', () => {
     it('provides handleDragEnd callback', () => {
         const { result } = renderHook(() => useSwipeGesture());
 
-        expect(typeof result.current.handleDragEnd).toBe('function');
+        expect(result.current.handleDragEnd).toEqual(expect.any(Function));
     });
 
     it('provides closeSwipe callback', () => {
         const { result } = renderHook(() => useSwipeGesture());
 
-        expect(typeof result.current.closeSwipe).toBe('function');
+        expect(result.current.closeSwipe).toEqual(expect.any(Function));
     });
 
     it('swipes left when offset exceeds threshold', () => {

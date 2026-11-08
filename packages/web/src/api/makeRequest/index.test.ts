@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { fake } from '../../testing/fake';
+import { MethodType } from '../types';
 import { makeRequest } from './index';
 
 vi.mock('../../utils/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
@@ -11,9 +13,9 @@ describe('makeRequest', () => {
         const fetchMock = vi.fn(async () => new Response('{"ok":true}', { status: 200 }));
         vi.stubGlobal('fetch', fetchMock);
 
-        await makeRequest({ pathname: '/api/lists', method: 'GET', operationString: 'get lists' } as never);
+        await makeRequest({ pathname: '/api/lists', method: MethodType.GET, operationString: 'get lists' });
 
-        const init = (fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1];
+        const init = fake<[string, RequestInit]>(fetchMock.mock.calls[0])[1];
         expect(init.headers).not.toHaveProperty('Authorization');
     });
 
@@ -26,7 +28,7 @@ describe('makeRequest', () => {
         window.addEventListener('auth:session-expired', expired);
 
         await expect(
-            makeRequest({ pathname: '/api/lists', method: 'GET', operationString: 'get lists' } as never)
+            makeRequest({ pathname: '/api/lists', method: MethodType.GET, operationString: 'get lists' })
         ).rejects.toMatchObject({ message: 'Unauthorized', status: 401 });
         expect(expired).toHaveBeenCalledTimes(1);
 
@@ -42,7 +44,7 @@ describe('makeRequest', () => {
         window.addEventListener('auth:username-required', required);
 
         await expect(
-            makeRequest({ pathname: '/api/lists', method: 'GET', operationString: 'get lists' } as never)
+            makeRequest({ pathname: '/api/lists', method: MethodType.GET, operationString: 'get lists' })
         ).rejects.toMatchObject({ message: 'username_required', status: 403 });
         expect(required).toHaveBeenCalledTimes(1);
 
@@ -58,7 +60,7 @@ describe('makeRequest', () => {
         window.addEventListener('auth:username-required', required);
 
         await expect(
-            makeRequest({ pathname: '/api/lists', method: 'GET', operationString: 'get lists' } as never)
+            makeRequest({ pathname: '/api/lists', method: MethodType.GET, operationString: 'get lists' })
         ).rejects.toMatchObject({ message: 'Forbidden', status: 403 });
         expect(required).not.toHaveBeenCalled();
 

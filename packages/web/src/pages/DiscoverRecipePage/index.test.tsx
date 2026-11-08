@@ -1,4 +1,4 @@
-import type { DiscoveryRecipe, PublishedRecipeRef, Recipe } from '@tandra/types';
+import type { DiscoveryRecipe, DiscoveryRecipeSummary, PublishedRecipeRef, Recipe } from '@tandra/types';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -6,6 +6,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as api from '../../api';
+import { fake } from '../../testing/fake';
 import DiscoverRecipePage from './index';
 
 const mockNavigate = vi.fn();
@@ -56,38 +57,46 @@ const personal = (overrides: Partial<Recipe> = {}): Recipe => ({
 
 const setup = ({
     recipe = library,
-    mine = [] as Recipe[],
-    similar = [] as Array<Record<string, unknown>>,
-    published = [] as PublishedRecipeRef[],
+    mine = [],
+    similar = [],
+    published = [],
     copy = vi.fn(async () => personal({ id: 'new-1', link: SOURCE_URL })),
 }: {
     recipe?: DiscoveryRecipe | Error;
     mine?: Recipe[];
-    similar?: Array<Record<string, unknown>>;
+    similar?: DiscoveryRecipeSummary[];
     published?: PublishedRecipeRef[];
     copy?: ReturnType<typeof vi.fn>;
 } = {}) => {
-    vi.spyOn(api, 'getDiscoveryRecipeQuery').mockReturnValue({
-        queryKey: ['discover-recipe', 'wikibooks-1'],
-        queryFn: async () => {
-            if (recipe instanceof Error) throw recipe;
+    vi.spyOn(api, 'getDiscoveryRecipeQuery').mockReturnValue(
+        fake({
+            queryKey: ['discover-recipe', 'wikibooks-1'],
+            queryFn: async () => {
+                if (recipe instanceof Error) throw recipe;
 
-            return recipe;
-        },
-    } as never);
-    vi.spyOn(api, 'getSimilarDiscoveryRecipesQuery').mockReturnValue({
-        queryKey: ['discover-similar', 'wikibooks-1'],
-        queryFn: async () => similar,
-    } as never);
-    vi.spyOn(api, 'getRecipesQuery').mockReturnValue({
-        queryKey: ['recipes', 'user-1'],
-        queryFn: async () => mine,
-    } as never);
-    vi.spyOn(api, 'getPublishedRecipesQuery').mockReturnValue({
-        queryKey: ['discover-published'],
-        queryFn: async () => published,
-    } as never);
-    vi.spyOn(api, 'copyDiscoveryRecipe').mockImplementation(copy as never);
+                return recipe;
+            },
+        })
+    );
+    vi.spyOn(api, 'getSimilarDiscoveryRecipesQuery').mockReturnValue(
+        fake({
+            queryKey: ['discover-similar', 'wikibooks-1'],
+            queryFn: async () => similar,
+        })
+    );
+    vi.spyOn(api, 'getRecipesQuery').mockReturnValue(
+        fake({
+            queryKey: ['recipes', 'user-1'],
+            queryFn: async () => mine,
+        })
+    );
+    vi.spyOn(api, 'getPublishedRecipesQuery').mockReturnValue(
+        fake({
+            queryKey: ['discover-published'],
+            queryFn: async () => published,
+        })
+    );
+    vi.spyOn(api, 'copyDiscoveryRecipe').mockImplementation(fake(copy));
 
     render(
         <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>

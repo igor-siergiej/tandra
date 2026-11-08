@@ -6,8 +6,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../offline/drainer', () => ({ drainOutbox: vi.fn().mockResolvedValue(undefined) }));
 
+import { ListType } from '@tandra/types';
+
 import { GuestProvider } from '../guest/GuestContext';
 import { outboxStore } from '../offline/outboxStore';
+import { present } from '../testing/fake';
 import { useCreateList } from './useCreateList';
 
 const user = { id: 'user-1', username: 'me' };
@@ -31,7 +34,7 @@ describe('useCreateList', () => {
         const { result } = renderHook(() => useCreateList(user), { wrapper: wrap(client) });
 
         await act(async () => {
-            await result.current('Groceries', 'shopping' as never, []);
+            await result.current('Groceries', ListType.SHOPPING, []);
         });
 
         await waitFor(() => expect(outboxStore.peekAll()).toHaveLength(1));
@@ -39,7 +42,7 @@ describe('useCreateList', () => {
         expect(intent.op).toBe('list.create');
         expect(intent.scope).toBe('user-1');
         expect(intent.payload).toMatchObject({ title: 'Groceries' });
-        const cached = client.getQueryData(['lists', 'user-1']) as Array<{ title: string }>;
+        const cached = present(client.getQueryData<Array<{ title: string }>>(['lists', 'user-1']), 'cached lists');
         expect(cached.map((l) => l.title)).toContain('Groceries');
     });
 });

@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as api from '../../api';
+import { narrowTo } from '../../testing/fake';
 import DiscoverPage from './index';
 
 const mockNavigate = vi.fn();
@@ -171,7 +172,7 @@ describe('DiscoverPage', () => {
         );
 
         const clear = await screen.findAllByRole('button', { name: 'Clear filters' });
-        await userEvent.click(clear[0] as HTMLElement);
+        await userEvent.click(narrowTo(clear[0], HTMLElement));
         await waitFor(() => expect(screen.getByRole('button', { name: 'Filters' })).toBeInTheDocument());
     });
 });

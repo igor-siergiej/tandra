@@ -21,7 +21,7 @@ const createListAs = async (
 
     if (!res.ok) throw new Error(`create list as ${user.username} failed: ${await res.text()}`);
 
-    return res.json() as Promise<{ id: string; title: string }>;
+    return res.json();
 };
 
 const getAsTestUser = async <T>(path: string): Promise<T> => {
@@ -29,7 +29,7 @@ const getAsTestUser = async <T>(path: string): Promise<T> => {
 
     if (!res.ok) throw new Error(`GET ${path} failed: ${await res.text()}`);
 
-    return res.json() as Promise<T>;
+    return res.json();
 };
 
 export const apiCreateList = (title: string, listType = 'shopping', selectedFriendIds?: Array<string>) =>
@@ -39,7 +39,7 @@ export async function apiAddItem(
     listTitle: string,
     itemName: string,
     overrides: { quantity?: number; unit?: string; isSelected?: boolean; dueDate?: string } = {}
-) {
+): Promise<{ id: string; name: string }> {
     const res = await fetch(`${API_BASE}/api/lists/${encodeURIComponent(listTitle)}/items`, {
         method: 'PUT',
         headers: await sessionHeaders(),
@@ -48,7 +48,7 @@ export async function apiAddItem(
 
     if (!res.ok) throw new Error(`apiAddItem failed: ${await res.text()}`);
 
-    return res.json() as Promise<{ id: string; name: string }>;
+    return res.json();
 }
 
 export async function apiDeleteItem(listTitle: string, itemName: string) {
@@ -68,7 +68,7 @@ async function resolveItemId(listTitle: string, itemName: string): Promise<strin
     });
 
     if (!res.ok) throw new Error(`resolveItemId: get list failed: ${await res.text()}`);
-    const list = (await res.json()) as { items: Array<{ id: string; name: string }> };
+    const list: { items: Array<{ id: string; name: string }> } = await res.json();
     const item = list.items.find((i) => i.name === itemName);
 
     if (!item) throw new Error(`resolveItemId: item '${itemName}' not found in list '${listTitle}'`);
@@ -110,7 +110,7 @@ export async function apiCreateRecipe(
         tags?: string[];
         link?: string;
     } = {}
-) {
+): Promise<{ id: string; title: string; ingredients: Array<{ id: string; name: string }> }> {
     const res = await fetch(`${API_BASE}/api/recipes`, {
         method: 'PUT',
         headers: await sessionHeaders(),
@@ -126,10 +126,10 @@ export async function apiCreateRecipe(
 
     if (!res.ok) throw new Error(`apiCreateRecipe failed: ${await res.text()}`);
 
-    return res.json() as Promise<{ id: string; title: string; ingredients: Array<{ id: string; name: string }> }>;
+    return res.json();
 }
 
-async function apiPut<T>(path: string, body: unknown): Promise<T> {
+async function apiPut<T, Body extends object = object>(path: string, body: Body): Promise<T> {
     const res = await fetch(`${API_BASE}${path}`, {
         method: 'PUT',
         headers: await sessionHeaders(),
@@ -138,7 +138,7 @@ async function apiPut<T>(path: string, body: unknown): Promise<T> {
 
     if (!res.ok) throw new Error(`PUT ${path} failed: ${await res.text()}`);
 
-    return res.json() as Promise<T>;
+    return res.json();
 }
 
 export const apiCreateTodo = (body: {
@@ -152,18 +152,18 @@ export const apiCreateTodo = (body: {
 export const apiCreateLabel = (body: { name: string; color: string }) =>
     apiPut<{ id: string; name: string; color: string }>('/api/labels', body);
 
-export async function apiGetList(listTitle: string) {
+export async function apiGetList(listTitle: string): Promise<{
+    id: string;
+    title: string;
+    items: Array<{ id: string; name: string; isSelected: boolean; category?: string; quantity?: number }>;
+}> {
     const res = await fetch(`${API_BASE}/api/lists/title/${encodeURIComponent(listTitle)}`, {
         headers: await sessionHeaders(),
     });
 
     if (!res.ok) throw new Error(`apiGetList failed: ${await res.text()}`);
 
-    return res.json() as Promise<{
-        id: string;
-        title: string;
-        items: Array<{ id: string; name: string; isSelected: boolean; category?: string; quantity?: number }>;
-    }>;
+    return res.json();
 }
 
 export async function apiSetItemCategory(listTitle: string, itemName: string, category: string) {
@@ -193,7 +193,10 @@ export const apiGetRecipes = () =>
     >('/api/recipes');
 
 /** Creates a recipe owned by the second mock user, shared with the given user ids (they must be friends). */
-export async function apiCreateRecipeAsOtherUser(title: string, sharedWith: Array<string>) {
+export async function apiCreateRecipeAsOtherUser(
+    title: string,
+    sharedWith: Array<string>
+): Promise<{ id: string; title: string }> {
     const res = await fetch(`${API_BASE}/api/recipes`, {
         method: 'PUT',
         headers: await sessionHeaders(MOCK_USER_2),
@@ -209,7 +212,7 @@ export async function apiCreateRecipeAsOtherUser(title: string, sharedWith: Arra
 
     if (!res.ok) throw new Error(`apiCreateRecipeAsOtherUser failed: ${await res.text()}`);
 
-    return res.json() as Promise<{ id: string; title: string }>;
+    return res.json();
 }
 
 export const apiGetTodos = () =>
@@ -225,16 +228,19 @@ export const apiGetTodos = () =>
     >('/api/todos');
 
 /** Todos visible to the second mock user (owned by or shared with them). */
-export async function apiGetTodosAsOtherUser() {
+export async function apiGetTodosAsOtherUser(): Promise<Array<{ id: string; title: string }>> {
     const res = await fetch(`${API_BASE}/api/todos`, { headers: await sessionHeaders(MOCK_USER_2) });
 
     if (!res.ok) throw new Error(`apiGetTodosAsOtherUser failed: ${await res.text()}`);
 
-    return res.json() as Promise<Array<{ id: string; title: string }>>;
+    return res.json();
 }
 
 /** Creates a todo owned by the second mock user and shared with the given user ids (they must be friends). */
-export async function apiCreateTodoAsOtherUser(body: { title: string; dueDate: string }, sharedWith: Array<string>) {
+export async function apiCreateTodoAsOtherUser(
+    body: { title: string; dueDate: string },
+    sharedWith: Array<string>
+): Promise<{ id: string; title: string }> {
     const res = await fetch(`${API_BASE}/api/todos`, {
         method: 'PUT',
         headers: await sessionHeaders(MOCK_USER_2),
@@ -243,7 +249,7 @@ export async function apiCreateTodoAsOtherUser(body: { title: string; dueDate: s
 
     if (!res.ok) throw new Error(`apiCreateTodoAsOtherUser failed: ${await res.text()}`);
 
-    return res.json() as Promise<{ id: string; title: string }>;
+    return res.json();
 }
 
 /** Creates a shopping list owned by the second mock user, shared with the given user ids (they must be friends). */

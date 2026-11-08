@@ -21,7 +21,7 @@ describe('RegisterForm', () => {
     beforeEach(() => {
         mockUseRegisterForm.mockReturnValue({
             register: vi.fn(),
-            handleSubmit: (fn: (data: unknown) => void) => (e: Event) => {
+            handleSubmit: (fn: (data: Record<string, string>) => void) => (e: Event) => {
                 e.preventDefault();
                 fn({});
             },
@@ -60,7 +60,7 @@ describe('RegisterForm', () => {
     it('disables button when submitting', () => {
         mockUseRegisterForm.mockReturnValue({
             register: vi.fn(),
-            handleSubmit: (fn: (data: unknown) => void) => (e: Event) => {
+            handleSubmit: (fn: (data: Record<string, string>) => void) => (e: Event) => {
                 e.preventDefault();
                 fn({});
             },
@@ -78,7 +78,7 @@ describe('RegisterForm', () => {
     it('displays root error when present', () => {
         mockUseRegisterForm.mockReturnValue({
             register: vi.fn(),
-            handleSubmit: (fn: (data: unknown) => void) => (e: Event) => {
+            handleSubmit: (fn: (data: Record<string, string>) => void) => (e: Event) => {
                 e.preventDefault();
                 fn({});
             },

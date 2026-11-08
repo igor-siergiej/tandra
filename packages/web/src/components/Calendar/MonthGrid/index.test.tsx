@@ -21,7 +21,7 @@ describe('MonthGrid', () => {
     });
 
     it('calls onSelectDay when a day is clicked', () => {
-        const onSelectDay = vi.fn();
+        const onSelectDay = vi.fn((_day: Date) => {});
         render(
             <MonthGrid
                 month={month}
@@ -33,7 +33,7 @@ describe('MonthGrid', () => {
         );
         fireEvent.click(screen.getAllByText('4')[0]);
         expect(onSelectDay).toHaveBeenCalled();
-        const arg = onSelectDay.mock.calls[0][0] as Date;
+        const [arg] = onSelectDay.mock.calls[0];
         expect(arg.getDate()).toBe(4);
     });
 
