@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'bun:test';
 
 import { Hono } from 'hono';
+import { z } from 'zod';
 
 import { ListRealtimeHub } from '../../domain/ListRealtimeHub';
 import { WsTicketStore } from '../../domain/WsTicketStore';
@@ -22,21 +23,28 @@ const ALICE = { id: 'u-alice', username: 'alice' };
 const BOB = { id: 'u-bob', username: 'bob' };
 const MALLORY = { id: 'u-mallory', username: 'mallory' };
 
-const LISTS: Record<string, { id: string; users: Array<{ id: string; username: string }> }> = {
-    Groceries: { id: 'list-groceries', users: [ALICE, BOB] },
-    Private: { id: 'list-private', users: [ALICE] },
-};
+const GROCERIES = { id: 'list-groceries', users: [ALICE, BOB] };
+const PRIVATE = { id: 'list-private', users: [ALICE] };
 
-const GROCERIES_ID = LISTS.Groceries.id;
+const GROCERIES_ID = GROCERIES.id;
+
+const LISTS = new Map([
+    ['Groceries', GROCERIES],
+    ['Private', PRIVATE],
+]);
 
 // Lists resolve by id or by (legacy) title, as ListService.getList does.
-const findList = (ref: string) => Object.values(LISTS).find((list) => list.id === ref) ?? LISTS[ref];
+const findList = (ref: string) => [...LISTS.values()].find((list) => list.id === ref) ?? LISTS.get(ref);
 
 // Stands in for `authenticate`: the bearer token IS the user id, resolved from a fixed directory.
-const USERS: Record<string, typeof ALICE> = { alice: ALICE, bob: BOB, mallory: MALLORY };
+const USERS = new Map([
+    ['alice', ALICE],
+    ['bob', BOB],
+    ['mallory', MALLORY],
+]);
 
 const fakeAuth = async (c: any, next: any) => {
-    const user = USERS[(c.req.header('authorization') ?? '').replace('Bearer ', '')];
+    const user = USERS.get((c.req.header('authorization') ?? '').replace('Bearer ', ''));
 
     if (!user) return c.json({ error: 'Invalid or expired token' }, 401);
     c.set('user', user);
@@ -71,13 +79,15 @@ beforeEach(() => {
     });
 });
 
+const ticketBody = z.object({ ticket: z.string() });
+
 const getTicket = async (token: string, title: string) => {
     const res = await app.request(`/api/lists/${title}/socket-ticket`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
     });
 
-    return { status: res.status, ticket: res.ok ? ((await res.json()) as { ticket: string }).ticket : undefined };
+    return { status: res.status, ticket: res.ok ? ticketBody.parse(await res.json()).ticket : undefined };
 };
 
 type Message = { type: string; users?: Array<{ id: string }> };
@@ -129,12 +139,12 @@ describe('list websocket', () => {
 
     it('rejects a ticket once its holder has been removed from the list', async () => {
         const { ticket } = await getTicket('bob', 'Groceries');
-        LISTS.Groceries.users = [ALICE];
+        GROCERIES.users = [ALICE];
 
         try {
             expect(await connect('Groceries', ticket)).toEqual({ rejected: true });
         } finally {
-            LISTS.Groceries.users = [ALICE, BOB];
+            GROCERIES.users = [ALICE, BOB];
         }
     });
 
@@ -178,7 +188,7 @@ describe('list websocket', () => {
         await until(() => a.messages.length > 0);
         const before = a.messages.length;
 
-        hub.notifyChanged(LISTS.Private.id);
+        hub.notifyChanged(PRIVATE.id);
         await Bun.sleep(50);
         expect(a.messages.length).toBe(before);
         a.socket.close();

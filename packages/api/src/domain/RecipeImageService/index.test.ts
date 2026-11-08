@@ -1,92 +1,12 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
 
-import type { Logger } from '@imapps/api-utils';
-
+import { RecordingImageGenerator, RecordingImageStore, RecordingLogger } from '../../testing/doubles';
+import { fake } from '../../testing/fake';
 import { RecipeImageService } from './index';
 
-class MockImageStore {
-    calls: Record<string, Array<Array<unknown>>> = {
-        getHeadObject: [],
-        putObject: [],
-    };
-
-    resolvedValues: Record<string, unknown> = {
-        getHeadObject: null,
-        putObject: undefined,
-    };
-
-    rejectedErrors: Record<string, Error | null> = {
-        getHeadObject: null,
-        putObject: null,
-    };
-
-    async getHeadObject(key: string) {
-        this.calls.getHeadObject.push([key]);
-
-        if (this.rejectedErrors.getHeadObject) throw this.rejectedErrors.getHeadObject;
-
-        return this.resolvedValues.getHeadObject;
-    }
-
-    async putObject(key: string, buffer: unknown, options?: unknown) {
-        this.calls.putObject.push([key, buffer, options]);
-
-        if (this.rejectedErrors.putObject) throw this.rejectedErrors.putObject;
-    }
-
-    async getObjectStream(_key: string): Promise<NodeJS.ReadableStream> {
-        throw new Error('not used');
-    }
-
-    reset() {
-        this.calls = { getHeadObject: [], putObject: [] };
-        this.resolvedValues = { getHeadObject: null, putObject: undefined };
-        this.rejectedErrors = { getHeadObject: null, putObject: null };
-    }
-}
-
-class MockImageGenerator {
-    calls: Array<string[]> = [];
-    resolvedValue = { buffer: Buffer.from('img'), contentType: 'image/webp' };
-
-    async generateImage(prompt: string) {
-        this.calls.push([prompt]);
-
-        return this.resolvedValue;
-    }
-
-    reset() {
-        this.calls = [];
-    }
-}
-
-class MockLogger implements Logger {
-    calls: Record<string, unknown[][]> = { info: [], warn: [], error: [], debug: [] };
-
-    info(...args: unknown[]) {
-        this.calls.info.push(args);
-    }
-
-    warn(...args: unknown[]) {
-        this.calls.warn.push(args);
-    }
-
-    error(...args: unknown[]) {
-        this.calls.error.push(args);
-    }
-
-    debug(...args: unknown[]) {
-        this.calls.debug.push(args);
-    }
-
-    reset() {
-        this.calls = { info: [], warn: [], error: [], debug: [] };
-    }
-}
-
-const mockStore = new MockImageStore();
-const mockGenerator = new MockImageGenerator();
-const mockLogger = new MockLogger();
+const mockStore = new RecordingImageStore();
+const mockGenerator = new RecordingImageGenerator();
+const mockLogger = new RecordingLogger();
 
 describe('RecipeImageService', () => {
     let service: RecipeImageService;
@@ -95,7 +15,7 @@ describe('RecipeImageService', () => {
         mockStore.reset();
         mockGenerator.reset();
         mockLogger.reset();
-        service = new RecipeImageService(mockStore, mockGenerator, mockLogger);
+        service = new RecipeImageService(mockStore, mockGenerator, fake(mockLogger));
     });
 
     describe('generateRecipeImage', () => {
@@ -111,7 +31,7 @@ describe('RecipeImageService', () => {
             const key = await service.generateRecipeImage('rec-1', 'Lemon Chicken', ingredients);
 
             expect(key).toBe('recipe-image/rec-1.webp');
-            expect(mockGenerator.calls.length).toBe(0);
+            expect(mockGenerator.calls.generateImage.length).toBe(0);
             expect(mockStore.calls.putObject.length).toBe(0);
         });
 
@@ -121,8 +41,8 @@ describe('RecipeImageService', () => {
             const key = await service.generateRecipeImage('rec-2', 'Lemon Chicken', ingredients);
 
             expect(key).toBe('recipe-image/rec-2.webp');
-            expect(mockGenerator.calls.length).toBe(1);
-            expect(mockGenerator.calls[0][0]).toBe(
+            expect(mockGenerator.calls.generateImage.length).toBe(1);
+            expect(mockGenerator.calls.generateImage[0][0]).toBe(
                 'Appetising food photography of Lemon Chicken, featuring chicken, garlic, lemon, soft natural lighting, shallow depth of field, served on a wooden table, no text, no watermark.'
             );
             expect(mockStore.calls.putObject[0][0]).toBe('recipe-image/rec-2.webp');
@@ -133,7 +53,7 @@ describe('RecipeImageService', () => {
 
             await service.generateRecipeImage('rec-3', 'Mystery Dish', []);
 
-            expect(mockGenerator.calls[0][0]).toBe(
+            expect(mockGenerator.calls.generateImage[0][0]).toBe(
                 'Appetising food photography of Mystery Dish, soft natural lighting, shallow depth of field, served on a wooden table, no text, no watermark.'
             );
         });
@@ -144,7 +64,7 @@ describe('RecipeImageService', () => {
 
             await service.generateRecipeImage('rec-4', 'Big Dish', many);
 
-            const prompt = mockGenerator.calls[0][0];
+            const prompt = mockGenerator.calls.generateImage[0][0];
             expect(prompt).toContain('featuring a, b, c, d, e');
             expect(prompt).not.toContain('featuring a, b, c, d, e, f');
         });
@@ -152,7 +72,7 @@ describe('RecipeImageService', () => {
         it('stores buffer returned by generator', async () => {
             mockStore.rejectedErrors.getHeadObject = new Error('Not found');
             const buf = Buffer.from('generated');
-            mockGenerator.resolvedValue = { buffer: buf, contentType: 'image/webp' };
+            mockGenerator.resolvedValues.generateImage = { buffer: buf, contentType: 'image/webp' };
 
             await service.generateRecipeImage('rec-5', 'Title', ingredients);
 

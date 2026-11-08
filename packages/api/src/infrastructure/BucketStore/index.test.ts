@@ -1,79 +1,67 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
+import { Readable } from 'node:stream';
 
 import type { ObjectStoreConnection } from '@imapps/api-utils';
 
+import { fake } from '../../testing/fake';
 import { BucketStore } from './index';
 
-class MockObjectStore {
-    calls: Record<string, Array<Array<unknown>>> = {
-        getHeadObject: [],
-        getObjectStream: [],
-        putObject: [],
+type Bucket = Pick<ObjectStoreConnection, 'getHeadObject' | 'getObjectStream' | 'putObject'>;
+
+type HeadObject = Awaited<ReturnType<Bucket['getHeadObject']>>;
+
+type BucketCalls = {
+    getHeadObject: Array<Parameters<Bucket['getHeadObject']>>;
+    getObjectStream: Array<Parameters<Bucket['getObjectStream']>>;
+    putObject: Array<Parameters<Bucket['putObject']>>;
+};
+
+type BucketFailures = { getHeadObject?: Error; getObjectStream?: Error; putObject?: Error };
+
+const noCalls = (): BucketCalls => ({ getHeadObject: [], getObjectStream: [], putObject: [] });
+
+/** Records each call and answers with the value or error a test sets. */
+class MockObjectStore implements Bucket {
+    calls = noCalls();
+
+    headObject: HeadObject = fake({});
+
+    stream = Readable.from([]);
+
+    rejectedErrors: BucketFailures = {};
+
+    getHeadObject = async (...args: Parameters<Bucket['getHeadObject']>) => {
+        this.calls.getHeadObject.push(args);
+
+        if (this.rejectedErrors.getHeadObject) throw this.rejectedErrors.getHeadObject;
+
+        return this.headObject;
     };
 
-    resolvedValues: Record<string, unknown> = {
-        getHeadObject: null,
-        getObjectStream: null,
-        putObject: undefined,
+    getObjectStream = async (...args: Parameters<Bucket['getObjectStream']>) => {
+        this.calls.getObjectStream.push(args);
+
+        if (this.rejectedErrors.getObjectStream) throw this.rejectedErrors.getObjectStream;
+
+        return this.stream;
     };
 
-    rejectedErrors: Record<string, Error | null> = {
-        getHeadObject: null,
-        getObjectStream: null,
-        putObject: null,
+    putObject = async (...args: Parameters<Bucket['putObject']>) => {
+        this.calls.putObject.push(args);
+
+        if (this.rejectedErrors.putObject) throw this.rejectedErrors.putObject;
     };
-
-    async getHeadObject(objName: string) {
-        this.calls.getHeadObject.push([objName]);
-
-        if (this.rejectedErrors.getHeadObject) {
-            throw this.rejectedErrors.getHeadObject;
-        }
-
-        return this.resolvedValues.getHeadObject;
-    }
-
-    getObjectStream(objName: string) {
-        this.calls.getObjectStream.push([objName]);
-
-        if (this.rejectedErrors.getObjectStream) {
-            throw this.rejectedErrors.getObjectStream;
-        }
-
-        return this.resolvedValues.getObjectStream;
-    }
-
-    async putObject(objName: string, buffer: unknown, options?: unknown) {
-        this.calls.putObject.push([objName, buffer, options]);
-
-        if (this.rejectedErrors.putObject) {
-            throw this.rejectedErrors.putObject;
-        }
-
-        return this.resolvedValues.putObject;
-    }
 
     reset() {
-        this.calls = {
-            getHeadObject: [],
-            getObjectStream: [],
-            putObject: [],
-        };
-        this.resolvedValues = {
-            getHeadObject: null,
-            getObjectStream: null,
-            putObject: undefined,
-        };
-        this.rejectedErrors = {
-            getHeadObject: null,
-            getObjectStream: null,
-            putObject: null,
-        };
+        this.calls = noCalls();
+        this.headObject = fake({});
+        this.stream = Readable.from([]);
+        this.rejectedErrors = {};
     }
 }
 
 const mockObjectStore = new MockObjectStore();
-const mockConnection = mockObjectStore as unknown as ObjectStoreConnection;
+const mockConnection = fake<ObjectStoreConnection>(mockObjectStore);
 
 describe('BucketStore', () => {
     let bucketStore: BucketStore;
@@ -86,13 +74,9 @@ describe('BucketStore', () => {
     describe('Getting object metadata', () => {
         describe('When an object exists', () => {
             it('should return the object metadata', async () => {
-                const mockStat = {
-                    metaData: {
-                        'content-type': 'image/png',
-                    },
-                };
+                const mockStat: HeadObject = fake({ metaData: { 'content-type': 'image/png' } });
 
-                mockObjectStore.resolvedValues.getHeadObject = mockStat;
+                mockObjectStore.headObject = mockStat;
 
                 const result = await bucketStore.getHeadObject('test-image.png');
 
@@ -103,9 +87,11 @@ describe('BucketStore', () => {
 
         describe('When an object does not exist', () => {
             it('should throw the error', async () => {
-                mockObjectStore.rejectedErrors.getHeadObject = { code: 'NotFound' } as any;
+                mockObjectStore.rejectedErrors.getHeadObject = Object.assign(new Error('Not found'), {
+                    code: 'NotFound',
+                });
 
-                await expect(bucketStore.getHeadObject('non-existent.png')).rejects.toEqual({
+                await expect(bucketStore.getHeadObject('non-existent.png')).rejects.toMatchObject({
                     code: 'NotFound',
                 });
             });
@@ -123,12 +109,9 @@ describe('BucketStore', () => {
     describe('Getting object stream', () => {
         describe('When getting an object stream', () => {
             it('should return a readable stream', async () => {
-                const mockStream = {
-                    pipe: () => {},
-                    on: () => {},
-                };
+                const mockStream = Readable.from(['bytes']);
 
-                mockObjectStore.resolvedValues.getObjectStream = mockStream;
+                mockObjectStore.stream = mockStream;
 
                 const result = await bucketStore.getObjectStream('test-image.png');
 
@@ -144,8 +127,6 @@ describe('BucketStore', () => {
                 const mockBuffer = Buffer.from('test-data');
                 const options = { contentType: 'image/png' };
 
-                mockObjectStore.resolvedValues.putObject = undefined;
-
                 await bucketStore.putObject('test-image.png', mockBuffer, options);
 
                 expect(mockObjectStore.calls.putObject[0]).toEqual(['test-image.png', mockBuffer, options]);
@@ -155,8 +136,6 @@ describe('BucketStore', () => {
         describe('When uploading an object without options', () => {
             it('should upload the object successfully', async () => {
                 const mockBuffer = Buffer.from('test-data');
-
-                mockObjectStore.resolvedValues.putObject = undefined;
 
                 await bucketStore.putObject('test-image.png', mockBuffer);
 
@@ -179,8 +158,6 @@ describe('BucketStore', () => {
                 mockObjectStore.reset();
                 const storeWithoutLogger = new BucketStore(mockConnection);
                 const mockBuffer = Buffer.from('test-data');
-
-                mockObjectStore.resolvedValues.putObject = undefined;
 
                 await storeWithoutLogger.putObject('test-image.png', mockBuffer);
 

@@ -2,7 +2,8 @@ import { describe, expect, it } from 'bun:test';
 
 import { taggedRecipeSchema } from './schema';
 
-const parse = (input: unknown) => taggedRecipeSchema.parse(input);
+// The schema is the boundary decoder for a model reply, so the tests feed it raw values of any shape.
+const parse: typeof taggedRecipeSchema.parse = (input) => taggedRecipeSchema.parse(input);
 
 describe('taggedRecipeSchema', () => {
     it('keeps a valid tags array as-is', () => {

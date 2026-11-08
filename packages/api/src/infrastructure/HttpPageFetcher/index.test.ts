@@ -1,14 +1,11 @@
 import { afterEach, describe, expect, it } from 'bun:test';
 
+import { stubFetch } from '../../testing/doubles';
 import { HttpPageFetcher } from './index';
 
 const resolveHost = async () => [{ address: '93.184.216.34' }];
 
 const originalFetch = globalThis.fetch;
-
-const stubFetch = (impl: typeof fetch) => {
-    globalThis.fetch = impl as typeof fetch;
-};
 
 describe('HttpPageFetcher', () => {
     afterEach(() => {

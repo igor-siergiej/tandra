@@ -23,11 +23,11 @@ describe('parseDay', () => {
     });
 
     it('tolerates a legacy full ISO string by keeping the day part', () => {
-        expect(parseDay('2026-07-02T00:00:00.000Z' as string).getDate()).toBe(2);
+        expect(parseDay('2026-07-02T00:00:00.000Z').getDate()).toBe(2);
     });
 
     it('tolerates a legacy Date by bucketing to its local calendar day', () => {
-        const d = parseDay(new Date(2026, 6, 2, 15, 0) as unknown as string);
+        const d = parseDay(new Date(2026, 6, 2, 15, 0));
         expect(d.getMonth()).toBe(6);
         expect(d.getDate()).toBe(2);
         expect(d.getHours()).toBe(0);

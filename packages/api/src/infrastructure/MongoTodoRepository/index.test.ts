@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, mock } from 'bun:test';
 
 import type { Todo } from '@tandra/types';
 
+import { connectionTo } from '../../testing/fake';
 import { MongoTodoRepository } from './index';
 
 const makeTodo = (over: Partial<Todo> = {}): Todo => ({
@@ -45,13 +46,13 @@ class FakeCollection {
     async updateMany(q: { labelId: string; ownerId: string }, _update: { $unset: { labelId: '' } }) {
         for (const d of this.docs) {
             if (d.labelId === q.labelId && d.ownerId === q.ownerId) {
-                delete (d as Partial<Todo>).labelId;
+                delete d.labelId;
             }
         }
     }
 }
 
-const makeDb = (col: FakeCollection) => ({ getCollection: () => col }) as never;
+const makeDb = (col: FakeCollection) => connectionTo(col);
 
 describe('MongoTodoRepository', () => {
     let col: FakeCollection;
@@ -101,9 +102,7 @@ describe('MongoTodoRepository', () => {
     it('findDueCandidates queries incomplete todos due on or before today (day string)', async () => {
         const mockFind = mock(() => ({ toArray: async () => [] }));
 
-        const mockDb = {
-            getCollection: () => ({ find: mockFind }),
-        } as never;
+        const mockDb = connectionTo({ find: mockFind });
 
         const testRepo = new MongoTodoRepository(mockDb);
 

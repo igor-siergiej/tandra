@@ -1,13 +1,16 @@
 import { describe, expect, it, vi } from 'bun:test';
 
 import { errorHandler } from '@imapps/api-utils/hono';
-import type { DiscoveryRecipe } from '@tandra/types';
-import { Hono } from 'hono';
+import type { DiscoveryRecipe, Recipe, User } from '@tandra/types';
+import { Hono, type MiddlewareHandler } from 'hono';
 
 import type { DiscoveryCopyService } from '../../domain/DiscoveryCopyService';
+import type { DiscoveryModerationService } from '../../domain/DiscoveryModeration';
+import type { DiscoveryPublishService } from '../../domain/DiscoveryPublish';
 import { DiscoveryService } from '../../domain/DiscoveryService';
 import type { DiscoveryIndex } from '../../domain/DiscoveryService/types';
 import { MongoDiscoveryRecipeRepository } from '../../infrastructure/MongoDiscoveryRecipeRepository';
+import { fake } from '../../testing/fake';
 import type { HonoVars } from '../handlerUtils';
 import { createDiscoveryHandlers } from './index';
 
@@ -15,41 +18,38 @@ const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
 
 const appFor = (
     service: DiscoveryService,
-    copyService: DiscoveryCopyService = {} as never,
-    extra: { publish?: unknown; moderation?: unknown } = {}
+    copyService: DiscoveryCopyService = fake({}),
+    extra: { publish?: Partial<DiscoveryPublishService>; moderation?: Partial<DiscoveryModerationService> } = {}
 ) => {
     const handlers = createDiscoveryHandlers(
         {
             discovery: service,
             copy: copyService,
-            publish: (extra.publish ?? {}) as never,
-            moderation: (extra.moderation ?? {}) as never,
+            publish: fake(extra.publish ?? {}),
+            moderation: fake(extra.moderation ?? {}),
         },
-        logger as never
+        fake(logger)
     );
 
     const app = new Hono<HonoVars>();
     app.onError(errorHandler);
-    app.get('/api/discover/recipes', handlers.searchRecipes as never);
-    app.get('/api/discover/recipes/:id/similar', handlers.getSimilarRecipes as never);
-    app.get('/api/discover/recipes/:id', handlers.getRecipe as never);
+    app.get('/api/discover/recipes', handlers.searchRecipes);
+    app.get('/api/discover/recipes/:id/similar', handlers.getSimilarRecipes);
+    app.get('/api/discover/recipes/:id', handlers.getRecipe);
 
-    const asUser = async (
-        c: { req: { header: (name: string) => string | undefined }; set: (k: 'user', v: unknown) => void },
-        next: () => Promise<void>
-    ) => {
+    const asUser: MiddlewareHandler<HonoVars> = async (c, next) => {
         const id = c.req.header('x-test-user');
 
         if (id) c.set('user', { id, username: id });
         await next();
     };
 
-    app.post('/api/recipes/:recipeId/publish', asUser as never, handlers.publishRecipe as never);
-    app.delete('/api/discover/published/:id', asUser as never, handlers.unpublishRecipe as never);
-    app.get('/api/discover/published', asUser as never, handlers.listPublished as never);
-    app.post('/api/discover/recipes/:id/report', asUser as never, handlers.reportRecipe as never);
-    app.delete('/api/discover/recipes/:id', asUser as never, handlers.delistRecipe as never);
-    app.get('/api/discover/reports', asUser as never, handlers.listReports as never);
+    app.post('/api/recipes/:recipeId/publish', asUser, handlers.publishRecipe);
+    app.delete('/api/discover/published/:id', asUser, handlers.unpublishRecipe);
+    app.get('/api/discover/published', asUser, handlers.listPublished);
+    app.post('/api/discover/recipes/:id/report', asUser, handlers.reportRecipe);
+    app.delete('/api/discover/recipes/:id', asUser, handlers.delistRecipe);
+    app.get('/api/discover/reports', asUser, handlers.listReports);
     // Auth middleware stand-in: `X-Test-User` names the authenticated user, absent means unauthenticated.
     app.post(
         '/api/discover/recipes/:id/copy',
@@ -59,7 +59,7 @@ const appFor = (
             if (id) c.set('user', { id, username: id });
             await next();
         },
-        handlers.copyRecipe as never
+        handlers.copyRecipe
     );
 
     return app;
@@ -97,8 +97,11 @@ const fakeIndex = (overrides: Partial<DiscoveryIndex> = {}): DiscoveryIndex => (
     ...overrides,
 });
 
+/** A stored document: a library recipe, or a personal recipe that carries its members. */
+type StoredDoc = Partial<DiscoveryRecipe> & { id: string; users?: User[]; ownerId?: string };
+
 /** A Mongo double holding BOTH the private recipe collection and the library, recording which were touched. */
-const fakeDb = (collections: Record<string, Array<Record<string, unknown>>>) => {
+const fakeDb = (collections: Record<string, StoredDoc[]>) => {
     const touched: string[] = [];
 
     return {
@@ -116,7 +119,7 @@ const fakeDb = (collections: Record<string, Array<Record<string, unknown>>>) => 
 describe('GET /api/discover/recipes', () => {
     it('parses repeated and comma-separated lists, numbers and enums into the search query', async () => {
         const index = fakeIndex();
-        const app = appFor(new DiscoveryService({} as never, index));
+        const app = appFor(new DiscoveryService(fake({}), index));
 
         const res = await app.request(
             '/api/discover/recipes?q=soup&tags=vegan,quick&tags=easy&ingredients=olive%20oil&difficulty=easy,hard&source=user&minTime=10&maxTime=60&page=2&pageSize=5'
@@ -138,7 +141,7 @@ describe('GET /api/discover/recipes', () => {
 
     it('keeps a comma inside an ingredient name instead of splitting it into two filters', async () => {
         const index = fakeIndex();
-        const app = appFor(new DiscoveryService({} as never, index));
+        const app = appFor(new DiscoveryService(fake({}), index));
 
         await app.request('/api/discover/recipes?ingredients=onion%2C%20chopped&ingredients=salt');
 
@@ -154,7 +157,7 @@ describe('GET /api/discover/recipes', () => {
         ['minTime=-1'],
     ])('rejects a malformed query (%s) with 400 without calling the index', async (qs) => {
         const index = fakeIndex();
-        const res = await appFor(new DiscoveryService({} as never, index)).request(`/api/discover/recipes?${qs}`);
+        const res = await appFor(new DiscoveryService(fake({}), index)).request(`/api/discover/recipes?${qs}`);
         expect(res.status).toBe(400);
         expect(index.search).not.toHaveBeenCalled();
     });
@@ -168,32 +171,38 @@ describe('GET /api/discover/recipes', () => {
                 ),
         });
 
-        const res = await appFor(new DiscoveryService({} as never, index)).request('/api/discover/recipes?q=soup');
+        const res = await appFor(new DiscoveryService(fake({}), index)).request('/api/discover/recipes?q=soup');
         expect(res.status).toBe(503);
         expect(await res.json()).toEqual({ error: 'Recipe discovery is temporarily unavailable' });
     });
 
     it('hides the message of an unexpected failure behind a generic 500', async () => {
         const index = fakeIndex({ search: vi.fn().mockRejectedValue(new Error('cluster password is hunter2')) });
-        const res = await appFor(new DiscoveryService({} as never, index)).request('/api/discover/recipes');
+        const res = await appFor(new DiscoveryService(fake({}), index)).request('/api/discover/recipes');
         expect(res.status).toBe(500);
         expect(await res.json()).toEqual({ error: 'Internal Server Error' });
     });
 });
 
+/** The real repository over the double: its read paths only call `getCollection(name).findOne({ id })`. */
+const libraryRepo = (db: ReturnType<typeof fakeDb>) =>
+    // SAFETY: fakeDb implements getCollection(name).findOne({ id }), the only collection call the discovery read paths
+    // make; anything else would throw "is not a function" and fail the test.
+    new MongoDiscoveryRecipeRepository(db as never);
+
 describe('library recipe endpoints', () => {
     it('returns a library recipe without Mongo bookkeeping', async () => {
         const db = fakeDb({ discoveryRecipes: [libraryRecipe('lib-1')] });
-        const service = new DiscoveryService(new MongoDiscoveryRecipeRepository(db as never), fakeIndex());
+        const service = new DiscoveryService(libraryRepo(db), fakeIndex());
         const res = await appFor(service).request('/api/discover/recipes/lib-1');
         expect(res.status).toBe(200);
-        expect(((await res.json()) as DiscoveryRecipe).title).toBe('Library lib-1');
+        expect(await res.json()).toMatchObject({ title: 'Library lib-1' });
     });
 
     it('404s similar-recipes for an unknown recipe and passes the limit through for a known one', async () => {
         const index = fakeIndex();
         const db = fakeDb({ discoveryRecipes: [libraryRecipe('lib-1')] });
-        const app = appFor(new DiscoveryService(new MongoDiscoveryRecipeRepository(db as never), index));
+        const app = appFor(new DiscoveryService(libraryRepo(db), index));
 
         expect((await app.request('/api/discover/recipes/none/similar')).status).toBe(404);
         expect((await app.request('/api/discover/recipes/lib-1/similar?limit=3')).status).toBe(200);
@@ -209,7 +218,7 @@ describe('library recipe endpoints', () => {
         });
 
         const index = fakeIndex();
-        const app = appFor(new DiscoveryService(new MongoDiscoveryRecipeRepository(db as never), index));
+        const app = appFor(new DiscoveryService(libraryRepo(db), index));
 
         const direct = await app.request('/api/discover/recipes/private-1');
         const similar = await app.request('/api/discover/recipes/private-1/similar');
@@ -224,12 +233,20 @@ describe('library recipe endpoints', () => {
 });
 
 describe('POST /api/discover/recipes/:id/copy', () => {
-    const copyService = (impl: (id: string, user: unknown) => Promise<unknown>) =>
-        ({ copyToPersonal: vi.fn(impl) }) as unknown as DiscoveryCopyService;
+    const copyService = (impl: (id: string, user: User) => Promise<Partial<Recipe>>) => {
+        const copyToPersonal = vi.fn(impl);
+
+        return {
+            copyToPersonal,
+            service: fake<DiscoveryCopyService>({
+                copyToPersonal: async (id, user) => fake(await copyToPersonal(id, user)),
+            }),
+        };
+    };
 
     it('creates the copy for the authenticated user and answers 201 with the new recipe', async () => {
-        const copy = copyService(async (id, user) => ({ id: 'personal-1', title: `from ${id}`, owner: user }));
-        const app = appFor(new DiscoveryService({} as never, fakeIndex()), copy);
+        const copy = copyService(async (id, user) => ({ id: 'personal-1', title: `from ${id}`, users: [user] }));
+        const app = appFor(new DiscoveryService(fake({}), fakeIndex()), copy.service);
 
         const res = await app.request('/api/discover/recipes/lib-1/copy', {
             method: 'POST',
@@ -237,13 +254,13 @@ describe('POST /api/discover/recipes/:id/copy', () => {
         });
 
         expect(res.status).toBe(201);
-        expect(await res.json()).toMatchObject({ id: 'personal-1', owner: { id: 'u-me' } });
+        expect(await res.json()).toMatchObject({ id: 'personal-1', users: [{ id: 'u-me' }] });
         expect(copy.copyToPersonal).toHaveBeenCalledWith('lib-1', { id: 'u-me', username: 'u-me' });
     });
 
     it('rejects an unauthenticated caller without copying anything', async () => {
         const copy = copyService(async () => ({}));
-        const app = appFor(new DiscoveryService({} as never, fakeIndex()), copy);
+        const app = appFor(new DiscoveryService(fake({}), fakeIndex()), copy.service);
 
         const res = await app.request('/api/discover/recipes/lib-1/copy', { method: 'POST' });
 
@@ -256,7 +273,7 @@ describe('POST /api/discover/recipes/:id/copy', () => {
             throw Object.assign(new Error('This recipe is already in your recipes'), { status: 409 });
         });
 
-        const res = await appFor(new DiscoveryService({} as never, fakeIndex()), copy).request(
+        const res = await appFor(new DiscoveryService(fake({}), fakeIndex()), copy.service).request(
             '/api/discover/recipes/lib-1/copy',
             { method: 'POST', headers: { 'x-test-user': 'u-me' } }
         );
@@ -267,7 +284,7 @@ describe('POST /api/discover/recipes/:id/copy', () => {
 });
 
 describe('publish, moderation and published-list endpoints', () => {
-    const service = () => new DiscoveryService({} as never, fakeIndex());
+    const service = () => new DiscoveryService(fake({}), fakeIndex());
     const headers = { 'x-test-user': 'u-me', 'content-type': 'application/json' };
 
     it.each([
@@ -287,7 +304,7 @@ describe('publish, moderation and published-list endpoints', () => {
             }
         );
 
-        const res = await appFor(service(), {} as never, { publish: boom, moderation: boom }).request(path, { method });
+        const res = await appFor(service(), fake({}), { publish: boom, moderation: boom }).request(path, { method });
         expect(res.status).toBe(401);
     });
 
@@ -296,7 +313,7 @@ describe('publish, moderation and published-list endpoints', () => {
             publish: vi.fn(async () => ({ recipeId: 'r1', libraryId: 'user-1', publishedAt: new Date(0) })),
         };
 
-        const res = await appFor(service(), {} as never, { publish }).request('/api/recipes/r1/publish', {
+        const res = await appFor(service(), fake({}), { publish }).request('/api/recipes/r1/publish', {
             method: 'POST',
             headers,
             body: JSON.stringify({ agreeToLicence: true, showName: true }),
@@ -313,14 +330,14 @@ describe('publish, moderation and published-list endpoints', () => {
 
     it('treats a missing or malformed body as "no agreement", not a crash', async () => {
         const publish = {
-            publish: vi.fn(async (_id: string, _user: unknown, body: { agreeToLicence?: boolean }) => {
+            publish: vi.fn(async (_id: string, _user: User, body: { agreeToLicence?: boolean }) => {
                 if (body.agreeToLicence !== true) throw Object.assign(new Error('You must agree'), { status: 400 });
 
-                return {};
+                return { recipeId: 'r1', libraryId: 'user-1', publishedAt: new Date(0) };
             }),
         };
 
-        const res = await appFor(service(), {} as never, { publish }).request('/api/recipes/r1/publish', {
+        const res = await appFor(service(), fake({}), { publish }).request('/api/recipes/r1/publish', {
             method: 'POST',
             headers,
             body: 'not json',
@@ -337,12 +354,12 @@ describe('publish, moderation and published-list endpoints', () => {
             }),
         });
 
-        const imported = await appFor(service(), {} as never, { publish: make(422, "can't be made public") }).request(
+        const imported = await appFor(service(), fake({}), { publish: make(422, "can't be made public") }).request(
             '/api/recipes/r1/publish',
             { method: 'POST', headers, body: JSON.stringify({ agreeToLicence: true }) }
         );
 
-        const duplicate = await appFor(service(), {} as never, {
+        const duplicate = await appFor(service(), fake({}), {
             publish: make(409, 'already in the library'),
         }).request('/api/recipes/r1/publish', {
             method: 'POST',
@@ -357,7 +374,7 @@ describe('publish, moderation and published-list endpoints', () => {
     it('answers 204 for unpublish and report, passing the id, the user and the reason', async () => {
         const publish = { unpublish: vi.fn(async () => {}) };
         const moderation = { report: vi.fn(async () => {}) };
-        const app = appFor(service(), {} as never, { publish, moderation });
+        const app = appFor(service(), fake({}), { publish, moderation });
 
         const un = await app.request('/api/discover/published/user-1', { method: 'DELETE', headers });
 
@@ -374,7 +391,7 @@ describe('publish, moderation and published-list endpoints', () => {
 
     it('ignores a non-string report reason', async () => {
         const moderation = { report: vi.fn(async () => {}) };
-        await appFor(service(), {} as never, { moderation }).request('/api/discover/recipes/user-1/report', {
+        await appFor(service(), fake({}), { moderation }).request('/api/discover/recipes/user-1/report', {
             method: 'POST',
             headers,
             body: JSON.stringify({ reason: { evil: true } }),
@@ -388,7 +405,7 @@ describe('publish, moderation and published-list endpoints', () => {
         };
 
         const moderation = { delist: vi.fn(forbidden), listReports: vi.fn(forbidden) };
-        const app = appFor(service(), {} as never, { moderation });
+        const app = appFor(service(), fake({}), { moderation });
 
         const delist = await app.request('/api/discover/recipes/user-1', { method: 'DELETE', headers });
         const list = await app.request('/api/discover/reports', { headers });
@@ -397,8 +414,13 @@ describe('publish, moderation and published-list endpoints', () => {
     });
 
     it("lists the caller's published recipes", async () => {
-        const publish = { listMine: vi.fn(async () => [{ recipeId: 'r1', libraryId: 'user-1' }]) };
-        const res = await appFor(service(), {} as never, { publish }).request('/api/discover/published', { headers });
-        expect(await res.json()).toEqual([{ recipeId: 'r1', libraryId: 'user-1' }]);
+        const publish = {
+            listMine: vi.fn(async () => [{ recipeId: 'r1', libraryId: 'user-1', publishedAt: new Date(0) }]),
+        };
+
+        const res = await appFor(service(), fake({}), { publish }).request('/api/discover/published', { headers });
+        expect(await res.json()).toEqual([
+            { recipeId: 'r1', libraryId: 'user-1', publishedAt: new Date(0).toISOString() },
+        ]);
     });
 });

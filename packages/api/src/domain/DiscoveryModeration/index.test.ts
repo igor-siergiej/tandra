@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 
 import type { DiscoveryRecipe, User } from '@tandra/types';
 
+import { present } from '../../testing/fake';
 import type { DiscoveryPublication } from '../DiscoveryPublicationRepository';
 import type { DiscoveryReport } from '../DiscoveryReportRepository';
 import { DiscoveryModerationService } from './index';
@@ -137,8 +138,13 @@ describe('DiscoveryModerationService.listReports', () => {
         await service.report('user-1', alice, 'spam');
         await service.report('user-1', bob, 'rude');
         await service.report('user-2', bob);
+
         // Make recipe 2's report the most recent.
-        const last = reportRows.find((r) => r.recipeId === 'user-2') as DiscoveryReport;
+        const last = present(
+            reportRows.find((r) => r.recipeId === 'user-2'),
+            'report on user-2'
+        );
+
         last.createdAt = new Date(Date.now() + 60_000);
 
         const summaries = await service.listReports(admin);

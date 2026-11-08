@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'bun:test';
 
 import type { Label } from '@tandra/types';
 
+import { fake } from '../../testing/fake';
 import { LabelService } from './index';
 
 class MockLabelRepo {
@@ -51,7 +52,7 @@ describe('LabelService', () => {
     beforeEach(() => {
         labels = new MockLabelRepo();
         todos = new MockTodoRepo();
-        svc = new LabelService(labels as never, todos as never, new MockIds() as never);
+        svc = new LabelService(fake(labels), fake(todos), fake(new MockIds()));
     });
 
     it('creates a label for the owner', async () => {

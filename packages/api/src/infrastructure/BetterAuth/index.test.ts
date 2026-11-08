@@ -3,20 +3,22 @@ import { describe, expect, it, mock } from 'bun:test';
 import type { Logger } from '@imapps/api-utils';
 import { memoryAdapter } from 'better-auth/adapters/memory';
 
+import { fake } from '../../testing/fake';
 import { type AuthOptions, createAuth } from './index';
 
 type AuthDatabase = AuthOptions['database'];
 
 const makeAuth = (google?: { clientId: string; clientSecret: string }, logger?: Logger) => {
+    // The memory adapter's tables, typed by the rows better-auth writes into the ones these tests read.
     const db = {
-        user: [],
-        session: [],
-        account: [],
-        verification: [],
-        rateLimit: [],
-    } as Record<string, unknown[]>;
+        user: new Array<StoredUser>(),
+        session: new Array<StoredRow>(),
+        account: new Array<StoredAccount>(),
+        verification: new Array<StoredRow>(),
+        rateLimit: new Array<StoredRow>(),
+    };
 
-    const memoryAuthDb = memoryAdapter(db) as unknown as AuthDatabase;
+    const memoryAuthDb = fake<AuthDatabase>(memoryAdapter(db));
 
     const auth = createAuth({
         database: memoryAuthDb,
@@ -29,6 +31,11 @@ const makeAuth = (google?: { clientId: string; clientSecret: string }, logger?: 
 
     return { auth, db };
 };
+
+/** A row the tests never read: only its id is relied on. */
+interface StoredRow {
+    id: string;
+}
 
 interface StoredUser {
     id: string;
@@ -59,7 +66,7 @@ describe('createAuth', () => {
         });
 
         expect(result.user.id).toBeString();
-        const [user] = db.user as Array<StoredUser>;
+        const [user] = db.user;
         expect(user.email).toMatch(/^[0-9a-f-]{36}@users\.invalid$/);
         expect(user.username).toBe('alice');
         expect(user.displayUsername).toBe('Alice');
@@ -74,7 +81,7 @@ describe('createAuth', () => {
 
     it('logs a registration once, not on later sign-ins', async () => {
         const info = mock();
-        const { auth } = makeAuth(undefined, { info } as unknown as Logger);
+        const { auth } = makeAuth(undefined, fake<Logger>({ info }));
 
         const { user } = await auth.api.signUpEmail({
             body: { email: 'x@y.z', name: 'x', password: 'password123', username: 'Carol' },
@@ -94,13 +101,13 @@ describe('createAuth', () => {
         await auth.api.signUpEmail({
             body: { email: 'x@y.z', name: 'x', password: 'password123', username: 'bob' },
         });
-        const account = (db.account as Array<StoredAccount>)[0];
+        const account = db.account[0];
         expect(account.password.startsWith('$argon2id$')).toBe(true);
 
         const ok = await auth.api.signInUsername({ body: { username: 'BOB', password: 'password123' } });
         expect(ok?.user.id).toBeString();
 
-        const email = (db.user as Array<StoredUser>)[0].email;
+        const email = db.user[0].email;
         await expect(auth.api.signInEmail({ body: { email, password: 'password123' } })).rejects.toThrow();
     });
 

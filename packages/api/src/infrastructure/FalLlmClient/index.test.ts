@@ -3,16 +3,33 @@ import { afterEach, describe, expect, it } from 'bun:test';
 import type { Logger } from '@imapps/api-utils';
 import { z } from 'zod';
 
+import { stubFetch } from '../../testing/doubles';
+import { fake } from '../../testing/fake';
 import { FalLlmClient } from './index';
 
 const originalFetch = globalThis.fetch;
 
-const stubFetch = (impl: typeof fetch) => {
-    globalThis.fetch = impl as typeof fetch;
-};
+/** The request body FalLlmClient sends to fal's any-llm endpoint, decoded so a test reads typed fields. */
+const sentBody = z.object({
+    model: z.string(),
+    system_prompt: z.string().optional(),
+    prompt: z.string(),
+    temperature: z.number().optional(),
+});
+
+const readSentBody = (init: RequestInit | undefined) => sentBody.parse(JSON.parse(String(init?.body)));
 
 const okResponse = (output: string) =>
     new Response(JSON.stringify({ output }), { headers: { 'content-type': 'application/json' } });
+
+/** The error a promise rejects with; resolving instead fails the test. */
+const rejectionOf = (promise: Promise<unknown>): Promise<Error> =>
+    promise.then(
+        () => {
+            throw new Error('expected the call to reject');
+        },
+        (error: Error) => error
+    );
 
 const schema = z.object({ title: z.string(), count: z.number() });
 
@@ -33,11 +50,11 @@ describe('FalLlmClient', () => {
     it('sends model, system prompt, temperature and Key auth, and returns the validated value', async () => {
         let url: string | undefined;
         let auth: string | null = null;
-        let body: Record<string, unknown> = {};
+        let body: z.infer<typeof sentBody> | undefined;
         stubFetch(async (u, init) => {
             url = String(u);
             auth = new Headers(init?.headers).get('authorization');
-            body = JSON.parse(init?.body as string);
+            body = readSentBody(init);
 
             return okResponse('{"title":"Hi","count":3}');
         });
@@ -46,26 +63,28 @@ describe('FalLlmClient', () => {
 
         expect(url).toBe('https://fal.run/fal-ai/any-llm');
         expect(auth).toBe('Key secret');
-        expect(body.model).toBe('google/gemini-2.5-flash-lite');
-        expect(body.system_prompt).toBe('SYS');
-        expect(body.prompt).toBe('PROMPT');
-        expect(body.temperature).toBe(0);
+        expect(body).toEqual({
+            model: 'google/gemini-2.5-flash-lite',
+            system_prompt: 'SYS',
+            prompt: 'PROMPT',
+            temperature: 0,
+        });
         expect(result.value).toEqual({ title: 'Hi', count: 3 });
         expect(result.meta).toMatchObject({ operation: 'test.op', model: 'google/gemini-2.5-flash-lite', attempts: 1 });
-        expect(typeof result.meta.latencyMs).toBe('number');
+        expect(result.meta.latencyMs).toEqual(expect.any(Number));
     });
 
     it('falls back to the default model when none is configured', async () => {
-        let body: Record<string, unknown> = {};
+        let body: z.infer<typeof sentBody> | undefined;
         stubFetch(async (_u, init) => {
-            body = JSON.parse(init?.body as string);
+            body = readSentBody(init);
 
             return okResponse('{"title":"x","count":1}');
         });
 
         await call(new FalLlmClient('secret'));
 
-        expect(body.model).toBe('google/gemini-2.5-flash-lite');
+        expect(body?.model).toBe('google/gemini-2.5-flash-lite');
     });
 
     it('extracts a JSON object wrapped in prose or code fences', async () => {
@@ -90,11 +109,11 @@ describe('FalLlmClient', () => {
         stubFetch(async () => okResponse('{"title":"x","count":1}'));
         const logs: unknown[][] = [];
 
-        const logger = {
+        const logger = fake<Logger>({
             info: (...a: unknown[]) => {
                 logs.push(a);
             },
-        } as unknown as Logger;
+        });
 
         await expect(call(new FalLlmClient('', logger))).rejects.toMatchObject({ status: 503, code: 'ai_disabled' });
         expect(logs).toHaveLength(0);
@@ -103,10 +122,10 @@ describe('FalLlmClient', () => {
     it('bounds the thrown message when a non-OK body is huge', async () => {
         stubFetch(async () => new Response('x'.repeat(5000), { status: 500 }));
 
-        const error = await call(new FalLlmClient('secret')).catch((e: Error) => e);
+        const error = await rejectionOf(call(new FalLlmClient('secret')));
 
         expect(error).toMatchObject({ status: 502 });
-        expect((error as Error).message.length).toBeLessThan(260);
+        expect(error.message.length).toBeLessThan(260);
     });
 
     it('bounds the thrown message when the error field is huge', async () => {
@@ -117,10 +136,10 @@ describe('FalLlmClient', () => {
                 })
         );
 
-        const error = await call(new FalLlmClient('secret')).catch((e: Error) => e);
+        const error = await rejectionOf(call(new FalLlmClient('secret')));
 
         expect(error).toMatchObject({ status: 502 });
-        expect((error as Error).message.length).toBeLessThan(260);
+        expect(error.message.length).toBeLessThan(260);
     });
 
     it('throws 502 on a non-OK response, without retrying', async () => {
@@ -178,7 +197,7 @@ describe('FalLlmClient', () => {
         const bodies: string[] = [];
         let n = 0;
         stubFetch(async (_u, init) => {
-            bodies.push((JSON.parse(init?.body as string) as { prompt: string }).prompt);
+            bodies.push(readSentBody(init).prompt);
             n += 1;
 
             return okResponse(n === 1 ? 'I could not do that' : '{"title":"x","count":1}');
@@ -197,7 +216,7 @@ describe('FalLlmClient', () => {
         const bodies: string[] = [];
         let n = 0;
         stubFetch(async (_u, init) => {
-            bodies.push((JSON.parse(init?.body as string) as { prompt: string }).prompt);
+            bodies.push(readSentBody(init).prompt);
             n += 1;
 
             return okResponse(n === 1 ? '{"title":"x"}' : '{"title":"x","count":2}');
@@ -250,26 +269,26 @@ describe('FalLlmClient', () => {
 
     it('aborts at timeoutMs and throws 502', async () => {
         stubFetch(
-            ((_u, init) =>
-                new Promise((_resolve, reject) => {
-                    (init?.signal as AbortSignal | undefined)?.addEventListener('abort', () => {
+            (_u, init) =>
+                new Promise<Response>((_resolve, reject) => {
+                    init?.signal?.addEventListener('abort', () => {
                         reject(new DOMException('aborted', 'AbortError'));
                     });
-                })) as typeof fetch
+                })
         );
 
         await expect(call(new FalLlmClient('secret'), { timeoutMs: 20 })).rejects.toMatchObject({ status: 502 });
     });
 
     it('logs exactly once per completeStructured call, with outcome ok', async () => {
-        stubFetch((async () => okResponse('{"title":"x","count":1}')) as unknown as typeof fetch);
+        stubFetch(async () => okResponse('{"title":"x","count":1}'));
         const logs: unknown[][] = [];
 
-        const logger = {
+        const logger = fake<Logger>({
             info: (...a: unknown[]) => {
                 logs.push(a);
             },
-        } as unknown as Logger;
+        });
 
         await call(new FalLlmClient('secret', logger));
 

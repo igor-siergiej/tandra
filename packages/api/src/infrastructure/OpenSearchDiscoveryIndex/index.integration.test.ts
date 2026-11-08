@@ -12,6 +12,7 @@ import { Client } from '@opensearch-project/opensearch';
 import type { DiscoveryRecipe } from '@tandra/types';
 
 import { DiscoveryService } from '../../domain/DiscoveryService';
+import { fake } from '../../testing/fake';
 import { type OpenSearchApi, OpenSearchDiscoveryIndex } from './index';
 import { DEFAULT_INDEX_ALIAS as INDEX_ALIAS } from './mapping';
 
@@ -38,7 +39,10 @@ const ing = (...names: string[]) => names.map((name, i) => ({ id: `${name}-${i}`
 
 describe.skipIf(!url)('OpenSearchDiscoveryIndex (real OpenSearch)', () => {
     const client = new Client({ node: url ?? 'http://localhost:9200' });
-    const index = new OpenSearchDiscoveryIndex(client as unknown as OpenSearchApi);
+    // A fresh instance per test: each one memoises "index exists".
+    const freshIndex = () => new OpenSearchDiscoveryIndex(fake<OpenSearchApi>(client));
+    let index = freshIndex();
+    let service = new DiscoveryService(fake({}), index);
 
     const wipe = async () => {
         await client.indices.delete({ index: 'discovery-recipes*' }, { ignore: [404] });
@@ -50,7 +54,6 @@ describe.skipIf(!url)('OpenSearchDiscoveryIndex (real OpenSearch)', () => {
     };
 
     // Through the service, so queries are normalised exactly as the API does it.
-    const service = new DiscoveryService({} as never, index);
     const search = (q: Parameters<DiscoveryService['search']>[0]) => service.search(q);
     const ids = (result: { hits: Array<{ id: string }> }) => result.hits.map((h) => h.id);
 
@@ -58,14 +61,13 @@ describe.skipIf(!url)('OpenSearchDiscoveryIndex (real OpenSearch)', () => {
     afterAll(wipe);
     beforeEach(async () => {
         await wipe();
-        // A fresh instance each time: it memoises "index exists".
-        (index as unknown as { ready: unknown }).ready = null;
+        index = freshIndex();
+        service = new DiscoveryService(fake({}), index);
     });
 
     it('ensureIndex is idempotent and creates one concrete index behind the alias', async () => {
         await index.ensureIndex();
-        (index as unknown as { ready: unknown }).ready = null;
-        await index.ensureIndex();
+        await freshIndex().ensureIndex();
 
         const { body } = await client.indices.getAlias({ name: INDEX_ALIAS });
         expect(Object.keys(body)).toHaveLength(1);
@@ -84,10 +86,10 @@ describe.skipIf(!url)('OpenSearchDiscoveryIndex (real OpenSearch)', () => {
     it('keeps instances on different aliases apart, including across a rebuild', async () => {
         // Inside the `discovery-recipes*` pattern so `wipe` cleans it up too.
         const otherAlias = 'discovery-recipes-other';
-        const other = new OpenSearchDiscoveryIndex(client as unknown as OpenSearchApi, undefined, otherAlias);
+        const other = new OpenSearchDiscoveryIndex(fake<OpenSearchApi>(client), undefined, otherAlias);
 
         const otherSearch = (q: Parameters<DiscoveryService['search']>[0]) =>
-            new DiscoveryService({} as never, other).search(q);
+            new DiscoveryService(fake({}), other).search(q);
 
         await load(recipe('mine'));
         await other.index(recipe('theirs'));

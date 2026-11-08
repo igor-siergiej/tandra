@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'bun:test';
 
 import type { PushSubscription } from '@tandra/types';
 
+import { connectionTo } from '../../testing/fake';
 import { MongoPushSubscriptionRepository } from './index';
 
 class FakeCollection {
@@ -49,7 +50,7 @@ describe('MongoPushSubscriptionRepository', () => {
 
     beforeEach(() => {
         collection = new FakeCollection();
-        const db = { getCollection: () => collection } as never;
+        const db = connectionTo(collection);
         repo = new MongoPushSubscriptionRepository(db);
     });
 

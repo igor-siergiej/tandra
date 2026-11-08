@@ -3,6 +3,7 @@ import { Readable } from 'node:stream';
 
 import type { DiscoveryRecipe, Recipe, User } from '@tandra/types';
 
+import { fake, present } from '../../testing/fake';
 import { RecipeService } from '../RecipeService';
 import { DiscoveryCopyService } from './index';
 
@@ -52,13 +53,12 @@ const setup = (existing: Recipe[] = []) => {
 
     // The real RecipeService, with a friend list that would auto-share a recipe if the copy did not opt out.
     const recipes = new RecipeService(
-        repo as never,
+        fake(repo),
         { generate: () => `gen-${++n}` },
         undefined,
         undefined,
         undefined,
-        undefined,
-        { listFriends: async () => [friend] } as never
+        fake({ listFriends: async () => [friend] })
     );
 
     const discovery = {
@@ -131,7 +131,7 @@ describe('DiscoveryCopyService', () => {
 
         expect(created.coverImageKey).toMatch(/^recipe-upload\/u-me\/.+\.png$/);
         expect(created.coverImageKey).not.toBe('library-owned-cover.png');
-        expect(objects.get(created.coverImageKey as string)?.buffer.toString()).toBe('cover-bytes');
+        expect(objects.get(present(created.coverImageKey, 'cover key'))?.buffer.toString()).toBe('cover-bytes');
     });
 
     it("carries the cover picture's credit into the copy's attribution, along with the recipe's own", async () => {

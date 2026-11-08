@@ -51,7 +51,7 @@ class FakeRecipeParser implements RecipeParser {
     }
 }
 
-const jsonLdPage = (ld: unknown, bodyExtra = ''): string =>
+const jsonLdPage = <T>(ld: T, bodyExtra = ''): string =>
     `<!doctype html><html><head><script type="application/ld+json">${JSON.stringify(ld)}</script></head><body>${bodyExtra}</body></html>`;
 
 describe('RecipeImportService', () => {

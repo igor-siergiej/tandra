@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, mock } from 'bun:test';
 
 import type { PushSubscription, Todo } from '@tandra/types';
 
+import { acceptingPushSender } from '../../testing/doubles';
+import { fake } from '../../testing/fake';
 import { formatDueBody, TodoReminderService } from './index';
 
 const NOW = new Date('2026-06-25T07:30:00.000Z'); // 08:30 BST
@@ -44,19 +46,15 @@ describe('formatDueBody', () => {
 
 describe('TodoReminderService.sendDailyReminders', () => {
     let pushRepo: ReturnType<typeof makePushRepo>;
-    let sender: { send: ReturnType<typeof mock>; isConfigured: () => boolean };
+    let sender = acceptingPushSender();
 
     beforeEach(() => {
         pushRepo = makePushRepo([subFor('u1', 'e1')]);
-        sender = { send: mock(async () => 'ok' as const), isConfigured: () => true };
+        sender = acceptingPushSender();
     });
 
     const service = (todos: Todo[]) =>
-        new TodoReminderService(
-            { findDueCandidates: mock(async () => todos) } as never,
-            pushRepo as never,
-            sender as never
-        );
+        new TodoReminderService(fake({ findDueCandidates: mock(async () => todos) }), fake(pushRepo), fake(sender));
 
     it('sends ONE summary push per owner with all their due todos', async () => {
         const summary = await service([
@@ -66,7 +64,7 @@ describe('TodoReminderService.sendDailyReminders', () => {
 
         expect(sender.send).toHaveBeenCalledTimes(1);
         const [, payload] = sender.send.mock.calls[0];
-        expect(JSON.parse(payload as string)).toEqual({
+        expect(JSON.parse(payload)).toEqual({
             title: 'Todos due today',
             body: 'Pay rent, Call dentist',
             data: { url: '/calendar' },
@@ -83,9 +81,9 @@ describe('TodoReminderService.sendDailyReminders', () => {
     it('groups by owner — one push each', async () => {
         pushRepo = makePushRepo([subFor('u1', 'e1'), subFor('u2', 'e2')]);
         await new TodoReminderService(
-            { findDueCandidates: mock(async () => [todo({ ownerId: 'u1' }), todo({ ownerId: 'u2' })]) } as never,
-            pushRepo as never,
-            sender as never
+            fake({ findDueCandidates: mock(async () => [todo({ ownerId: 'u1' }), todo({ ownerId: 'u2' })]) }),
+            fake(pushRepo),
+            fake(sender)
         ).sendDailyReminders(NOW);
 
         expect(sender.send).toHaveBeenCalledTimes(2);
@@ -118,13 +116,13 @@ describe('TodoReminderService.sendDailyReminders', () => {
     it('notifies both the owner and shared members, for a shared todo', async () => {
         pushRepo = makePushRepo([subFor('u1', 'e1'), subFor('u2', 'e2')]);
         await new TodoReminderService(
-            {
+            fake({
                 findDueCandidates: mock(async () => [
                     todo({ ownerId: 'u1', users: [{ id: 'u2', username: 'user-u2' }] }),
                 ]),
-            } as never,
-            pushRepo as never,
-            sender as never
+            }),
+            fake(pushRepo),
+            fake(sender)
         ).sendDailyReminders(NOW);
 
         expect(pushRepo.findByUserIds).toHaveBeenCalledWith(['u1']);
@@ -137,9 +135,9 @@ describe('TodoReminderService.sendDailyReminders', () => {
     it('skips owners with no subscriptions', async () => {
         pushRepo = makePushRepo([]);
         await new TodoReminderService(
-            { findDueCandidates: mock(async () => [todo({})]) } as never,
-            pushRepo as never,
-            sender as never
+            fake({ findDueCandidates: mock(async () => [todo({})]) }),
+            fake(pushRepo),
+            fake(sender)
         ).sendDailyReminders(NOW);
         expect(sender.send).not.toHaveBeenCalled();
     });
@@ -147,7 +145,7 @@ describe('TodoReminderService.sendDailyReminders', () => {
     it('does nothing when the sender is unconfigured', async () => {
         sender.isConfigured = () => false;
         const repo = { findDueCandidates: mock(async () => [todo({})]) };
-        await new TodoReminderService(repo as never, pushRepo as never, sender as never).sendDailyReminders(NOW);
+        await new TodoReminderService(fake(repo), fake(pushRepo), fake(sender)).sendDailyReminders(NOW);
         expect(repo.findDueCandidates).not.toHaveBeenCalled();
         expect(sender.send).not.toHaveBeenCalled();
     });

@@ -1,18 +1,23 @@
 import { describe, expect, it } from 'bun:test';
 
-import type { ListInvite } from '@tandra/types';
+import type { Logger } from '@imapps/api-utils';
+import { type Friendship, type List, type ListInvite, ListType, type User } from '@tandra/types';
 
+import { fake } from '../../testing/fake';
 import type { FriendService } from '../FriendService';
 import type { ListInviteRepository } from '../ListInviteRepository';
 import type { ListService } from '../ListService';
 import { type IssuedInvite, type ListInvitePublic, ListInviteService } from './index';
 
-const noopLogger = {
-    debug: () => {},
-    info: () => {},
-    warn: () => {},
-    error: () => {},
-};
+/** The friendship the real service would record between two users. */
+const friendship = (a: User, b: User): Friendship => ({
+    id: `f-${a.id}-${b.id}`,
+    userIds: [a.id, b.id],
+    users: [a, b],
+    createdAt: new Date(0),
+});
+
+const noopLogger = fake<Logger>({ info: () => {}, warn: () => {}, error: () => {} });
 
 const FAKE_USER_A = { id: 'user-a', username: 'alice' };
 const FAKE_USER_B = { id: 'user-b', username: 'bob' };
@@ -58,24 +63,27 @@ const setup = (initialInvites: ListInvite[] = []) => {
                 .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
     };
 
-    const list = {
+    const list: List = {
         id: 'l1',
         title: 'Groceries',
         ownerId: 'user-a',
         users: [{ id: 'user-a', username: 'alice' }],
-    } as never;
+        items: [],
+        dateAdded: new Date(0),
+        listType: ListType.SHOPPING,
+    };
 
     const lists: Pick<ListService, 'getList' | 'addInvitedUser'> = {
         getList: async () => list,
         addInvitedUser: async (_title, claimer, _ownerId) => {
-            (list as { users: unknown[] }).users.push(claimer);
+            list.users.push(claimer);
 
             return list;
         },
     };
 
     const friends: Pick<FriendService, 'createFriendship'> = {
-        createFriendship: async () => ({}) as never,
+        createFriendship: async (a, b) => friendship(a, b),
     };
 
     const service = new ListInviteService({ invites: invitesRepo, lists, friends }, noopLogger);
@@ -180,7 +188,7 @@ describe('ListInviteService.claim', () => {
         friends.createFriendship = async (a, b) => {
             created = { a: a.id, b: b.id };
 
-            return {} as never;
+            return friendship(a, b);
         };
 
         const result = await service.claim('token-abc', FAKE_USER_B);

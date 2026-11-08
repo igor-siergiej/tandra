@@ -2,7 +2,8 @@ import { describe, expect, it } from 'bun:test';
 
 import { substitutesSchema } from './schema';
 
-const parse = (input: unknown) => substitutesSchema.parse(input);
+// The schema is the boundary decoder for a model reply, so the tests feed it raw values of any shape.
+const parse: typeof substitutesSchema.parse = (input) => substitutesSchema.parse(input);
 
 describe('substitutesSchema', () => {
     it('keeps a valid substitutes array as-is', () => {

@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'bun:test';
 
 import { type Item, type List, ListType } from '@tandra/types';
+import type { Context } from 'hono';
 
+import { handlerContext } from '../../testing/fake';
+import type { AuthUser, HonoVars } from '../handlerUtils';
 import * as listHandlers from './index';
 
 const mockDependencyContainer = {
@@ -44,23 +47,17 @@ const mockAuthorizationService = {
     getEffectiveOwnerId: vi.fn().mockReturnValue('test-user-1'),
 };
 
-type HonoVars = { Variables: { user: { id: string; username: string } } };
+const createMockContext = <Body>(overrides: { params?: Record<string, string>; body?: Body; user?: AuthUser } = {}) => {
+    let currentUser = overrides.user ?? { id: 'test-user-1', username: 'testuser' };
 
-const createMockContext = (
-    overrides: { params?: Record<string, string>; body?: unknown; user?: { id: string; username: string } } = {}
-) => {
-    const vars: Record<string, unknown> = {
-        user: overrides.user ?? { id: 'test-user-1', username: 'testuser' },
-    };
-
-    const ctx = {
+    const ctx = handlerContext<Context<HonoVars>>({
         req: {
             param: (name: string) => overrides.params?.[name],
             json: vi.fn().mockResolvedValue(overrides.body ?? {}),
             header: (_name: string): undefined => undefined,
         },
         header: vi.fn(),
-        json: vi.fn().mockImplementation((body: unknown, status: number): Response => {
+        json: vi.fn().mockImplementation(<T>(body: T, status: number): Response => {
             const r = new Response(JSON.stringify(body), {
                 status,
                 headers: { 'Content-Type': 'application/json' },
@@ -68,11 +65,11 @@ const createMockContext = (
 
             return r;
         }),
-        get: (key: string) => vars[key],
-        set: (key: string, val: unknown) => {
-            vars[key] = val;
+        get: (_key: 'user') => currentUser,
+        set: (_key: 'user', next: AuthUser) => {
+            currentUser = next;
         },
-    } as unknown as import('hono').Context<HonoVars>;
+    });
 
     return ctx;
 };

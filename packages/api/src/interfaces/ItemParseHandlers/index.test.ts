@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'bun:test';
 
-const mockParser = { parse: vi.fn() };
+const mockParser = { parse: vi.fn(async (_transcript: string): ReturnType<FalItemTextParser['parse']> => []) };
 const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
 
 const mockDependencyContainer = {
@@ -9,14 +9,19 @@ const mockDependencyContainer = {
 
 vi.mock('../../dependencies', () => ({ dependencyContainer: mockDependencyContainer }));
 
+import type { Context } from 'hono';
+
+import type { FalItemTextParser } from '../../infrastructure/FalItemTextParser';
+import { handlerContext } from '../../testing/fake';
+import type { HonoVars } from '../handlerUtils';
 import { parseSpokenItems } from './index';
 
-const ctx = (body: unknown) =>
-    ({
+const ctx = <Body>(body: Body) =>
+    handlerContext<Context<HonoVars>>({
         req: { json: async () => body },
         get: () => ({ id: 'u1', username: 'a' }),
-        json: (data: unknown, status = 200) => new Response(JSON.stringify(data), { status }),
-    }) as never;
+        json: <T>(data: T, status = 200) => new Response(JSON.stringify(data), { status }),
+    });
 
 describe('parseSpokenItems', () => {
     beforeEach(() => {
@@ -34,14 +39,15 @@ describe('parseSpokenItems', () => {
     it('truncates an over-long transcript before it reaches the LLM', async () => {
         await parseSpokenItems(ctx({ transcript: 'a'.repeat(5000) }));
 
-        expect((mockParser.parse.mock.calls[0][0] as string).length).toBe(500);
+        expect(mockParser.parse.mock.calls[0][0]).toHaveLength(500);
     });
 
     it('caps how many items come back', async () => {
         mockParser.parse.mockResolvedValue(Array.from({ length: 100 }, (_, i) => ({ name: `item${i}` })));
 
-        const body = (await (await parseSpokenItems(ctx({ transcript: 'lots' }))).json()) as { items: unknown[] };
+        const body = await (await parseSpokenItems(ctx({ transcript: 'lots' }))).json();
 
+        expect(body).toEqual({ items: expect.any(Array) });
         expect(body.items).toHaveLength(30);
     });
 

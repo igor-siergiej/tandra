@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'bun:test';
 
 import * as schemas from '@tandra/types/schemas';
+import type { ZodType } from 'zod';
 
-const ok = (schema: { safeParse: (v: unknown) => { success: boolean } }, value: unknown) =>
-    expect(schema.safeParse(value).success).toBe(true);
+// Request bodies arrive as arbitrary JSON, so each value is whatever a client might send.
+const ok = <Value>(schema: ZodType, value: Value) => expect(schema.safeParse(value).success).toBe(true);
 
-const bad = (schema: { safeParse: (v: unknown) => { success: boolean } }, value: unknown) =>
-    expect(schema.safeParse(value).success).toBe(false);
+const bad = <Value>(schema: ZodType, value: Value) => expect(schema.safeParse(value).success).toBe(false);
 
 describe('request schemas', () => {
     it('createListBody needs a non-blank title and knows the list types', () => {

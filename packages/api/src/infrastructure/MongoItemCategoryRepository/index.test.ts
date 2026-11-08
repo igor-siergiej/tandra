@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'bun:test';
 
+import { connectionTo } from '../../testing/fake';
 import { MongoItemCategoryRepository } from './index';
 
 const collection = { createIndex: vi.fn(), findOne: vi.fn(), updateOne: vi.fn() };
-const repo = new MongoItemCategoryRepository({ getCollection: () => collection } as never);
+const repo = new MongoItemCategoryRepository(connectionTo(collection));
 
 describe('MongoItemCategoryRepository', () => {
     beforeEach(() => vi.clearAllMocks());

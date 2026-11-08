@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, mock } from 'bun:test';
 
 import type { Todo } from '@tandra/types';
 
+import { fake } from '../../testing/fake';
 import { TodoService } from './index';
 
 class MockRepo {
@@ -55,10 +56,13 @@ class MockFriends {
         return this.edges.has(this.key(a, b));
     }
     async friendIdsOf(userId: string) {
-        return [...this.edges]
-            .map((e) => e.split('|'))
-            .filter((p) => p.includes(userId))
-            .map((p) => (p[0] === userId ? p[1] : p[0]));
+        return [...this.edges].flatMap((edge) => {
+            const [a, b] = edge.split('|');
+
+            if (a === userId) return [b];
+
+            return b === userId ? [a] : [];
+        });
     }
     async listFriends(userId: string) {
         return (await this.friendIdsOf(userId)).map((id) => ({ id, username: `user-${id}` }));
@@ -73,7 +77,7 @@ describe('TodoService', () => {
     beforeEach(() => {
         repo = new MockRepo();
         friends = new MockFriends();
-        svc = new TodoService(repo as never, new MockIds() as never, undefined, friends as never);
+        svc = new TodoService(fake(repo), fake(new MockIds()), undefined, fake(friends));
     });
 
     it('creates a todo with id, ownerId, dateAdded, done=false', async () => {
@@ -216,11 +220,11 @@ describe('TodoService', () => {
             const notify = { notifyTodoShared: mock(async () => {}) };
 
             const svcWithNotify = new TodoService(
-                repo as never,
-                new MockIds() as never,
+                fake(repo),
+                fake(new MockIds()),
                 undefined,
-                friends as never,
-                notify as never
+                fake(friends),
+                fake(notify)
             );
 
             const actor = { id: 'u1', username: 'user-u1' };
@@ -232,11 +236,11 @@ describe('TodoService', () => {
             const notify = { notifyTodoShared: mock(async () => {}) };
 
             const svcWithNotify = new TodoService(
-                repo as never,
-                new MockIds() as never,
+                fake(repo),
+                fake(new MockIds()),
                 undefined,
-                friends as never,
-                notify as never
+                fake(friends),
+                fake(notify)
             );
 
             await svcWithNotify.createTodo('u1', { title: 'Solo task' }, { id: 'u1', username: 'user-u1' });
@@ -248,11 +252,11 @@ describe('TodoService', () => {
             const notify = { notifyTodoShared: mock(async () => {}) };
 
             const svcWithNotify = new TodoService(
-                repo as never,
-                new MockIds() as never,
+                fake(repo),
+                fake(new MockIds()),
                 undefined,
-                friends as never,
-                notify as never
+                fake(friends),
+                fake(notify)
             );
 
             await svcWithNotify.createTodo('u1', { title: 'Plan trip' });
@@ -267,11 +271,11 @@ describe('TodoService', () => {
             const notify = { notifyTodoShared: mock(async () => {}) };
 
             const svcWithNotify = new TodoService(
-                repo as never,
-                new MockIds() as never,
+                fake(repo),
+                fake(new MockIds()),
                 undefined,
-                friends as never,
-                notify as never
+                fake(friends),
+                fake(notify)
             );
 
             const actor = { id: 'u1', username: 'user-u1' };
@@ -302,11 +306,11 @@ describe('TodoService', () => {
             const notify = { notifyTodoShared: mock(async () => {}) };
 
             const svcWithNotify = new TodoService(
-                repo as never,
-                new MockIds() as never,
+                fake(repo),
+                fake(new MockIds()),
                 undefined,
-                friends as never,
-                notify as never
+                fake(friends),
+                fake(notify)
             );
 
             const actor = { id: 'u1', username: 'user-u1' };
@@ -323,11 +327,11 @@ describe('TodoService', () => {
             const notify = { notifyTodoShared: mock(async () => {}) };
 
             const svcWithNotify = new TodoService(
-                repo as never,
-                new MockIds() as never,
+                fake(repo),
+                fake(new MockIds()),
                 undefined,
-                friends as never,
-                notify as never
+                fake(friends),
+                fake(notify)
             );
 
             const actor = { id: 'u1', username: 'user-u1' };
@@ -344,11 +348,11 @@ describe('TodoService', () => {
             const notify = { notifyTodoShared: mock(async () => {}) };
 
             const svcWithNotify = new TodoService(
-                repo as never,
-                new MockIds() as never,
+                fake(repo),
+                fake(new MockIds()),
                 undefined,
-                friends as never,
-                notify as never
+                fake(friends),
+                fake(notify)
             );
 
             const t = await svcWithNotify.createTodo('u1', { title: 'Plan trip' });

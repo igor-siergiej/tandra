@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 
 import type { Friendship, PairingCode } from '@tandra/types';
 
+import { fake } from '../../testing/fake';
 import { FriendService } from './index';
 
 class MockRepo {
@@ -51,7 +52,7 @@ class MockItemRepo {
     }
 }
 
-const svcWith = (repo: MockRepo) => new FriendService(repo as never, new MockIds() as never);
+const svcWith = (repo: MockRepo) => new FriendService(fake(repo), fake(new MockIds()));
 
 describe('FriendService.generateCode', () => {
     it('creates a single-use code with a 15-minute expiry', async () => {
@@ -170,12 +171,12 @@ describe('FriendService.listFriends / unfriend / areFriends / friendIdsOf', () =
         const todos = new MockItemRepo();
 
         const svc = new FriendService(
-            repo as never,
-            new MockIds() as never,
+            fake(repo),
+            fake(new MockIds()),
             undefined,
-            lists as never,
-            recipes as never,
-            todos as never
+            fake(lists),
+            fake(recipes),
+            fake(todos)
         );
 
         await svc.unfriend('u1', 'u2');
@@ -210,13 +211,13 @@ describe('FriendService.listFriends / unfriend / areFriends / friendIdsOf', () =
         });
 
         const svc = new FriendService(
-            repo as never,
-            new MockIds() as never,
+            fake(repo),
+            fake(new MockIds()),
             undefined,
-            slowRepo('lists') as never,
-            slowRepo('recipes') as never,
-            slowRepo('todos') as never,
-            slowRepo('mealPlan') as never
+            fake(slowRepo('lists')),
+            fake(slowRepo('recipes')),
+            fake(slowRepo('todos')),
+            fake(slowRepo('mealPlan'))
         );
 
         const done = svc.unfriend('u1', 'u2');

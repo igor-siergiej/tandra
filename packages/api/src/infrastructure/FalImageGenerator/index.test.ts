@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'bun:test';
 
+import { stubFetch } from '../../testing/doubles';
 import { FalImageGenerator } from './index';
 
 const mockSharpInstance = {
@@ -19,7 +20,7 @@ const mockProcessImage = vi.fn();
 const mockSharp = vi.fn().mockImplementation(() => mockSharpInstance);
 
 // Injected rather than vi.mock'd: bun keeps module mocks alive for every other test file in the run.
-const options = { processor: mockProcessImage, sharpFactory: mockSharp as never };
+const options = { processor: mockProcessImage, sharpFactory: mockSharp };
 
 const dataUri = (buffer: Buffer) => `data:image/png;base64,${buffer.toString('base64')}`;
 
@@ -56,7 +57,7 @@ describe('FalImageGenerator', () => {
                 json: vi.fn().mockResolvedValue({ images: [{ url: dataUri(Buffer.from('img')) }] }),
             });
 
-            global.fetch = fetchMock;
+            stubFetch(fetchMock);
 
             const recipeGenerator = new FalImageGenerator('key', {
                 model: 'fal-ai/flux/schnell',
@@ -87,10 +88,12 @@ describe('FalImageGenerator', () => {
 
     describe('When fal API returns an error', () => {
         it('should throw a 502 error', async () => {
-            global.fetch = vi.fn().mockResolvedValue({
-                ok: false,
-                text: vi.fn().mockResolvedValue('Unauthorized'),
-            });
+            stubFetch(
+                vi.fn().mockResolvedValue({
+                    ok: false,
+                    text: vi.fn().mockResolvedValue('Unauthorized'),
+                })
+            );
 
             await expect(generator.generateImage('test prompt')).rejects.toMatchObject({
                 status: 502,
@@ -104,10 +107,12 @@ describe('FalImageGenerator', () => {
             const processedBuffer = Buffer.from('processed-bytes');
             mockProcessImage.mockResolvedValue(processedBuffer);
 
-            global.fetch = vi.fn().mockResolvedValue({
-                ok: true,
-                json: vi.fn().mockResolvedValue({ images: [{ url: dataUri(imageBuffer) }] }),
-            });
+            stubFetch(
+                vi.fn().mockResolvedValue({
+                    ok: true,
+                    json: vi.fn().mockResolvedValue({ images: [{ url: dataUri(imageBuffer) }] }),
+                })
+            );
 
             const result = await generator.generateImage('test prompt');
 
@@ -123,16 +128,18 @@ describe('FalImageGenerator', () => {
             const processedBuffer = Buffer.from('processed-url-bytes');
             mockProcessImage.mockResolvedValue(processedBuffer);
 
-            global.fetch = vi
-                .fn()
-                .mockResolvedValueOnce({
-                    ok: true,
-                    json: vi.fn().mockResolvedValue({ images: [{ url: 'https://cdn.fal.ai/image.png' }] }),
-                })
-                .mockResolvedValueOnce({
-                    ok: true,
-                    arrayBuffer: vi.fn().mockResolvedValue(imageBuffer.buffer),
-                });
+            stubFetch(
+                vi
+                    .fn()
+                    .mockResolvedValueOnce({
+                        ok: true,
+                        json: vi.fn().mockResolvedValue({ images: [{ url: 'https://cdn.fal.ai/image.png' }] }),
+                    })
+                    .mockResolvedValueOnce({
+                        ok: true,
+                        arrayBuffer: vi.fn().mockResolvedValue(imageBuffer.buffer),
+                    })
+            );
 
             const result = await generator.generateImage('test prompt');
 
@@ -143,15 +150,17 @@ describe('FalImageGenerator', () => {
 
     describe('When URL fetch fails', () => {
         it('should throw a 502 error', async () => {
-            global.fetch = vi
-                .fn()
-                .mockResolvedValueOnce({
-                    ok: true,
-                    json: vi.fn().mockResolvedValue({ images: [{ url: 'https://cdn.fal.ai/image.png' }] }),
-                })
-                .mockResolvedValueOnce({
-                    ok: false,
-                });
+            stubFetch(
+                vi
+                    .fn()
+                    .mockResolvedValueOnce({
+                        ok: true,
+                        json: vi.fn().mockResolvedValue({ images: [{ url: 'https://cdn.fal.ai/image.png' }] }),
+                    })
+                    .mockResolvedValueOnce({
+                        ok: false,
+                    })
+            );
 
             await expect(generator.generateImage('test prompt')).rejects.toMatchObject({ status: 502 });
         });
@@ -159,10 +168,12 @@ describe('FalImageGenerator', () => {
 
     describe('When response has no image url', () => {
         it('should throw a 502 error', async () => {
-            global.fetch = vi.fn().mockResolvedValue({
-                ok: true,
-                json: vi.fn().mockResolvedValue({ images: [{}] }),
-            });
+            stubFetch(
+                vi.fn().mockResolvedValue({
+                    ok: true,
+                    json: vi.fn().mockResolvedValue({ images: [{}] }),
+                })
+            );
 
             await expect(generator.generateImage('test prompt')).rejects.toMatchObject({ status: 502 });
         });
@@ -170,10 +181,12 @@ describe('FalImageGenerator', () => {
 
     describe('When response images is empty', () => {
         it('should throw a 502 error', async () => {
-            global.fetch = vi.fn().mockResolvedValue({
-                ok: true,
-                json: vi.fn().mockResolvedValue({ images: [] }),
-            });
+            stubFetch(
+                vi.fn().mockResolvedValue({
+                    ok: true,
+                    json: vi.fn().mockResolvedValue({ images: [] }),
+                })
+            );
 
             await expect(generator.generateImage('test prompt')).rejects.toMatchObject({ status: 502 });
         });
@@ -186,10 +199,12 @@ describe('FalImageGenerator', () => {
             mockProcessImage.mockRejectedValue(new Error('Sharp resize error'));
             mockSharpInstance.toBuffer.mockResolvedValue(fallbackBuffer);
 
-            global.fetch = vi.fn().mockResolvedValue({
-                ok: true,
-                json: vi.fn().mockResolvedValue({ images: [{ url: dataUri(imageBuffer) }] }),
-            });
+            stubFetch(
+                vi.fn().mockResolvedValue({
+                    ok: true,
+                    json: vi.fn().mockResolvedValue({ images: [{ url: dataUri(imageBuffer) }] }),
+                })
+            );
 
             const result = await generator.generateImage('test prompt');
 
@@ -202,10 +217,12 @@ describe('FalImageGenerator', () => {
             mockProcessImage.mockRejectedValue(new Error('Sharp resize error'));
             mockSharpInstance.toBuffer.mockRejectedValue(new Error('Sharp webp error'));
 
-            global.fetch = vi.fn().mockResolvedValue({
-                ok: true,
-                json: vi.fn().mockResolvedValue({ images: [{ url: dataUri(imageBuffer) }] }),
-            });
+            stubFetch(
+                vi.fn().mockResolvedValue({
+                    ok: true,
+                    json: vi.fn().mockResolvedValue({ images: [{ url: dataUri(imageBuffer) }] }),
+                })
+            );
 
             const result = await generator.generateImage('test prompt');
 

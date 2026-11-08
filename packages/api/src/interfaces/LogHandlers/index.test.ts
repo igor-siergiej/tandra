@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'bun:test';
 
+import type { Context } from 'hono';
+
 import { IpRateLimiter } from '../../infrastructure/rateLimit';
+import { handlerContext } from '../../testing/fake';
 
 const mockDependencyContainer = {
     resolve: vi.fn(),
@@ -22,11 +25,11 @@ const mockLogger = {
 import { clientIpFrom } from '../../infrastructure/clientIp';
 import { receiveLogs } from './index';
 
-const createMockContext = (overrides: { ip?: string; body?: unknown } = {}) => {
+const createMockContext = <Body>(overrides: { ip?: string; body?: Body } = {}) => {
     const ip = overrides.ip ?? '127.0.0.1';
     const body = overrides.body ?? {};
 
-    return {
+    return handlerContext<Context>({
         req: {
             header: (name: string) => {
                 if (name === 'x-forwarded-for') return ip;
@@ -41,13 +44,13 @@ const createMockContext = (overrides: { ip?: string; body?: unknown } = {}) => {
             },
         },
         json: vi.fn().mockImplementation(
-            (responseBody: unknown, status: number): Response =>
+            <T>(responseBody: T, status: number): Response =>
                 new Response(JSON.stringify(responseBody), {
                     status,
                     headers: { 'Content-Type': 'application/json' },
                 })
         ),
-    } as unknown as import('hono').Context;
+    });
 };
 
 describe('LogHandlers', () => {

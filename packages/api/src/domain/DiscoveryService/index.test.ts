@@ -43,7 +43,7 @@ const setup = () => {
         }),
     };
 
-    const index: DiscoveryIndex = {
+    const index = {
         ensureIndex: vi.fn(),
         index: vi.fn(async () => {
             calls.push('index:index');
@@ -66,7 +66,7 @@ const setup = () => {
 
             return n;
         }),
-    };
+    } satisfies DiscoveryIndex;
 
     return { service: new DiscoveryService(repository, index), repository, index, calls, stored };
 };
@@ -76,7 +76,7 @@ describe('search query normalisation', () => {
         const { service, index } = setup();
         await service.search(query);
 
-        return (index.search as ReturnType<typeof vi.fn>).mock.calls[0][0];
+        return index.search.mock.calls[0][0];
     };
 
     it('applies defaults and drops blank, duplicate and differently-cased values', async () => {
@@ -107,7 +107,7 @@ describe('search query normalisation', () => {
 describe('DiscoveryService', () => {
     it('writes Mongo before the index, so a failed index write is repairable by a reindex', async () => {
         const { service, index, calls, stored } = setup();
-        (index.index as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('engine down'));
+        index.index.mockRejectedValueOnce(new Error('engine down'));
 
         await expect(service.save(recipe('a'))).rejects.toThrow('engine down');
 

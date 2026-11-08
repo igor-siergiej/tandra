@@ -27,7 +27,7 @@ describe('aiRateLimit', () => {
 
         expect(res.status).toBe(429);
         expect(Number(res.headers.get('Retry-After'))).toBeGreaterThan(0);
-        expect(((await res.json()) as { error: string }).error).toContain('try again');
+        expect(await res.json()).toEqual({ error: expect.stringContaining('try again') });
         expect((await app('other-user').request('/ai', { method: 'POST' })).status).toBe(200);
     });
 

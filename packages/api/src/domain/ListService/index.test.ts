@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, type Mock, mock, spyOn, vi } from 'bu
 import type { Item, ItemCategory, List, User } from '@tandra/types';
 import { ListType } from '@tandra/types';
 
+import { fake } from '../../testing/fake';
 import type { IdGenerator } from '../IdGenerator';
 import type { ListRepository } from '../ListRepository';
 import { ListService } from './index';
@@ -89,10 +90,13 @@ class MockFriends {
         return this.edges.has(this.key(a, b));
     }
     async friendIdsOf(userId: string) {
-        return [...this.edges]
-            .map((e) => e.split('|'))
-            .filter((p) => p.includes(userId))
-            .map((p) => (p[0] === userId ? p[1] : p[0]));
+        return [...this.edges].flatMap((edge) => {
+            const [a, b] = edge.split('|');
+
+            if (a === userId) return [b];
+
+            return b === userId ? [a] : [];
+        });
     }
     async listFriends(userId: string) {
         return (await this.friendIdsOf(userId)).map((id) => ({ id, username: `user-${id}` }));
@@ -1364,11 +1368,13 @@ describe('ListService', () => {
 describe('Item id-addressing', () => {
     let service: ListService;
 
-    let repo: {
-        getByRef: Mock<(title: string) => Promise<List | null>>;
-        replaceIfUnchanged: Mock<(title: string, list: List) => Promise<number | null>>;
-        pushItem: Mock<(title: string, item: Item) => Promise<void>>;
-    };
+    const makeRepo = () => ({
+        getByRef: mock(async (_title: string): Promise<List | null> => null),
+        replaceIfUnchanged: mock(async (_title: string, _list: List): Promise<number | null> => 1),
+        pushItem: mock(async (_title: string, _item: Item) => {}),
+    });
+
+    let repo = makeRepo();
 
     const makeList = (overrides: Partial<List> = {}): List => ({
         id: 'list-1',
@@ -1380,12 +1386,8 @@ describe('Item id-addressing', () => {
     });
 
     beforeEach(() => {
-        repo = {
-            getByRef: vi.fn(),
-            replaceIfUnchanged: vi.fn().mockResolvedValue(1),
-            pushItem: vi.fn().mockResolvedValue(undefined),
-        };
-        service = new ListService(repo as never, { generate: () => 'generated-id' } as never);
+        repo = makeRepo();
+        service = new ListService(fake(repo), fake({ generate: () => 'generated-id' }));
     });
 
     it('setItemSelected matches by item id, not name', async () => {
@@ -1398,7 +1400,7 @@ describe('Item id-addressing', () => {
 
         repo.getByRef.mockResolvedValue(list);
         await service.setItemSelected('Test List', 'a2', true);
-        const saved = repo.replaceIfUnchanged.mock.calls[0][1] as List;
+        const saved = repo.replaceIfUnchanged.mock.calls[0][1];
         expect(saved.items.find((i: Item) => i.id === 'a2')?.isSelected).toBe(true);
         expect(saved.items.find((i: Item) => i.id === 'a1')?.isSelected).toBe(false);
     });
@@ -1413,7 +1415,7 @@ describe('Item id-addressing', () => {
 
         repo.getByRef.mockResolvedValue(list);
         await service.deleteItem('Test List', 'a1');
-        const saved = repo.replaceIfUnchanged.mock.calls[0][1] as List;
+        const saved = repo.replaceIfUnchanged.mock.calls[0][1];
         expect(saved.items.map((i: Item) => i.id)).toEqual(['a2']);
     });
 
@@ -1457,15 +1459,15 @@ describe('ListService notifications', () => {
             ownerId: 'u1',
         };
 
-        const repo = {
+        const repo = fake<ListRepository>({
             getByRef: async () => list,
             pushItem: async () => {},
-        } as never;
+        });
 
-        const idGenerator = { generate: () => 'i1' } as never;
+        const idGenerator = { generate: () => 'i1' };
         const notify = { notifyItemAdded: mock(async () => {}), notifyItemsAdded: mock(async () => {}) };
 
-        const service = new ListService(repo, idGenerator, undefined, undefined, notify as never);
+        const service = new ListService(repo, idGenerator, undefined, undefined, fake(notify));
         await service.addItem('Groceries', 'Milk', new Date(), undefined, undefined, {
             id: 'u1',
             username: 'owner',
@@ -1505,7 +1507,7 @@ describe('ListService item categories', () => {
             undefined,
             undefined,
             undefined,
-            { categorise } as never,
+            fake({ categorise }),
             changed
         );
     });
@@ -1631,7 +1633,8 @@ describe('ListService item categories', () => {
     it('rejects an unknown category', async () => {
         await service.addItem('Groceries', 'milk', new Date(), undefined, undefined, undefined, 'i1');
 
-        await expect(service.setItemCategory('Groceries', 'i1', 'nope' as never)).rejects.toMatchObject({
+        // A category name as an old client might send it: a string that is not one of the aisles.
+        await expect(service.setItemCategory('Groceries', 'i1', JSON.parse('"nope"'))).rejects.toMatchObject({
             status: 400,
         });
     });

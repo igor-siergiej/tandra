@@ -9,14 +9,23 @@ const mockDependencyContainer = {
 
 vi.mock('../../dependencies', () => ({ dependencyContainer: mockDependencyContainer }));
 
+import type { Context } from 'hono';
+
+import { handlerContext } from '../../testing/fake';
+import type { AuthUser, HonoVars } from '../handlerUtils';
 import { setItemCategory } from './category';
 
-const ctx = (body: unknown, user: { id: string; username: string } | undefined = { id: 'u1', username: 'a' }) =>
-    ({
-        req: { param: (k: string) => ({ title: 'Groceries', itemId: 'i1' })[k], json: async () => body },
+const PARAMS = new Map([
+    ['title', 'Groceries'],
+    ['itemId', 'i1'],
+]);
+
+const ctx = <Body>(body: Body, user: AuthUser | undefined = { id: 'u1', username: 'a' }) =>
+    handlerContext<Context<HonoVars>>({
+        req: { param: (k: string) => PARAMS.get(k), json: async () => body },
         get: () => user,
-        json: (data: unknown, status = 200) => new Response(JSON.stringify(data), { status }),
-    }) as never;
+        json: <T>(data: T, status = 200) => new Response(JSON.stringify(data), { status }),
+    });
 
 describe('setItemCategory', () => {
     beforeEach(() => {

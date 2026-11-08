@@ -1,13 +1,13 @@
-import { describe, expect, it, mock } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 
-import type { FalLlmClient, LlmResult } from '../FalLlmClient';
+import { type LlmRequest, llmReplying } from '../../testing/doubles';
+import type { LlmResult } from '../FalLlmClient';
 import { FalIngredientSubstituter } from './index';
 import { substitutesSchema } from './schema';
 
-type CompleteArgs = Parameters<FalLlmClient['completeStructured']>[0];
+type CompleteArgs = LlmRequest;
 
-const fakeClient = (impl: (args: CompleteArgs) => Promise<LlmResult<unknown>>) =>
-    ({ completeStructured: mock(impl) }) as unknown as FalLlmClient;
+const fakeClient = llmReplying;
 
 const result = <T>(value: T): LlmResult<T> => ({
     value,

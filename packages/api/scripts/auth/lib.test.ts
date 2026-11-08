@@ -3,13 +3,21 @@ import { describe, expect, it } from 'bun:test';
 import { memoryAdapter } from 'better-auth/adapters/memory';
 
 import { type Auth, type AuthOptions, createAuth } from '../../src/infrastructure/BetterAuth';
+import { fake } from '../../src/testing/fake';
 import { resetPassword } from './lib';
 
 const makeAuth = () => {
-    const db: Record<string, unknown[]> = { user: [], session: [], account: [], verification: [], rateLimit: [] };
+    // The memory adapter's tables; the tests only count rows, so a row is anything with an id.
+    const db = {
+        user: new Array<{ id: string }>(),
+        session: new Array<{ id: string }>(),
+        account: new Array<{ id: string }>(),
+        verification: new Array<{ id: string }>(),
+        rateLimit: new Array<{ id: string }>(),
+    };
 
     const auth = createAuth({
-        database: memoryAdapter(db) as unknown as AuthOptions['database'],
+        database: fake<AuthOptions['database']>(memoryAdapter(db)),
         secret: 'test-secret-test-secret-test-secret-123',
         baseURL: 'http://localhost:4000',
         trustedOrigins: ['http://localhost:4000'],

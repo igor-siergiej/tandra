@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'bun:test';
 
 import type { MealPlanEntry, Recipe, User } from '@tandra/types';
 
+import { fake } from '../../testing/fake';
 import { MealPlanService } from './index';
 
 const owner: User = { id: 'u1', username: 'owner' };
@@ -34,27 +35,29 @@ class MemoryRepo {
     async removeMemberFromAll() {}
 }
 
-const recipe = (users: User[]): Recipe =>
-    ({ id: 'r1', title: 'Pasta', ingredients: [], users, ownerId: 'u1' }) as Recipe;
+const recipe = (users: User[]): Recipe => ({
+    id: 'r1',
+    title: 'Pasta',
+    ingredients: [],
+    users,
+    ownerId: 'u1',
+    dateAdded: new Date(0),
+});
+
+const makeFriends = () => ({ listFriends: vi.fn(async (_userId: string) => [friend]) });
 
 describe('MealPlanService', () => {
     let repo: MemoryRepo;
     let getRecipe: ReturnType<typeof vi.fn>;
-    let friends: { listFriends: ReturnType<typeof vi.fn> };
+    let friends = makeFriends();
     let service: MealPlanService;
     let n = 0;
 
     beforeEach(() => {
         repo = new MemoryRepo();
         getRecipe = vi.fn().mockResolvedValue(recipe([owner]));
-        friends = { listFriends: vi.fn().mockResolvedValue([friend]) };
-        service = new MealPlanService(
-            repo,
-            { generate: () => `id-${++n}` },
-            { getRecipe },
-            undefined,
-            friends as never
-        );
+        friends = makeFriends();
+        service = new MealPlanService(repo, { generate: () => `id-${++n}` }, { getRecipe }, undefined, fake(friends));
     });
 
     const input = { date: '2026-10-12', recipeId: 'r1', servings: 4 };
@@ -97,7 +100,8 @@ describe('MealPlanService', () => {
         [{ ...input, date: '2026-13-45' }],
         [{ ...input, servings: 0 }],
         [{ ...input, servings: 1000 }],
-        [{ ...input, servings: '4' as never }],
+        // Servings as a client might send them: a JSON string instead of a number.
+        [{ ...input, servings: JSON.parse('"4"') }],
     ])('rejects invalid input %#', async (bad) => {
         await expect(service.create('u1', bad)).rejects.toMatchObject({ status: 400 });
     });

@@ -2,7 +2,8 @@ import { describe, expect, it } from 'bun:test';
 
 import { parsedRecipeSchema } from './schema';
 
-const parse = (input: unknown) => parsedRecipeSchema.parse(input);
+// The schema is the boundary decoder for a model reply, so the tests feed it raw values of any shape.
+const parse: typeof parsedRecipeSchema.parse = (input) => parsedRecipeSchema.parse(input);
 
 describe('parsedRecipeSchema', () => {
     it('keeps clean ingredients with name, quantity and unit', () => {

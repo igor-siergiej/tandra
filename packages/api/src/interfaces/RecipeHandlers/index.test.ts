@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'bun:test';
 
 import type { Recipe } from '@tandra/types';
+import type { Context } from 'hono';
 import sharp from 'sharp';
 
+import { handlerContext } from '../../testing/fake';
+import type { AuthUser, HonoVars } from '../handlerUtils';
 import * as recipeHandlers from './index';
 
 const mockDependencyContainer = {
@@ -58,24 +61,20 @@ const baseRecipe: Recipe = {
     dateAdded: new Date(),
 };
 
-type HonoVars = { Variables: { user: { id: string; username: string } | undefined } };
-
 const createMockContext = (
     overrides: {
         params?: Record<string, string>;
         query?: Record<string, string>;
-        body?: unknown;
-        files?: Record<string, { name: string; type: string; arrayBuffer: () => Promise<ArrayBuffer> }>;
-        user?: { id: string; username: string } | undefined;
+        body?: Partial<Recipe> | Record<string, string>;
+        files?: Record<string, File>;
+        user?: AuthUser | undefined;
     } = {}
 ) => {
-    const vars: Record<string, unknown> = {
-        user: 'user' in overrides ? overrides.user : { id: 'user-1', username: 'testuser' },
-    };
+    let currentUser = 'user' in overrides ? overrides.user : { id: 'user-1', username: 'testuser' };
 
     const headers: Record<string, string> = {};
 
-    return {
+    return handlerContext<Context<HonoVars>>({
         req: {
             param: (name: string) => overrides.params?.[name],
             query: (name: string) => overrides.query?.[name],
@@ -84,7 +83,7 @@ const createMockContext = (
             parseBody: vi.fn().mockResolvedValue(overrides.files ?? {}),
         },
         json: vi.fn().mockImplementation(
-            (body: unknown, status: number): Response =>
+            <T>(body: T, status: number): Response =>
                 new Response(JSON.stringify(body), {
                     status,
                     headers: { 'Content-Type': 'application/json' },
@@ -96,11 +95,11 @@ const createMockContext = (
         body: vi
             .fn()
             .mockImplementation((data: BodyInit, status = 200): Response => new Response(data, { status, headers })),
-        get: (key: string) => vars[key],
-        set: (key: string, val: unknown) => {
-            vars[key] = val;
+        get: (_key: 'user') => currentUser,
+        set: (_key: 'user', user: AuthUser | undefined) => {
+            currentUser = user;
         },
-    } as unknown as import('hono').Context<HonoVars>;
+    });
 };
 
 describe('RecipeHandlers', () => {
@@ -140,8 +139,7 @@ describe('RecipeHandlers', () => {
             const response = await recipeHandlers.importRecipe(ctx);
             expect(response.status).toBe(200);
             expect(mockRecipeImportService.importFromUrl).toHaveBeenCalledWith('https://example.com/r');
-            const body = (await response.json()) as typeof draft;
-            expect(body.title).toBe('Imported');
+            expect(await response.json()).toMatchObject({ title: 'Imported' });
         });
 
         it('throws an APIError when the import service fails', async () => {
@@ -195,8 +193,7 @@ describe('RecipeHandlers', () => {
             const ctx = createMockContext({ body: { ingredientName: 'butter', recipeTitle: 'Carbonara' } });
             const response = await recipeHandlers.suggestIngredientSubstitutes(ctx);
             expect(response.status).toBe(200);
-            const body = (await response.json()) as { substitutes: string[] };
-            expect(body.substitutes).toEqual(['margarine', 'coconut oil']);
+            expect(await response.json()).toEqual({ substitutes: ['margarine', 'coconut oil'] });
             expect(mockRecipeService.suggestSubstitutes).toHaveBeenCalledWith('butter', 'Carbonara');
         });
 
@@ -219,9 +216,7 @@ describe('RecipeHandlers', () => {
             const ctx = createMockContext();
             const response = await recipeHandlers.getRecipes(ctx);
             expect(response.status).toBe(200);
-            const body = (await response.json()) as Array<{ id: string }>;
-            expect(body).toHaveLength(1);
-            expect(body[0].id).toBe(baseRecipe.id);
+            expect(await response.json()).toEqual([expect.objectContaining({ id: baseRecipe.id })]);
         });
 
         it('returns error status on service failure', async () => {
@@ -254,8 +249,7 @@ describe('RecipeHandlers', () => {
             const ctx = createMockContext({ params: { recipeId: 'recipe-1' } });
             const response = await recipeHandlers.getRecipe(ctx);
             expect(response.status).toBe(200);
-            const body = (await response.json()) as { id: string };
-            expect(body.id).toBe(baseRecipe.id);
+            expect(await response.json()).toMatchObject({ id: baseRecipe.id });
         });
 
         it('returns 403 when verifyRecipeAccess throws', async () => {
@@ -294,8 +288,7 @@ describe('RecipeHandlers', () => {
 
             const response = await recipeHandlers.createRecipe(ctx);
             expect(response.status).toBe(201);
-            const body = (await response.json()) as { id: string };
-            expect(body.id).toBe(baseRecipe.id);
+            expect(await response.json()).toMatchObject({ id: baseRecipe.id });
         });
 
         it('returns error status on service failure', async () => {
@@ -710,11 +703,7 @@ describe('RecipeHandlers', () => {
             const ctx = createMockContext({
                 params: { recipeId: 'recipe-1' },
                 files: {
-                    image: mockFile as unknown as {
-                        name: string;
-                        type: string;
-                        arrayBuffer: () => Promise<ArrayBuffer>;
-                    },
+                    image: mockFile,
                 },
             });
 
@@ -729,11 +718,7 @@ describe('RecipeHandlers', () => {
             const ctx = createMockContext({
                 params: { recipeId: 'recipe-1' },
                 files: {
-                    image: mockFile as unknown as {
-                        name: string;
-                        type: string;
-                        arrayBuffer: () => Promise<ArrayBuffer>;
-                    },
+                    image: mockFile,
                 },
             });
 
@@ -756,20 +741,16 @@ describe('RecipeHandlers', () => {
             const ctx = createMockContext({
                 params: { recipeId: 'recipe-1' },
                 files: {
-                    image: mockFile as unknown as {
-                        name: string;
-                        type: string;
-                        arrayBuffer: () => Promise<ArrayBuffer>;
-                    },
+                    image: mockFile,
                 },
             });
 
             const response = await recipeHandlers.uploadRecipeImage(ctx);
             expect(response.status).toBe(200);
-            const storedKey = mockBucketStore.putObject.mock.calls[0][0] as string;
+            const storedKey: string = mockBucketStore.putObject.mock.calls[0][0];
             expect(storedKey.endsWith('.webp')).toBe(true);
             expect(mockBucketStore.putObject.mock.calls[0][2]).toEqual({ contentType: 'image/webp' });
-            expect((await sharp(mockBucketStore.putObject.mock.calls[0][1] as Buffer).metadata()).format).toBe('webp');
+            expect((await sharp(mockBucketStore.putObject.mock.calls[0][1]).metadata()).format).toBe('webp');
             expect(mockRecipeService.setCoverImageKey.mock.calls[0][1]).toBe(storedKey);
         });
 
@@ -784,11 +765,7 @@ describe('RecipeHandlers', () => {
             const ctx = createMockContext({
                 params: { recipeId: 'recipe-1' },
                 files: {
-                    image: mockFile as unknown as {
-                        name: string;
-                        type: string;
-                        arrayBuffer: () => Promise<ArrayBuffer>;
-                    },
+                    image: mockFile,
                 },
             });
 

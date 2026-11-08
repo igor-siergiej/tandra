@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'bun:test';
 
+import { connectionTo } from '../../testing/fake';
 import { MongoDiscoveryReportRepository } from './index';
 
 const setup = () => {
@@ -10,9 +11,9 @@ const setup = () => {
         find: vi.fn(() => ({ sort: () => ({ toArray: async () => [] }) })),
     };
 
-    const db = { getCollection: vi.fn(() => collection) };
+    const opened: string[] = [];
 
-    return { repo: new MongoDiscoveryReportRepository(db as never), collection, db };
+    return { repo: new MongoDiscoveryReportRepository(connectionTo(collection, opened)), collection, opened };
 };
 
 describe('MongoDiscoveryReportRepository', () => {

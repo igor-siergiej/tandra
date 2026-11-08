@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'bun:test';
 
+import type { Context } from 'hono';
+
+import { handlerContext } from '../../testing/fake';
+import type { AuthUser, HonoVars } from '../handlerUtils';
 import * as pushHandlers from './index';
 
 const mockDependencyContainer = {
@@ -25,25 +29,21 @@ const mockWebPushSender = {
     isConfigured: vi.fn().mockReturnValue(true),
 };
 
-type HonoVars = { Variables: { user: { id: string; username: string } } };
+const createMockContext = <Body>(overrides: { body?: Body; user?: AuthUser } = {}) => {
+    const user = overrides.user ?? { id: 'u1', username: 'owner' };
 
-const createMockContext = (overrides: { body?: unknown; user?: { id: string; username: string } } = {}) => {
-    const vars: Record<string, unknown> = {
-        user: overrides.user ?? { id: 'u1', username: 'owner' },
-    };
-
-    return {
+    return handlerContext<Context<HonoVars>>({
         req: {
             json: vi.fn().mockResolvedValue(overrides.body ?? {}),
         },
-        json: vi.fn().mockImplementation((payload: unknown, status: number): Response => {
+        json: vi.fn().mockImplementation(<T>(payload: T, status: number): Response => {
             return new Response(JSON.stringify(payload), {
                 status,
                 headers: { 'Content-Type': 'application/json' },
             });
         }),
-        get: (key: string) => vars[key],
-    } as unknown as import('hono').Context<HonoVars>;
+        get: (_key: 'user') => user,
+    });
 };
 
 describe('PushHandlers', () => {

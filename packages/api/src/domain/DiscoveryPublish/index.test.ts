@@ -3,6 +3,7 @@ import { Readable } from 'node:stream';
 
 import type { DiscoveryRecipe, Recipe, User } from '@tandra/types';
 
+import { fake, present } from '../../testing/fake';
 import type { DiscoveryPublication } from '../DiscoveryPublicationRepository';
 import type { DiscoveryRecipeRepository } from '../DiscoveryRecipeRepository';
 import { DiscoveryService } from '../DiscoveryService';
@@ -135,7 +136,7 @@ const setup = (initial: Recipe[] = [personal()], seedLibrary: DiscoveryRecipe[] 
 
     let n = 0;
     const ids = { generate: () => `id-${++n}` };
-    const recipeService = new RecipeService(recipeRepo as never, ids);
+    const recipeService = new RecipeService(fake(recipeRepo), ids);
     const publish = new DiscoveryPublishService(discovery, publications, recipeService, images, ids);
 
     return { publish, recipes, recipeService, library, indexed, publicationRows, objects, failIndex, discovery };
@@ -164,7 +165,7 @@ describe('DiscoveryPublishService.publish', () => {
             slug: 'grandma-soup',
         });
         expect(doc?.ingredients.map((i) => i.name)).toEqual(['Carrot', 'onion']);
-        expect(indexed.get(ref.libraryId)).toEqual(doc as DiscoveryRecipe);
+        expect(indexed.get(ref.libraryId)).toEqual(present(doc, 'library recipe'));
         expect(ref.libraryId).toMatch(/^user-/);
     });
 
@@ -223,7 +224,8 @@ describe('DiscoveryPublishService.publish', () => {
         });
     });
 
-    it.each([[{}], [{ agreeToLicence: false }], [{ agreeToLicence: 'yes' as unknown as boolean }]])(
+    // The last case is a body as a client might send it: JSON whose agreement is a string, not `true`.
+    it.each([[{}], [{ agreeToLicence: false }], [JSON.parse('{"agreeToLicence":"yes"}')]])(
         'refuses without the explicit licence agreement (%j) and stores nothing',
         async (request) => {
             const { publish, library, publicationRows } = setup();
@@ -317,7 +319,7 @@ describe('DiscoveryPublishService.publish', () => {
     it('republishing updates the same library recipe instead of adding another', async () => {
         const { publish, library, recipes } = setup();
         const first = await publish.publish(RECIPE_ID, owner, agree);
-        recipes.set(RECIPE_ID, { ...(recipes.get(RECIPE_ID) as Recipe), title: 'Better Soup' });
+        recipes.set(RECIPE_ID, { ...present(recipes.get(RECIPE_ID), 'personal recipe'), title: 'Better Soup' });
 
         const second = await publish.publish(RECIPE_ID, owner, agree);
 
@@ -331,7 +333,7 @@ describe('DiscoveryPublishService.publish', () => {
         const ref = await publish.publish(RECIPE_ID, owner, agree);
 
         recipes.set(RECIPE_ID, {
-            ...(recipes.get(RECIPE_ID) as Recipe),
+            ...present(recipes.get(RECIPE_ID), 'personal recipe'),
             title: 'Edited privately',
             instructions: ['Secret step.'],
         });
@@ -351,7 +353,7 @@ describe('DiscoveryPublishService.publish', () => {
 
         const ref = await publish.publish(RECIPE_ID, owner, agree);
 
-        expect(ref.libraryId).toBe(firstId as string);
+        expect(ref.libraryId).toBe(present(firstId, 'first library id'));
         expect(library.size).toBe(1);
         expect(await publish.listMine(owner)).toHaveLength(1);
     });
@@ -372,7 +374,7 @@ describe('DiscoveryPublishService.publish', () => {
 
             const ref = await publish.publish(RECIPE_ID, owner, agree);
 
-            const key = library.get(ref.libraryId)?.coverImageKey as string;
+            const key = present(library.get(ref.libraryId)?.coverImageKey, 'cover key');
             expect(key).toMatch(new RegExp(`^discovery-image/${ref.libraryId}/\\d+\\.png$`));
             expect(key).not.toContain(owner.id);
             expect(key).not.toContain(RECIPE_ID);
@@ -382,7 +384,7 @@ describe('DiscoveryPublishService.publish', () => {
         it('keeps working after the private cover is replaced, removed or the recipe deleted', async () => {
             const { publish, library, objects, recipeService } = withCover();
             const ref = await publish.publish(RECIPE_ID, owner, agree);
-            const key = library.get(ref.libraryId)?.coverImageKey as string;
+            const key = present(library.get(ref.libraryId)?.coverImageKey, 'cover key');
 
             objects.delete('recipe-upload/u-owner/personal-recipe-123/1.png');
             await recipeService.setCoverImageKey(

@@ -2,7 +2,8 @@ import { describe, expect, it } from 'bun:test';
 
 import { extractedRecipeSchema } from './schema';
 
-const parse = (input: unknown) => extractedRecipeSchema.parse(input);
+// The schema is the boundary decoder for a model reply, so the tests feed it raw values of any shape.
+const parse: typeof extractedRecipeSchema.parse = (input) => extractedRecipeSchema.parse(input);
 
 describe('extractedRecipeSchema', () => {
     it('keeps string arrays as-is and leaves the title untrimmed', () => {

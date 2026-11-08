@@ -15,7 +15,7 @@ const setup = () => {
         }),
     };
 
-    const classifier = { classify: vi.fn().mockResolvedValue('dairy' as ItemCategory) };
+    const classifier = { classify: vi.fn(async (_name: string): Promise<ItemCategory> => 'dairy') };
 
     return { repo, classifier, service: new ItemCategoryService(repo, classifier) };
 };

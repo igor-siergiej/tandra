@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'bun:test';
 
 import type { Label } from '@tandra/types';
 
+import { connectionTo } from '../../testing/fake';
 import { MongoLabelRepository } from './index';
 
 const makeLabel = (over: Partial<Label> = {}): Label => ({
@@ -39,7 +40,7 @@ class FakeCollection {
     }
 }
 
-const makeDb = (col: FakeCollection) => ({ getCollection: () => col }) as never;
+const makeDb = (col: FakeCollection) => connectionTo(col);
 
 describe('MongoLabelRepository', () => {
     let col: FakeCollection;
