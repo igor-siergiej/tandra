@@ -361,6 +361,32 @@ describe('TodoService', () => {
             expect(updated.users).toEqual(originalUsers);
         });
 
+        it('keeps id, ownerId and dateAdded as stored whatever a member sends', async () => {
+            friends.add('u1', 'u2');
+            const t = await svc.createTodo('u1', { title: 'Shared task' });
+            const body = { title: 'x', ownerId: 'u2', id: 'other', dateAdded: new Date(0) } as never;
+            const updated = await svc.updateTodo(t.id, 'u2', body);
+            expect(updated).toMatchObject({ id: t.id, ownerId: 'u1', title: 'x' });
+            expect(updated.dateAdded).toEqual(t.dateAdded);
+            await expect(svc.deleteTodo(t.id, 'u2')).rejects.toMatchObject({ status: 403 });
+        });
+
+        it('only lets the owner share with current friends, using their stored names', async () => {
+            friends.add('u1', 'u2');
+            const t = await svc.createTodo('u1', { title: 'Mine', userIds: [] });
+            await expect(
+                svc.updateTodo(t.id, 'u1', { users: [{ id: 'stranger', username: 'Support' }] })
+            ).rejects.toMatchObject({ status: 403 });
+            const shared = await svc.updateTodo(t.id, 'u1', { users: [{ id: 'u2', username: 'Someone else' }] });
+            expect(shared.users).toEqual([{ id: 'u2', username: 'user-u2' }]);
+        });
+
+        it('ignores clear entries for fields that cannot be cleared', async () => {
+            const t = await svc.createTodo('u1', { title: 'Keep me' });
+            const updated = await svc.updateTodo(t.id, 'u1', { clear: ['title', 'ownerId'] } as never);
+            expect(updated).toMatchObject({ title: 'Keep me', ownerId: 'u1' });
+        });
+
         it('rejects toggleComplete by a non-member non-owner with 403', async () => {
             friends.add('u1', 'u2');
             const t = await svc.createTodo('u1', { title: 'Shared task' });

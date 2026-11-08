@@ -54,7 +54,12 @@ export class LabelService {
 
     async updateLabel(labelId: string, ownerId: string, input: UpdateLabelInput): Promise<Label> {
         const existing = await this.getOwned(labelId, ownerId);
-        return this.labels.update(labelId, { ...existing, ...input });
+        // Only the label's own fields come from the body; id and ownerId always stay as stored.
+        return this.labels.update(labelId, {
+            ...existing,
+            ...(input.name !== undefined && { name: input.name }),
+            ...(input.color !== undefined && { color: input.color }),
+        });
     }
 
     async deleteLabel(labelId: string, ownerId: string): Promise<void> {
