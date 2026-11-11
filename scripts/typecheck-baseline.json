@@ -71,7 +71,6 @@
   "packages/web/src/components/ToolBar/index.test.tsx::TS7018": 1,
   "packages/web/src/contexts/PWAContext.tsx::TS2307": 1,
   "packages/web/src/contexts/PWAContext.tsx::TS7006": 2,
-  "packages/web/src/hooks/useDiscoverySearch.test.tsx::TS2339": 1,
   "packages/web/src/hooks/useDiscoverySearch.test.tsx::TS7018": 1,
   "packages/web/src/hooks/usePendingItemIds.ts::TS7011": 1,
   "packages/web/src/hooks/usePushNotifications.test.ts::TS2556": 2,

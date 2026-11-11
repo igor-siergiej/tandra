@@ -90,13 +90,7 @@ export default defineConfig(({ mode }) => {
             outDir: './build',
             rollupOptions: {
                 output: {
-                    manualChunks: {
-                        'react-vendor': ['react', 'react-dom'],
-                        'router-vendor': ['react-router-dom'],
-                        'query-vendor': ['@tanstack/react-query'],
-                        'ui-vendor': ['lucide-react', 'motion'],
-                        'utils-vendor': ['clsx', 'tailwind-merge'],
-                    },
+                    manualChunks: vendorChunk,
                 },
             },
             chunkSizeWarningLimit: 1000,
@@ -187,4 +181,19 @@ function robotsTxtMirror(): Plugin {
             server.middlewares.use(middleware);
         },
     };
+}
+
+// Rolldown (Vite 8) only takes the function form of manualChunks.
+const VENDOR_CHUNKS: Record<string, string[]> = {
+    'react-vendor': ['react', 'react-dom', 'scheduler'],
+    'router-vendor': ['react-router-dom', 'react-router', 'cookie', 'set-cookie-parser'],
+    'query-vendor': ['@tanstack/react-query'],
+    'ui-vendor': ['lucide-react', 'motion', 'framer-motion', 'motion-dom', 'motion-utils'],
+    'utils-vendor': ['clsx', 'tailwind-merge'],
+};
+
+function vendorChunk(id: string): string | undefined {
+    const match = id.match(/node_modules\/(?:\.bun\/[^/]+\/node_modules\/)?((?:@[^/]+\/)?[^/]+)\//);
+    if (!match) return undefined;
+    return Object.keys(VENDOR_CHUNKS).find((chunk) => VENDOR_CHUNKS[chunk].includes(match[1]));
 }

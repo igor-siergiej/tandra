@@ -2,7 +2,7 @@ import type { DiscoverySearchResult } from '@tandra/types';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
 import * as api from '../api';
 import { useDiscoverySearch } from './useDiscoverySearch';
 
@@ -23,10 +23,10 @@ const wrapper = ({ children }: { children: ReactNode }) => (
     </QueryClientProvider>
 );
 
-const lastQuery = (search: ReturnType<typeof vi.spyOn>) => search.mock.calls.at(-1)?.[0];
+const lastQuery = (search: MockInstance<typeof api.searchDiscoveryRecipes>) => search.mock.calls.at(-1)?.[0];
 
 describe('useDiscoverySearch', () => {
-    let search: ReturnType<typeof vi.spyOn>;
+    let search: MockInstance<typeof api.searchDiscoveryRecipes>;
 
     beforeEach(() => {
         search = vi.spyOn(api, 'searchDiscoveryRecipes').mockResolvedValue(result());
