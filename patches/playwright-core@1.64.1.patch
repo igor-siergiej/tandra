@@ -1,17 +1,17 @@
 diff --git a/lib/coreBundle.js b/lib/coreBundle.js
-index bc601fcf741792e3fc76884a28a3c43f80c6472f..2f26b5494d6257f6e32f5534111fecf7eb94e91f 100644
+index 6893f1cf133efec2c5dccc35c77cc7a53870ccbc..7bbc99ece39e1ec60e759e2baf7d9c880d0ae2c8 100644
 --- a/lib/coreBundle.js
 +++ b/lib/coreBundle.js
-@@ -16200,7 +16200,7 @@ var init_dom = __esm({
+@@ -21247,7 +21247,7 @@ var init_dom = __esm({
        }
-       async _retryAction(progress2, actionName, action, options2) {
+       async _retryAction(progress2, actionName, action, options) {
          let retry2 = 0;
 -        const waitTime = [0, 20, 100, 100, 500];
 +        const waitTime = [0, 20, 100, 100, 100];
-         const noAutoWaiting = options2.__testHookNoAutoWaiting ?? options2.noAutoWaiting;
          while (true) {
            if (retry2) {
-@@ -17977,7 +17977,7 @@ var init_frames = __esm({
+             progress2.log(`retrying ${actionName} action${options.trial ? " (trial run)" : ""}`);
+@@ -25277,7 +25277,7 @@ var init_frames = __esm({
          return result2;
        }
        async retryWithProgressAndBackoff(progress2, action) {
