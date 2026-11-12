@@ -1,5 +1,6 @@
 import type { Todo } from '@tandra/types';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
+
 import { expandOccurrences, isoDay } from './recurrence';
 
 const base: Todo = {
@@ -45,6 +46,7 @@ describe('expandOccurrences', () => {
             dueDate: '2026-06-03',
             recurrence: { freq: 'daily', interval: 1 },
         };
+
         const { start, end } = range('2026-06-03', '2026-06-06');
         const days = expandOccurrences(todo, start, end).map((o) => isoDay(o.date));
         expect(days).toEqual(['2026-06-03', '2026-06-04', '2026-06-05', '2026-06-06']);
@@ -56,6 +58,7 @@ describe('expandOccurrences', () => {
             dueDate: '2026-06-01',
             recurrence: { freq: 'daily', interval: 2 },
         };
+
         const { start, end } = range('2026-06-01', '2026-06-06');
         const days = expandOccurrences(todo, start, end).map((o) => isoDay(o.date));
         expect(days).toEqual(['2026-06-01', '2026-06-03', '2026-06-05']);
@@ -67,6 +70,7 @@ describe('expandOccurrences', () => {
             dueDate: '2026-06-01',
             recurrence: { freq: 'daily', interval: 1, until: '2026-06-03' },
         };
+
         const { start, end } = range('2026-06-01', '2026-06-30');
         const days = expandOccurrences(todo, start, end).map((o) => isoDay(o.date));
         expect(days).toEqual(['2026-06-01', '2026-06-02', '2026-06-03']);
@@ -79,6 +83,7 @@ describe('expandOccurrences', () => {
             recurrence: { freq: 'weekly', interval: 1 },
             completedDates: ['2026-06-08'],
         };
+
         const { start, end } = range('2026-06-01', '2026-06-15');
         const occ = expandOccurrences(todo, start, end);
         expect(occ.map((o) => isoDay(o.date))).toEqual(['2026-06-01', '2026-06-08', '2026-06-15']);
@@ -91,6 +96,7 @@ describe('expandOccurrences', () => {
             dueDate: '2026-05-30',
             recurrence: { freq: 'daily', interval: 1 },
         };
+
         const { start, end } = range('2026-06-01', '2026-06-02');
         const days = expandOccurrences(todo, start, end).map((o) => isoDay(o.date));
         expect(days).toEqual(['2026-06-01', '2026-06-02']);

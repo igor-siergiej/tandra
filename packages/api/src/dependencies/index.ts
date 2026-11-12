@@ -72,6 +72,7 @@ const register = <K extends keyof Dependencies & string>(token: K, make: () => D
     function Factory() {
         return make();
     }
+
     dependencyContainer.registerSingleton(
         token,
         Factory as unknown as Parameters<typeof dependencyContainer.registerSingleton<K>>[1]
@@ -81,11 +82,13 @@ const register = <K extends keyof Dependencies & string>(token: K, make: () => D
 const googleConfig = (): { clientId: string; clientSecret: string } | undefined => {
     const clientId = config.get('googleClientId');
     const clientSecret = config.get('googleClientSecret');
+
     return clientId && clientSecret ? { clientId, clientSecret } : undefined;
 };
 
 const buildBetterAuth = () => {
     const db = new MongoClient(config.get('connectionUri')).db(config.get('databaseName'));
+
     return createAuth({
         database: mongodbAdapter(db, { transaction: false }),
         secret: config.get('betterAuthSecret'),
@@ -379,10 +382,12 @@ export const registerDepdendencies = () => {
         const llmExtractor = config.get('recipeImportLlmEnabled')
             ? dependencyContainer.resolve(DependencyToken.RecipeTextExtractor)
             : undefined;
+
         // LLM-first is opt-in: injecting the parser makes it win over the three tiers.
         const llmParser = config.get('recipeImportLlmFirst')
             ? dependencyContainer.resolve(DependencyToken.RecipeParser)
             : undefined;
+
         return new RecipeImportService(
             dependencyContainer.resolve(DependencyToken.PageFetcher),
             dependencyContainer.resolve(DependencyToken.IdGenerator),
@@ -422,6 +427,7 @@ export const registerDepdendencies = () => {
         const url = config.get('opensearchUrl');
         // Fail fast rather than queue requests behind a dead engine: discovery is optional, the rest of the API is not.
         const client = url ? new Client({ node: url, requestTimeout: 5000, maxRetries: 1 }) : null;
+
         return new OpenSearchDiscoveryIndex(
             client as unknown as OpenSearchApi | null,
             dependencyContainer.resolve(DependencyToken.Logger),
@@ -479,6 +485,7 @@ export const registerDepdendencies = () => {
             .split(',')
             .map((id) => id.trim())
             .filter(Boolean);
+
         return new DiscoveryModerationService(
             dependencyContainer.resolve(DependencyToken.DiscoveryService),
             dependencyContainer.resolve(DependencyToken.DiscoveryReportRepository),

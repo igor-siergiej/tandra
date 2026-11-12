@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const { mockAddUserToRecipe, mockRemoveUserFromRecipe } = vi.hoisted(() => ({
     mockAddUserToRecipe: vi.fn(),
@@ -28,6 +28,7 @@ describe('useManageRecipeUsers', () => {
         mockAddUserToRecipe.mockResolvedValue({ id: 'R1', users: [] });
         const client = new QueryClient();
         const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+
         const { result } = renderHook(() => useManageRecipeUsers({ recipeId: 'R1', userId: 'user-1' }), {
             wrapper: wrap(client),
         });
@@ -42,6 +43,7 @@ describe('useManageRecipeUsers', () => {
         mockRemoveUserFromRecipe.mockResolvedValue({ id: 'R1', users: [] });
         const client = new QueryClient();
         const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+
         const { result } = renderHook(() => useManageRecipeUsers({ recipeId: 'R1', userId: 'user-1' }), {
             wrapper: wrap(client),
         });

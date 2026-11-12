@@ -1,7 +1,8 @@
 import type { Ingredient, Recipe } from '@tandra/types';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
+
 import { IngredientsSection } from './IngredientsSection';
 
 vi.mock('../../hooks/useItemImage', () => ({

@@ -38,15 +38,18 @@ export class MongoTodoRepository implements TodoRepository {
 
     async insert(todo: Todo): Promise<Todo> {
         await this.collection().insertOne(todo);
+
         return todo;
     }
 
     async update(todoId: string, todo: Todo): Promise<Todo> {
         await this.collection().findOneAndReplace({ id: todoId }, todo);
         const updated = await this.getById(todoId);
+
         if (!updated) {
             throw new Error('Todo not found');
         }
+
         return updated;
     }
 

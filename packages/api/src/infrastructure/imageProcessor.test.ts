@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
+
 import { processImage } from './imageProcessor';
 
 class MockSharpInstance {
@@ -13,21 +14,25 @@ class MockSharpInstance {
 
     resize(...args: unknown[]) {
         this.calls.resize.push(args);
+
         return this;
     }
 
     webp(...args: unknown[]) {
         this.calls.webp.push(args);
+
         return this;
     }
 
     withMetadata(...args: unknown[]) {
         this.calls.withMetadata.push(args);
+
         return this;
     }
 
     async toBuffer() {
         this.calls.toBuffer.push([]);
+
         return this.toBufferValue;
     }
 

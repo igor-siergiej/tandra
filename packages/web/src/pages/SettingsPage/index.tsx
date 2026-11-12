@@ -1,4 +1,5 @@
 import { ArrowLeft } from 'lucide-react';
+
 import { PrivacyLink } from '../../components/PrivacyLink';
 import { useUnitSystem } from '../../contexts/UnitSystemContext';
 import { useGoBack } from '../../hooks/useGoBack';
@@ -42,6 +43,7 @@ const SettingsPage = () => {
                 <div className="flex flex-col gap-2">
                     {UNIT_OPTIONS.map((option) => {
                         const selected = unitSystem === option.value;
+
                         return (
                             <label
                                 key={option.value}

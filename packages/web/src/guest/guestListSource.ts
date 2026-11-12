@@ -1,4 +1,5 @@
 import type { Item, ListResponse, User } from '@tandra/types';
+
 import type { ListSource } from '../hooks/useListSource';
 import type { ListItemsData } from '../offline/foldPending';
 import { type GuestItem, type GuestList, guestStore } from './guestStore';
@@ -34,6 +35,7 @@ export const guestListSource: ListSource = {
         queryKey: ['lists', userId],
         queryFn: async () => {
             await guestStore.hydrate();
+
             return guestStore.peekLists().map(toListResponse);
         },
     }),
@@ -42,8 +44,10 @@ export const guestListSource: ListSource = {
         queryFn: async (): Promise<ListItemsData> => {
             await guestStore.hydrate();
             const list = guestStore.peekLists().find((l) => l.id === listRef);
+
             if (!list) throw new Error('List not found');
             const { title, listType, items, users, ownerId } = toListResponse(list);
+
             return { title, listType, items, users, ownerId };
         },
     }),

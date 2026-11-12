@@ -19,6 +19,7 @@ export interface AuthClientError {
 // fallow-ignore-next-line complexity
 export const authErrorMessage = (error: AuthClientError, fallback: string): string => {
     if (error.status === 429) return 'Too many attempts. Wait a minute and try again.';
+
     return (error.code && MESSAGES[error.code]) || error.message || fallback;
 };
 

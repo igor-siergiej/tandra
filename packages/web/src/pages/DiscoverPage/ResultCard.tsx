@@ -1,4 +1,5 @@
 import type { DiscoveryRecipeSummary } from '@tandra/types';
+
 import { DiscoveryCover } from '../../components/DiscoveryCover';
 import { DiscoveryMeta } from '../../components/DiscoveryMeta';
 

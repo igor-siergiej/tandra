@@ -1,5 +1,6 @@
 import type { Ingredient, Recipe } from '@tandra/types';
 import { useEffect, useState } from 'react';
+
 import IngredientItem from '../../components/IngredientItem';
 
 interface IngredientsSectionProps {
@@ -18,6 +19,7 @@ export const IngredientsSection = ({ recipe, isOwner = false, onUpdateIngredient
     const handleDeleteIngredient = async (id: string) => {
         const updated = ingredients.filter((ing) => ing.id !== id);
         setIngredients(updated);
+
         try {
             // No success toast for a single-ingredient delete — the error toast (on failure)
             // already comes from onUpdateIngredients, so this stays silent on the happy path.
@@ -32,6 +34,7 @@ export const IngredientsSection = ({ recipe, isOwner = false, onUpdateIngredient
     const handleEditIngredient = async (id: string, updated: Ingredient) => {
         const newIngredients = ingredients.map((ing) => (ing.id === id ? updated : ing));
         setIngredients(newIngredients);
+
         try {
             await onUpdateIngredients(newIngredients);
         } catch {

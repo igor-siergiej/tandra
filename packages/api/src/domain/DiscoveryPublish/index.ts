@@ -52,7 +52,9 @@ export class DiscoveryPublishService {
         if (request.agreeToLicence !== true) {
             throw fail('You must agree to share this recipe under CC BY-SA 4.0', 400);
         }
+
         const recipe = await this.recipes.getRecipe(recipeId);
+
         // Not "only recipes you can see": a recipe shared with you is not yours to publish.
         if (recipe.ownerId !== user.id) throw fail('Only the recipe owner can make it public', 403);
         this.assertPublishable(recipe);
@@ -71,12 +73,14 @@ export class DiscoveryPublishService {
         const publishedAt = now;
         await this.publications.upsert({ recipeId, libraryId, ownerId: user.id, publishedAt });
         this.logger?.info('Recipe published to the discovery library', { libraryId, userId: user.id });
+
         return { recipeId, libraryId, publishedAt };
     }
 
     /** Removes the caller's own publication. Unknown ids and other people's publications are both a 404. */
     async unpublish(libraryId: string, user: User): Promise<void> {
         const publication = await this.publications.getByLibraryId(libraryId);
+
         if (!publication || publication.ownerId !== user.id) throw fail('Published recipe not found', 404);
         // Library first, row last: if the index is down the row survives and the same call can simply be repeated.
         await this.discovery.remove(libraryId);
@@ -86,6 +90,7 @@ export class DiscoveryPublishService {
 
     async listMine(user: User): Promise<PublishedRecipeRef[]> {
         const rows = await this.publications.listPublishedByOwner(user.id);
+
         return rows.flatMap((row) =>
             row.publishedAt ? [{ recipeId: row.recipeId, libraryId: row.libraryId, publishedAt: row.publishedAt }] : []
         );
@@ -102,6 +107,7 @@ export class DiscoveryPublishService {
                 422
             );
         }
+
         if (!recipe.title.trim() || recipe.ingredients.length === 0 || !recipe.instructions?.length) {
             throw fail('Add ingredients and instructions before making a recipe public', 422);
         }
@@ -111,6 +117,7 @@ export class DiscoveryPublishService {
         const key = ingredientKey(recipe.ingredients);
         const sameTitle = await this.discovery.findByTitle(recipe.title.trim());
         const twin = sameTitle.find((other) => other.id !== ownLibraryId && ingredientKey(other.ingredients) === key);
+
         if (twin) throw fail('A recipe like this is already in the library', 409);
     }
 
@@ -127,6 +134,7 @@ export class DiscoveryPublishService {
         const coverImageKey = await this.coverFor(recipe, libraryId);
         const authorName = showName ? user.username : undefined;
         const slug = await this.slugFor(title);
+
         return {
             id: libraryId,
             title,
@@ -160,8 +168,10 @@ export class DiscoveryPublishService {
      */
     private async slugFor(title: string): Promise<string | undefined> {
         const base = slugify(title);
+
         const isTaken = async (candidate: string) =>
             WIKIBOOKS_RECIPE_ID.test(candidate) || (await this.discovery.hasSlug(candidate));
+
         try {
             return await uniqueSlug(base, isTaken);
         } catch (error) {
@@ -169,6 +179,7 @@ export class DiscoveryPublishService {
                 title,
                 error: (error as Error).message,
             });
+
             return undefined;
         }
     }
@@ -176,6 +187,7 @@ export class DiscoveryPublishService {
     // A missing or unreadable cover must not stop the recipe being shared; it just goes out without one.
     private async coverFor(recipe: Recipe, libraryId: string): Promise<string | undefined> {
         if (!recipe.coverImageKey) return undefined;
+
         try {
             return await copyImage(this.images, recipe.coverImageKey, `${COVER_PREFIX}/${libraryId}/${Date.now()}`);
         } catch (error) {
@@ -183,6 +195,7 @@ export class DiscoveryPublishService {
                 libraryId,
                 error: (error as Error).message,
             });
+
             return undefined;
         }
     }

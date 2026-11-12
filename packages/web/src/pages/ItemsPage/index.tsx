@@ -3,6 +3,7 @@ import { ListType as ListTypeEnum } from '@tandra/types';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+
 import { addItemsBulk, type SpokenItem } from '../../api';
 import { ConfirmationDialog } from '../../components/ConfirmationDialog';
 import { GroupByAisleToggle } from '../../components/GroupByAisleToggle';
@@ -107,6 +108,7 @@ const ItemsPage = () => {
                 onError: reject,
             }
         );
+
         return promise;
     };
 

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test';
+
 import type { PushSubscription } from '@tandra/types';
 
 const setVapidDetails = mock(() => {});

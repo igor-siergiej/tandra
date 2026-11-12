@@ -13,7 +13,9 @@ class MockFetcher implements PageFetcher {
 
     async fetchPage(url: string): Promise<string> {
         this.calls.push(url);
+
         if (this.error) throw this.error;
+
         return this.html;
     }
 }
@@ -22,6 +24,7 @@ class SequentialIdGenerator implements IdGenerator {
     private n = 0;
     generate(): string {
         this.n += 1;
+
         return `id-${this.n}`;
     }
 }
@@ -41,7 +44,9 @@ class FakeRecipeParser implements RecipeParser {
 
     async parse(source: string): Promise<ParsedRecipe> {
         this.calls.push(source);
+
         if (this.error) throw this.error;
+
         return this.result;
     }
 }
@@ -322,6 +327,7 @@ describe('RecipeImportService', () => {
                     };
                 },
             };
+
             service = new RecipeImportService(
                 fetcher,
                 new SequentialIdGenerator(),
@@ -346,6 +352,7 @@ describe('RecipeImportService', () => {
                     throw new Error('llm down');
                 },
             };
+
             service = new RecipeImportService(
                 fetcher,
                 new SequentialIdGenerator(),
@@ -363,12 +370,15 @@ describe('RecipeImportService', () => {
 
         it('does not call the extractor when Tiers 1-2 already succeed', async () => {
             let called = false;
+
             const extractor: RecipeTextExtractor = {
                 async extract() {
                     called = true;
+
                     return { title: 'x', ingredients: [], instructions: [] };
                 },
             };
+
             service = new RecipeImportService(
                 fetcher,
                 new SequentialIdGenerator(),
@@ -577,10 +587,12 @@ describe('RecipeImportService', () => {
     describe('importImage', () => {
         const mockFetcher = { fetchPage: vi.fn() };
         const mockIdGenerator = { generate: vi.fn(() => 'id-1') };
+
         const mockStructurer = {
             strategy: 'rule',
             structure: vi.fn(async (lines: string[]) => lines.map((name) => ({ name }))),
         };
+
         const mockImageFetcher = { fetchImage: vi.fn() };
 
         it('rejects an invalid URL before calling the image fetcher', async () => {
@@ -600,6 +612,7 @@ describe('RecipeImportService', () => {
 
         it('delegates to the injected image fetcher for a valid URL', async () => {
             mockImageFetcher.fetchImage.mockResolvedValue({ buffer: Buffer.from([1, 2]), contentType: 'image/png' });
+
             const service = new RecipeImportService(
                 mockFetcher,
                 mockIdGenerator,

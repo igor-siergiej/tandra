@@ -13,6 +13,7 @@ export const sessionCache = {
     read(): CachedSessionUser | null {
         try {
             const parsed = JSON.parse(localStorage.getItem(KEY) ?? 'null') as Partial<CachedSessionUser> | null;
+
             return parsed && typeof parsed.id === 'string' && typeof parsed.username === 'string'
                 ? { id: parsed.id, username: parsed.username }
                 : null;

@@ -1,4 +1,5 @@
 import type { DiscoveryRecipeSummary } from '@tandra/types';
+
 import { apiGetRecipes } from '../api-helpers';
 import { E2E_OPENSEARCH_URL } from '../db-helpers';
 import { expect, test } from '../fixtures';
@@ -45,9 +46,11 @@ test.describe('Discover: empty and paged results', () => {
             tags: [],
             source: 'wikibooks',
         });
+
         const facets = { tags: [], difficulty: [], source: [], ingredients: [], time: [] };
         await authenticatedPage.route(/\/api\/discover\/recipes(\?|$)/, (route) => {
             const page = Number(new URL(route.request().url()).searchParams.get('page') ?? '1');
+
             return route.fulfill({
                 json: {
                     hits: page === 1 ? [hit(1), hit(2)] : [hit(3)],

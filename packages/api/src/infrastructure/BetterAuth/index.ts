@@ -20,6 +20,7 @@ const rejectEmailSignIn = (path: string) => {
 
 const usernameFromBody = (body: unknown): string => {
     const candidate = (body as { username?: unknown })?.username;
+
     return typeof candidate === 'string' ? candidate.trim() : '';
 };
 
@@ -74,9 +75,12 @@ export const createAuth = ({ database, secret, baseURL, trustedOrigins, google, 
         hooks: {
             before: createAuthMiddleware(async (ctx) => {
                 rejectEmailSignIn(ctx.path);
+
                 if (ctx.path !== '/sign-up/email') return;
                 const name = usernameFromBody(ctx.body);
+
                 if (!name) throw new APIError('BAD_REQUEST', { message: 'Username is required' });
+
                 // Never store a client-supplied email: an unverified real address would squat it and block that
                 // person's later Google sign-in (account_not_linked).
                 return {

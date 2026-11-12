@@ -1,10 +1,13 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
+
 import LoginPage from './index';
 
 let isAuthenticated = false;
+
 vi.mock('../../auth', () => ({ useAuth: () => ({ isAuthenticated }) }));
+
 vi.mock('../../components/LoginForm', () => ({ LoginForm: () => <p>login form</p> }));
 
 const renderAtLogin = () =>

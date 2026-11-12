@@ -17,11 +17,13 @@ export const useGroupByAisle = (): [boolean, () => void] => {
     const toggle = useCallback(() => {
         setGrouped((current) => {
             const next = !current;
+
             try {
                 localStorage.setItem(STORAGE_KEY, String(next));
             } catch {
                 // Storage unavailable (private mode): the choice just lasts for this visit.
             }
+
             return next;
         });
     }, []);

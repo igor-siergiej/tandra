@@ -1,5 +1,5 @@
 # Formats and lints the staged files, and refuses the commit when the change
 # introduced a new type error. Both are fast enough to run on every commit, which
 # is what gives a coding agent feedback before it moves on.
-bunx lint-staged
+vp staged
 bun run typecheck

@@ -23,6 +23,7 @@ export const resolveFriendMembers = async (
     }
 
     const allowed = new Set(friends.map((friend) => friend.id));
+
     if (selectedFriendIds.some((id) => !allowed.has(id))) {
         throw Object.assign(new Error('Can only share with friends'), { status: 403 });
     }

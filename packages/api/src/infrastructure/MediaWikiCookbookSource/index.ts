@@ -8,19 +8,24 @@ import type {
 } from '../../domain/WikibooksIngest/types';
 
 const API_URL = 'https://en.wikibooks.org/w/api.php';
+
 /** Wikimedia asks API clients to identify themselves and a way to contact the operator. */
 const DEFAULT_USER_AGENT = 'TandraRecipeIngest/1.0 (https://app.tandra.uk; igorsiergiej@gmail.com)';
+
 /** Every Cookbook recipe page transcludes this template; the Cookbook namespace is 102. */
 const RECIPE_TEMPLATE = 'Template:Recipe';
 const COOKBOOK_NAMESPACE = '102';
+
 /** `prop=revisions` with content is capped at 50 pages per request. */
 const CONTENT_BATCH_SIZE = 50;
 const LIST_BATCH_SIZE = 500;
 const MAX_ATTEMPTS = 4;
 const MAX_LAG_SECONDS = 5;
 const REQUEST_TIMEOUT_MS = 30_000;
+
 /** `prop=imageinfo` takes up to 50 titles per request. */
 const IMAGE_INFO_BATCH_SIZE = 50;
+
 /** Pictures are shown at card/preview size; a larger rendition would only cost bandwidth and storage. */
 const IMAGE_WIDTH_PX = 640;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -83,7 +88,9 @@ const metadata = (meta: ExtMetadata | undefined, key: string): string | undefine
 // fallow-ignore-next-line complexity
 const toImageInfo = (page: PageJson): WikibooksImageInfo => {
     const info = page.imageinfo?.[0];
+
     if (!info || (page.missing && !page.known)) return { found: false };
+
     return {
         found: true,
         mime: info.mime,
@@ -97,7 +104,9 @@ const toImageInfo = (page: PageJson): WikibooksImageInfo => {
 
 const asPages = (json: ApiJson): PageJson[] => {
     const pages = json.query?.pages;
+
     if (!pages) return [];
+
     return Array.isArray(pages) ? pages : Object.values(pages);
 };
 
@@ -129,6 +138,7 @@ export class MediaWikiCookbookSource implements WikibooksSource {
     async listRecipePages(): Promise<WikibooksPageRef[]> {
         const pages = new Map<number, WikibooksPageRef>();
         let cursor: Params = {};
+
         do {
             const json = await this.request({
                 action: 'query',
@@ -140,14 +150,18 @@ export class MediaWikiCookbookSource implements WikibooksSource {
                 rvprop: 'ids',
                 ...cursor,
             });
+
             for (const page of asPages(json)) {
                 const revisionId = page.revisions?.[0]?.revid;
+
                 if (page.pageid !== undefined && page.title && revisionId !== undefined) {
                     pages.set(page.pageid, { pageId: page.pageid, title: page.title, revisionId });
                 }
             }
+
             cursor = json.continue ?? {};
         } while (Object.keys(cursor).length > 0);
+
         return [...pages.values()];
     }
 
@@ -155,8 +169,10 @@ export class MediaWikiCookbookSource implements WikibooksSource {
     // fallow-ignore-next-line complexity
     async fetchPages(refs: WikibooksPageRef[]): Promise<WikibooksPage[]> {
         const fetched: WikibooksPage[] = [];
+
         for (let i = 0; i < refs.length; i += CONTENT_BATCH_SIZE) {
             const batch = refs.slice(i, i + CONTENT_BATCH_SIZE);
+
             try {
                 const json = await this.request({
                     action: 'query',
@@ -165,9 +181,11 @@ export class MediaWikiCookbookSource implements WikibooksSource {
                     rvslots: 'main',
                     pageids: batch.map((ref) => ref.pageId).join('|'),
                 });
+
                 for (const page of asPages(json)) {
                     const revision = page.revisions?.[0];
                     const wikitext = revision?.slots?.main?.content ?? revision?.slots?.main?.['*'];
+
                     if (page.pageid !== undefined && page.title && revision?.revid !== undefined && wikitext) {
                         fetched.push({
                             pageId: page.pageid,
@@ -185,6 +203,7 @@ export class MediaWikiCookbookSource implements WikibooksSource {
                 });
             }
         }
+
         return fetched;
     }
 
@@ -193,8 +212,10 @@ export class MediaWikiCookbookSource implements WikibooksSource {
     async fetchImageInfo(filenames: string[]): Promise<Map<string, WikibooksImageInfo>> {
         const result = new Map<string, WikibooksImageInfo>();
         const unique = [...new Set(filenames)];
+
         for (let i = 0; i < unique.length; i += IMAGE_INFO_BATCH_SIZE) {
             const batch = unique.slice(i, i + IMAGE_INFO_BATCH_SIZE);
+
             try {
                 const json = await this.request({
                     action: 'query',
@@ -204,15 +225,20 @@ export class MediaWikiCookbookSource implements WikibooksSource {
                     redirects: '1',
                     titles: batch.map((name) => `File:${name}`).join('|'),
                 });
+
                 const byTitle = new Map(asPages(json).map((page) => [page.title, page]));
+
                 // Title normalisation, then at most one redirect.
                 // fallow-ignore-next-line complexity
                 const hop = (title: string): string => {
                     const normalised = json.query?.normalized?.find((n) => n.from === title)?.to ?? title;
+
                     return json.query?.redirects?.find((r) => r.from === normalised)?.to ?? normalised;
                 };
+
                 for (const name of batch) {
                     const page = byTitle.get(hop(`File:${name}`));
+
                     if (page) result.set(name, toImageInfo(page));
                 }
             } catch (error) {
@@ -223,6 +249,7 @@ export class MediaWikiCookbookSource implements WikibooksSource {
                 });
             }
         }
+
         return result;
     }
 
@@ -235,22 +262,29 @@ export class MediaWikiCookbookSource implements WikibooksSource {
     private async downloadNow(url: string): Promise<{ buffer: Buffer; contentType: string }> {
         for (let attempt = 1; ; attempt += 1) {
             await this.sleep(this.minIntervalMs);
+
             const response = await this.fetchImpl(url, {
                 headers: { 'User-Agent': this.userAgent, Accept: 'image/*' },
                 signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
             });
+
             if (response.status === 429 || response.status >= 500) {
                 if (attempt >= MAX_ATTEMPTS) throw new Error(`Image download: HTTP ${response.status} (gave up)`);
+
                 const wait = Math.min(
                     Number(response.headers.get('retry-after')) || DEFAULT_RETRY_SECONDS,
                     MAX_RETRY_SECONDS
                 );
+
                 await this.sleep(wait * 1000);
                 continue;
             }
+
             if (!response.ok) throw new Error(`Image download: HTTP ${response.status}`);
             const buffer = Buffer.from(await response.arrayBuffer());
+
             if (buffer.length > MAX_IMAGE_BYTES) throw new Error(`Image download: ${buffer.length} bytes is too large`);
+
             return { buffer, contentType: response.headers.get('content-type')?.split(';')[0]?.trim() ?? '' };
         }
     }
@@ -262,6 +296,7 @@ export class MediaWikiCookbookSource implements WikibooksSource {
             () => undefined,
             () => undefined
         );
+
         return run;
     }
 
@@ -274,12 +309,15 @@ export class MediaWikiCookbookSource implements WikibooksSource {
     private async requestNow(params: Params): Promise<ApiJson> {
         const url = new URL(API_URL);
         const query = { format: 'json', formatversion: '2', maxlag: String(MAX_LAG_SECONDS), ...params };
+
         for (const [key, value] of Object.entries(query)) url.searchParams.set(key, value);
 
         for (let attempt = 1; ; attempt += 1) {
             await this.sleep(this.minIntervalMs);
             const outcome = await this.send(url);
+
             if ('json' in outcome) return outcome.json;
+
             if (attempt >= MAX_ATTEMPTS)
                 throw new Error(`Wikibooks API: ${outcome.reason} (gave up after ${attempt} attempts)`);
             await this.sleep(outcome.retryAfterSeconds * 1000);
@@ -291,28 +329,36 @@ export class MediaWikiCookbookSource implements WikibooksSource {
     private async send(url: URL): Promise<{ json: ApiJson } | { reason: string; retryAfterSeconds: number }> {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
         try {
             const response = await this.fetchImpl(url, {
                 signal: controller.signal,
                 headers: { 'User-Agent': this.userAgent, Accept: 'application/json', 'Accept-Encoding': 'gzip' },
             });
+
             const retryAfter = Math.min(
                 Number(response.headers.get('retry-after')) || DEFAULT_RETRY_SECONDS,
                 MAX_RETRY_SECONDS
             );
+
             if (response.status === 429 || response.status >= 500) {
                 return { reason: `HTTP ${response.status}`, retryAfterSeconds: retryAfter };
             }
+
             if (!response.ok) throw new Error(`Wikibooks API: HTTP ${response.status}`);
 
             const json = (await response.json()) as ApiJson;
+
             if (json.error?.code === 'maxlag') return { reason: 'replica lag (maxlag)', retryAfterSeconds: retryAfter };
+
             if (json.error) throw new Error(`Wikibooks API error ${json.error.code}: ${json.error.info}`);
+
             return { json };
         } catch (error) {
             if ((error as Error).name === 'AbortError') {
                 return { reason: 'request timed out', retryAfterSeconds: DEFAULT_RETRY_SECONDS };
             }
+
             throw error;
         } finally {
             clearTimeout(timer);

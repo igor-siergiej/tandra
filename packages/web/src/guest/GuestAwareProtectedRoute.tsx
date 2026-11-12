@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
+
 import { ProtectedRoute, useAuth, useUser } from '../auth';
 import LoadingPage from '../components/LoadingPage';
 import { useGuest } from './GuestContext';
@@ -47,6 +48,7 @@ export const RequireAuth = ({ children }: { children: ReactNode }) => {
         // carrying ids, so the prompt can report which feature sends guests to sign up. Every account-only
         // route has one; `/` is never behind this guard.
         const feature = location.pathname.split('/')[1];
+
         return <Navigate to="/signup-cta" state={{ reason: 'auth-required', feature }} replace />;
     }
 
@@ -69,5 +71,6 @@ export const GuestEntryRoute = () => {
     }, [isLoading, isAuthenticated, isGuest, enterGuestMode]);
 
     if (isAuthenticated || isGuest) return <Navigate to="/" replace />;
+
     return <LoadingPage />;
 };

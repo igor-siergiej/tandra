@@ -1,6 +1,7 @@
 import type { Recipe } from '@tandra/types';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
+
 import { RecipeResultCard } from './index';
 
 const recipe = { id: 'r1', title: 'Pie', coverImageKey: 'recipe-upload/u1/r1/1.webp' } as Recipe;

@@ -1,4 +1,5 @@
 import { lazy, type ReactNode, Suspense, useState } from 'react';
+
 import { useLastSeenVersion } from '../../hooks/useLastSeenVersion';
 import { SyncStatusBadge } from '../SyncStatusBadge';
 

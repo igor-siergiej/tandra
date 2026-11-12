@@ -17,13 +17,16 @@ interface ListSocketOptions {
 
 const BASE_DELAY_MS = 1000;
 const MAX_DELAY_MS = 30_000;
+
 /** Sent by the API when the user is no longer a member of the list: reconnecting is pointless. */
 const CLOSE_REMOVED = 4403;
+
 /** Ticket request answers that mean "this user may not watch this list"; retrying cannot help. */
 const FORBIDDEN_STATUSES = new Set([403, 404]);
 
 const socketUrl = (listTitle: string, ticket: string) => {
     const origin = window.location.origin.replace(/^http/, 'ws');
+
     return `${origin}/api/ws/lists/${encodeURIComponent(listTitle)}?ticket=${encodeURIComponent(ticket)}`;
 };
 
@@ -89,10 +92,13 @@ class ListSocketConnection {
 
     private async connect() {
         if (!this.idle) return;
+
         const ticket = await this.options.getTicket(this.options.listTitle).catch((err) => {
             if (!isForbidden(err)) this.scheduleReconnect();
+
             return null;
         });
+
         if (ticket && !this.disposed) this.attach(this.options.createSocket(socketUrl(this.options.listTitle, ticket)));
     }
 
@@ -103,16 +109,19 @@ class ListSocketConnection {
             this.failures = 0;
             this.options.onChanged();
         };
+
         socket.onmessage = (event) => this.handle(parse(event.data));
         socket.onclose = (event) => {
             if (this.socket === socket) this.socket = null;
             this.options.onPresence([]);
+
             if (event.code !== CLOSE_REMOVED) this.scheduleReconnect();
         };
     }
 
     private handle(message: Partial<ServerMessage>) {
         if (message.type === 'changed') this.options.onChanged();
+
         if (message.type === 'presence') this.options.onPresence(message.users ?? []);
     }
 }

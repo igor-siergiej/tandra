@@ -5,6 +5,7 @@ import type { DiscoveryRecipe, DiscoveryRecipeSummary } from '@tandra/types';
 // fallow-ignore-next-line complexity
 export const toIndexDocument = (recipe: DiscoveryRecipe) => {
     const hasTime = recipe.prepTime !== undefined || recipe.cookTime !== undefined;
+
     return {
         id: recipe.id,
         title: recipe.title,
@@ -38,8 +39,10 @@ export const SUMMARY_FIELDS = [
 
 export const toSummary = (source: Record<string, unknown>): DiscoveryRecipeSummary => {
     const summary: Record<string, unknown> = {};
+
     for (const field of SUMMARY_FIELDS) {
         if (source[field] !== undefined) summary[field] = source[field];
     }
+
     return summary as unknown as DiscoveryRecipeSummary;
 };

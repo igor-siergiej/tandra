@@ -1,5 +1,6 @@
 import type { Ingredient, MealPlanEntry, Recipe } from '@tandra/types';
 import { addDays, format, startOfWeek } from 'date-fns';
+
 import { scaleIngredients } from './convertUnits';
 
 const DAY_FORMAT = 'yyyy-MM-dd';
@@ -29,9 +30,11 @@ export const buildShoppingRows = (entries: Array<MealPlanEntry>, recipes: Array<
 
     return entries.flatMap((entry) => {
         const recipe = byId.get(entry.recipeId);
+
         if (!recipe) return [];
         const baseline = recipe.servings && recipe.servings > 0 ? recipe.servings : entry.servings;
         const scaled: Array<Ingredient> = scaleIngredients(recipe.ingredients, entry.servings / baseline);
+
         return scaled.map((ingredient) => ({
             key: `${entry.id}:${ingredient.id}`,
             name: ingredient.name,

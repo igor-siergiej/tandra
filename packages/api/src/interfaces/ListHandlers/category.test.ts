@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'bun:test';
 
 const mockListService = { getList: vi.fn(), setItemCategory: vi.fn() };
 const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
+
 const mockDependencyContainer = {
     resolve: vi.fn((token: string) => (token === 'ListService' ? mockListService : mockLogger)),
 };

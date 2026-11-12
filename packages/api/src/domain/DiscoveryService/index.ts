@@ -6,11 +6,13 @@ import type {
     DiscoverySearchResult,
     DiscoverySource,
 } from '@tandra/types';
+
 import type { DiscoveryRecipeRepository } from '../DiscoveryRecipeRepository';
 import type { DiscoveryIndex, NormalizedDiscoveryQuery } from './types';
 
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 50;
+
 /** OpenSearch's default `index.max_result_window`; deeper pages need search_after, which nothing here needs yet. */
 const MAX_RESULT_WINDOW = 10_000;
 const DEFAULT_SIMILAR_LIMIT = 6;
@@ -23,10 +25,13 @@ const httpError = (message: string, status: number) => Object.assign(new Error(m
 // fallow-ignore-next-line complexity
 const clean = (values: string[] | undefined, lowercase = false): string[] => {
     const seen = new Set<string>();
+
     for (const raw of values ?? []) {
         const value = lowercase ? raw.trim().toLowerCase() : raw.trim();
+
         if (value) seen.add(value);
     }
+
     return [...seen];
 };
 
@@ -37,9 +42,11 @@ const clamp = (value: number, min: number, max: number) => Math.min(Math.max(val
 const normalizeQuery = (query: DiscoverySearchQuery): NormalizedDiscoveryQuery => {
     const pageSize = clamp(Math.trunc(query.pageSize ?? DEFAULT_PAGE_SIZE), 1, MAX_PAGE_SIZE);
     const page = Math.max(Math.trunc(query.page ?? 1), 1);
+
     if (page * pageSize > MAX_RESULT_WINDOW) {
         throw httpError(`Cannot page past result ${MAX_RESULT_WINDOW}; narrow the search instead`, 400);
     }
+
     return {
         q: query.q?.trim() || undefined,
         tags: clean(query.tags, true),
@@ -70,7 +77,9 @@ export class DiscoveryService {
 
     async getRecipe(id: string): Promise<DiscoveryRecipe> {
         const recipe = await this.repository.getById(id);
+
         if (!recipe) throw httpError('Library recipe not found', 404);
+
         return recipe;
     }
 
@@ -82,6 +91,7 @@ export class DiscoveryService {
 
     async getSimilar(id: string, limit = DEFAULT_SIMILAR_LIMIT): Promise<DiscoveryRecipeSummary[]> {
         await this.getRecipe(id);
+
         return this.index.similar(id, clamp(Math.trunc(limit), 1, MAX_SIMILAR_LIMIT));
     }
 
@@ -138,6 +148,7 @@ export class DiscoveryService {
     async reindex(): Promise<number> {
         const count = await this.index.rebuild(this.repository.batches(REINDEX_BATCH_SIZE));
         this.logger?.info('Discovery index rebuilt from Mongo', { count });
+
         return count;
     }
 

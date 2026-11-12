@@ -138,6 +138,7 @@ test.describe('Item images', () => {
             'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
             'base64'
         );
+
         await authenticatedPage.route(/\/api\/image\//, (route) =>
             route.fulfill({ status: 200, contentType: 'image/png', body: png })
         );

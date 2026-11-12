@@ -35,6 +35,7 @@ export class CachedIngredientSubstituter implements IngredientSubstituter {
     async generateSubstitutes(ingredientName: string, recipeTitle?: string): Promise<string[]> {
         const key = `${normalise(ingredientName)}|${normalise(recipeTitle)}`;
         const hit = this.entries.get(key);
+
         if (hit && hit.expiresAt > this.now()) {
             return [...hit.value];
         }
@@ -43,9 +44,12 @@ export class CachedIngredientSubstituter implements IngredientSubstituter {
 
         if (this.entries.size >= this.maxEntries) {
             const oldest = this.entries.keys().next().value;
+
             if (oldest !== undefined) this.entries.delete(oldest);
         }
+
         this.entries.set(key, { value: [...value], expiresAt: this.now() + this.ttlMs });
+
         return value;
     }
 }

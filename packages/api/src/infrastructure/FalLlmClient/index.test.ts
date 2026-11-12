@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'bun:test';
+
 import type { Logger } from '@imapps/api-utils';
 import { z } from 'zod';
 
@@ -37,6 +38,7 @@ describe('FalLlmClient', () => {
             url = String(u);
             auth = new Headers(init?.headers).get('authorization');
             body = JSON.parse(init?.body as string);
+
             return okResponse('{"title":"Hi","count":3}');
         });
 
@@ -57,6 +59,7 @@ describe('FalLlmClient', () => {
         let body: Record<string, unknown> = {};
         stubFetch(async (_u, init) => {
             body = JSON.parse(init?.body as string);
+
             return okResponse('{"title":"x","count":1}');
         });
 
@@ -86,6 +89,7 @@ describe('FalLlmClient', () => {
     it('never calls the logger on the empty-key path', async () => {
         stubFetch(async () => okResponse('{"title":"x","count":1}'));
         const logs: unknown[][] = [];
+
         const logger = {
             info: (...a: unknown[]) => {
                 logs.push(a);
@@ -123,6 +127,7 @@ describe('FalLlmClient', () => {
         let calls = 0;
         stubFetch(async () => {
             calls += 1;
+
             return new Response('upstream boom', { status: 500 });
         });
 
@@ -175,6 +180,7 @@ describe('FalLlmClient', () => {
         stubFetch(async (_u, init) => {
             bodies.push((JSON.parse(init?.body as string) as { prompt: string }).prompt);
             n += 1;
+
             return okResponse(n === 1 ? 'I could not do that' : '{"title":"x","count":1}');
         });
 
@@ -193,6 +199,7 @@ describe('FalLlmClient', () => {
         stubFetch(async (_u, init) => {
             bodies.push((JSON.parse(init?.body as string) as { prompt: string }).prompt);
             n += 1;
+
             return okResponse(n === 1 ? '{"title":"x"}' : '{"title":"x","count":2}');
         });
 
@@ -206,6 +213,7 @@ describe('FalLlmClient', () => {
         let n = 0;
         stubFetch(async () => {
             n += 1;
+
             return okResponse('{"title":"x"}');
         });
 
@@ -220,6 +228,7 @@ describe('FalLlmClient', () => {
         let n = 0;
         stubFetch(async () => {
             n += 1;
+
             return okResponse('nope');
         });
 
@@ -231,6 +240,7 @@ describe('FalLlmClient', () => {
         let n = 0;
         stubFetch(async () => {
             n += 1;
+
             return new Response('boom', { status: 503 });
         });
 
@@ -254,6 +264,7 @@ describe('FalLlmClient', () => {
     it('logs exactly once per completeStructured call, with outcome ok', async () => {
         stubFetch((async () => okResponse('{"title":"x","count":1}')) as unknown as typeof fetch);
         const logs: unknown[][] = [];
+
         const logger = {
             info: (...a: unknown[]) => {
                 logs.push(a);

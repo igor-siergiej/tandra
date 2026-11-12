@@ -1,4 +1,4 @@
-FROM oven/bun:1-alpine AS builder
+FROM oven/bun:1.4.4-alpine AS builder
 
 WORKDIR /app
 
@@ -12,15 +12,15 @@ COPY packages/web/package.json packages/web/package.json
 
 ARG NODE_AUTH_TOKEN
 
-RUN NODE_AUTH_TOKEN=${NODE_AUTH_TOKEN} bun install --frozen-lockfile
+RUN NODE_AUTH_TOKEN=${NODE_AUTH_TOKEN} bun install --frozen-lockfile --ignore-scripts
 
 COPY . .
 
-RUN NODE_AUTH_TOKEN=${NODE_AUTH_TOKEN} bun install --frozen-lockfile
+RUN NODE_AUTH_TOKEN=${NODE_AUTH_TOKEN} bun install --frozen-lockfile --ignore-scripts
 
 RUN bun run --filter @tandra/api build
 
-FROM oven/bun:1-debian AS runner
+FROM oven/bun:1.4.4-debian AS runner
 
 WORKDIR /app
 
@@ -30,8 +30,8 @@ COPY patches patches/
 COPY packages/api/package.json packages/api/package.json
 COPY packages/types/package.json packages/types/package.json
 
-# Install dependencies in Debian (bun handles optional deps and builds native bindings)
-RUN bun install
+# Install dependencies in Debian. --ignore-scripts skips the root prepare script (vp config needs git); sharp ships prebuilt binaries.
+RUN bun install --ignore-scripts
 
 # Copy source code
 COPY --from=builder /app/packages/api/src ./packages/api/src

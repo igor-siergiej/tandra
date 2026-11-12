@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
+
 import type { ObjectStoreConnection } from '@imapps/api-utils';
 
 import { BucketStore } from './index';
@@ -24,25 +25,31 @@ class MockObjectStore {
 
     async getHeadObject(objName: string) {
         this.calls.getHeadObject.push([objName]);
+
         if (this.rejectedErrors.getHeadObject) {
             throw this.rejectedErrors.getHeadObject;
         }
+
         return this.resolvedValues.getHeadObject;
     }
 
     getObjectStream(objName: string) {
         this.calls.getObjectStream.push([objName]);
+
         if (this.rejectedErrors.getObjectStream) {
             throw this.rejectedErrors.getObjectStream;
         }
+
         return this.resolvedValues.getObjectStream;
     }
 
     async putObject(objName: string, buffer: unknown, options?: unknown) {
         this.calls.putObject.push([objName, buffer, options]);
+
         if (this.rejectedErrors.putObject) {
             throw this.rejectedErrors.putObject;
         }
+
         return this.resolvedValues.putObject;
     }
 

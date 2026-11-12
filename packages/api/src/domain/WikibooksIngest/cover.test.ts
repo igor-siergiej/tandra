@@ -16,6 +16,7 @@ const usable = (overrides: Partial<WikibooksImageInfo> = {}): WikibooksImageInfo
 
 const setup = (download = async () => ({ buffer: Buffer.from('jpeg-bytes'), contentType: 'image/jpeg' })) => {
     const stored = new Map<string, { buffer: Buffer; contentType?: string }>();
+
     const images = {
         getHeadObject: vi.fn(),
         getObjectStream: vi.fn(),
@@ -23,7 +24,9 @@ const setup = (download = async () => ({ buffer: Buffer.from('jpeg-bytes'), cont
             stored.set(name, { buffer, contentType: options?.contentType });
         }),
     };
+
     const source = { downloadImage: vi.fn(download) };
+
     return { service: new WikibooksCoverService(source as never, images), stored, source, images };
 };
 

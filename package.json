@@ -13,9 +13,9 @@
     "auth:reset-password": "dotenv -e .env -- bun packages/api/scripts/auth/reset-password.ts",
     "start": "bun run start:web & bun run start:api",
     "dev:local": "scripts/dev-local.sh",
-    "lint": "biome check .",
-    "lint:fix": "biome check --fix --unsafe .",
-    "format": "biome format --write .",
+    "lint": "vp check",
+    "lint:fix": "vp check --fix",
+    "format": "vp fmt",
     "typecheck": "bun scripts/typecheck.js",
     "typecheck:update": "bun scripts/typecheck.js --update",
     "check:release-notes": "bun scripts/check-release-notes.js",
@@ -29,16 +29,15 @@
     "tsc:e2e": "tsc --noEmit -p e2e/tsconfig.json",
     "load:local": "scripts/load/run-local.sh",
     "audit": "fallow-audit",
-    "prepare": "husky"
+    "prepare": "vp config --no-agent",
+    "check": "vp check"
   },
   "workspaces": [
     "packages/*"
   ],
   "devDependencies": {
-    "@biomejs/biome": "2.2.5",
     "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^20.0.0",
-    "@imapps/biome-config": "0.5.1",
     "@imapps/dev-scripts": "0.1.0",
     "@playwright/test": "1.65.0",
     "@semantic-release/changelog": "^6.0.3",
@@ -51,17 +50,22 @@
     "@types/node": "^25.8.0",
     "dotenv": "^16",
     "dotenv-cli": "^10.0.0",
-    "husky": "^9.1.7",
-    "lint-staged": "^16.1.5",
     "mongodb": "^7.2.0",
     "semantic-release": "^24.2.0",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "@imapps/oxc-config": "7.0.1",
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
   },
   "packageManager": "bun@1.4.4",
-  "lint-staged": {
-    "*.{ts,tsx,json}": "biome check --fix --unsafe"
-  },
   "patchedDependencies": {
     "playwright-core@1.65.0": "patches/playwright-core@1.65.0.patch"
+  },
+  "overrides": {
+    "vite": "catalog:"
+  },
+  "catalog": {
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.6.0",
+    "vite-plus": "1.6.0"
   }
 }

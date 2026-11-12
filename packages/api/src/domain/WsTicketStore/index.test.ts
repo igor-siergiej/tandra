@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+
 import { WsTicketStore } from './index';
 
 const TICKET_TTL_MS = 30_000;

@@ -1,6 +1,7 @@
 import type { Todo } from '@tandra/types';
 import { endOfMonth, startOfMonth } from 'date-fns';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
+
 import { dayKey } from '../components/Calendar/MonthGrid';
 import { buildCalendarDayData, buildWeekAgenda } from './calendar';
 import { isoDay } from './recurrence';
@@ -71,6 +72,7 @@ describe('overdue marking', () => {
             endOfMonth(yesterday),
             ctx()
         );
+
         expect(selectedItems[0].overdue).toBe(true);
     });
 
@@ -83,6 +85,7 @@ describe('overdue marking', () => {
             endOfMonth(yesterday),
             ctx()
         );
+
         expect(selectedItems[0].overdue).toBe(false);
     });
 

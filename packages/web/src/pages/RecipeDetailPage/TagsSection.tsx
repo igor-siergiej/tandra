@@ -13,6 +13,7 @@ interface TagsSectionProps {
 export const TagsSection = ({ tags, isOwner = false, isEditing, onChange }: TagsSectionProps) => {
     if (isEditing) {
         if (!isOwner) return null;
+
         return (
             <div className="space-y-2">
                 <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Tags</p>

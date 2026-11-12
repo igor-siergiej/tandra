@@ -32,9 +32,11 @@ test.describe('Shared e2e mocks', () => {
 
     test('fake push subscribes through the Notifications toggle', async ({ authenticatedPage }) => {
         await installFakePush(authenticatedPage, { permission: 'default', requestResult: 'granted' });
+
         const subscribed = authenticatedPage.waitForRequest(
             (req) => req.url().endsWith('/api/push/subscribe') && req.method() === 'POST'
         );
+
         await authenticatedPage.goto('/');
         await authenticatedPage.getByRole('button', { name: 'Menu' }).click();
         await authenticatedPage.getByRole('button', { name: /Notifications/ }).click();

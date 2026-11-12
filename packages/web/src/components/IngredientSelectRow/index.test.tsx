@@ -1,7 +1,8 @@
 import type { Ingredient } from '@tandra/types';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
+
 import { IngredientSelectRow } from '.';
 
 vi.mock('../../hooks/useItemImage', () => ({
@@ -57,6 +58,7 @@ describe('IngredientSelectRow', () => {
         const { container } = render(
             <IngredientSelectRow ingredient={mockIngredient} isSelected={true} onToggle={mockOnToggle} />
         );
+
         const btn = container.querySelector('button');
         expect(btn).toHaveClass('bg-primary/10');
     });
@@ -65,6 +67,7 @@ describe('IngredientSelectRow', () => {
         const { container } = render(
             <IngredientSelectRow ingredient={mockIngredient} isSelected={false} onToggle={mockOnToggle} />
         );
+
         const btn = container.querySelector('button');
         expect(btn).toHaveClass('line-through');
         expect(btn).toHaveClass('bg-muted/30');
@@ -74,6 +77,7 @@ describe('IngredientSelectRow', () => {
         const { container } = render(
             <IngredientSelectRow ingredient={mockIngredient} isSelected={true} onToggle={mockOnToggle} />
         );
+
         const skeleton = container.querySelector('[data-slot="skeleton"]');
         expect(skeleton).toBeInTheDocument();
     });
@@ -105,6 +109,7 @@ describe('IngredientSelectRow', () => {
         const { container } = render(
             <IngredientSelectRow ingredient={mockIngredient} isSelected={true} onToggle={mockOnToggle} />
         );
+
         const errorContainer = container.querySelector('div[class*="rounded-full"]');
         expect(errorContainer).toBeInTheDocument();
         const icon = errorContainer?.querySelector('svg');

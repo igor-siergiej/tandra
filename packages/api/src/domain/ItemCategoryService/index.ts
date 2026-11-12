@@ -24,20 +24,24 @@ export class ItemCategoryService {
     // fallow-ignore-next-line unused-class-member
     async categorise(name: string): Promise<ItemCategory | null> {
         const key = normaliseItemName(name);
+
         if (!key) return null;
 
         try {
             const cached = await this.repo.get(key);
+
             if (cached) return cached;
 
             const category = await this.classifier.classify(key);
             await this.repo.set(key, category);
+
             return category;
         } catch (error) {
             this.logger?.warn('Item categorisation failed, leaving uncategorised', {
                 itemName: key,
                 error: errorMessage(error),
             });
+
             return null;
         }
     }

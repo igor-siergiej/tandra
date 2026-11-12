@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'bun:test';
+
 import { type Item, type List, ListType } from '@tandra/types';
 
 import * as listHandlers from './index';
@@ -64,6 +65,7 @@ const createMockContext = (
                 status,
                 headers: { 'Content-Type': 'application/json' },
             });
+
             return r;
         }),
         get: (key: string) => vars[key],
@@ -82,8 +84,11 @@ describe('ListHandlers', () => {
         vi.clearAllMocks();
         mockDependencyContainer.resolve.mockImplementation((token: string) => {
             if (token === 'ListService') return mockListService;
+
             if (token === 'Logger') return mockLogger;
+
             if (token === 'AuthorizationService') return mockAuthorizationService;
+
             return null;
         });
 
@@ -107,6 +112,7 @@ describe('ListHandlers', () => {
                     isSelected: false,
                 },
             ];
+
             const ctx = createMockContext({ params: { title: 'Test List' } });
 
             mockListService.getList.mockResolvedValue({
@@ -157,6 +163,7 @@ describe('ListHandlers', () => {
                     listType: ListType.SHOPPING,
                 },
             ];
+
             const ctx = createMockContext({ params: { userId: 'test-user-1' } });
 
             mockListService.getListsForUser.mockResolvedValue(mockLists);
@@ -198,6 +205,7 @@ describe('ListHandlers', () => {
                 users: [{ id: 'test-user-1', username: 'testuser' }],
                 listType: ListType.SHOPPING,
             };
+
             const ctx = createMockContext({
                 body: {
                     title: 'New List',
@@ -233,6 +241,7 @@ describe('ListHandlers', () => {
                 users: [{ id: 'test-user-1', username: 'testuser' }],
                 listType: ListType.SHOPPING,
             };
+
             const ctx = createMockContext({
                 body: {
                     title: 'New List',
@@ -315,6 +324,7 @@ describe('ListHandlers', () => {
                 users: [{ id: 'user-1', username: 'testuser' }],
                 listType: ListType.SHOPPING,
             };
+
             const ctx = createMockContext({
                 params: { title: 'Test List', itemId: 'item-1' },
             });
@@ -350,6 +360,7 @@ describe('ListHandlers', () => {
                 users: [{ id: 'user-1', username: 'testuser' }],
                 listType: ListType.SHOPPING,
             };
+
             const ctx = createMockContext({ params: { title: 'Test List' } });
 
             mockListService.clearList.mockResolvedValue(mockList);
@@ -381,6 +392,7 @@ describe('ListHandlers', () => {
                 users: [{ id: 'user-1', username: 'testuser' }],
                 listType: ListType.SHOPPING,
             };
+
             const ctx = createMockContext({ params: { title: 'Test List' } });
 
             mockListService.clearSelectedItems.mockResolvedValue(mockList);
@@ -444,6 +456,7 @@ describe('ListHandlers', () => {
                 dateAdded: new Date(),
                 isSelected: false,
             };
+
             const ctx = createMockContext({
                 params: { title: 'Test List' },
                 body: { itemName: 'New Item', dateAdded: new Date().toISOString() },
@@ -520,6 +533,7 @@ describe('ListHandlers', () => {
                 ],
                 listType: ListType.SHOPPING,
             };
+
             const ctx = createMockContext({
                 params: { title: 'Test List' },
                 body: { friendId: 'user-2' },
@@ -580,6 +594,7 @@ describe('ListHandlers', () => {
                 users: [{ id: 'test-user-1', username: 'testuser' }],
                 listType: ListType.SHOPPING,
             };
+
             const ctx = createMockContext({
                 params: { title: 'Test List', userId: 'user-2' },
             });

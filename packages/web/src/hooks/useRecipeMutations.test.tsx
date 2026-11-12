@@ -2,9 +2,10 @@ import 'fake-indexeddb/auto';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 vi.mock('../offline/drainer', () => ({ drainOutbox: vi.fn().mockResolvedValue(undefined) }));
+
 vi.mock('./useFriends', () => ({
     useFriends: () => ({
         friends: [{ id: 'friend-1', username: 'alice' }],
@@ -17,6 +18,7 @@ import { outboxStore } from '../offline/outboxStore';
 import { useRecipeMutations } from './useRecipeMutations';
 
 const user = { id: 'user-1', username: 'me' };
+
 const wrap =
     (client: QueryClient) =>
     ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
@@ -47,10 +49,12 @@ describe('useRecipeMutations', () => {
             await result.current.createRecipe('Pasta', ['friend-1'], []);
         });
         await waitFor(() => expect(outboxStore.peekAll()).toHaveLength(1));
+
         const cached = client.getQueryData(['recipes', 'user-1']) as Array<{
             title: string;
             users: Array<{ id: string }>;
         }>;
+
         const created = cached.find((r) => r.title === 'Pasta');
         expect(created?.users.map((u) => u.id).sort()).toEqual(['friend-1', 'user-1']);
     });
@@ -71,6 +75,7 @@ describe('useRecipeMutations', () => {
 
     it('createRecipe does not resolve until the create intent has drained', async () => {
         let resolveDrain: () => void = () => {};
+
         vi.mocked(drainOutbox).mockImplementation(
             () =>
                 new Promise((resolve) => {
@@ -83,6 +88,7 @@ describe('useRecipeMutations', () => {
         const { result } = renderHook(() => useRecipeMutations(user), { wrapper: wrap(client) });
 
         let created = false;
+
         const createPromise = result.current.createRecipe('Pasta', [], []).then(() => {
             created = true;
         });
@@ -106,6 +112,7 @@ describe('useRecipeMutations', () => {
             users: [user],
             dateAdded: new Date(),
         };
+
         const client = new QueryClient();
         client.setQueryData(['recipes', 'user-1'], [existingRecipe]);
         client.setQueryData(['recipe', 'R2'], existingRecipe);
@@ -128,6 +135,7 @@ describe('useRecipeMutations', () => {
         await act(async () => {
             await result.current.createRecipe('Pasta', [], [], undefined, undefined, undefined, 10, 20, 4, 'easy');
         });
+
         const cached = client.getQueryData(['recipes', 'user-1']) as Array<{
             title: string;
             prepTime?: number;
@@ -135,6 +143,7 @@ describe('useRecipeMutations', () => {
             servings?: number;
             difficulty?: string;
         }>;
+
         const created = cached.find((r) => r.title === 'Pasta');
         expect(created).toMatchObject({ prepTime: 10, cookTime: 20, servings: 4, difficulty: 'easy' });
     });
@@ -148,6 +157,7 @@ describe('useRecipeMutations', () => {
             users: [user],
             dateAdded: new Date(),
         };
+
         const client = new QueryClient();
         client.setQueryData(['recipes', 'user-1'], [existingRecipe]);
         client.setQueryData(['recipe', 'R3'], existingRecipe);
@@ -167,12 +177,14 @@ describe('useRecipeMutations', () => {
                 'hard'
             );
         });
+
         const detail = client.getQueryData(['recipe', 'R3']) as {
             prepTime?: number;
             cookTime?: number;
             servings?: number;
             difficulty?: string;
         };
+
         expect(detail).toMatchObject({ prepTime: 15, cookTime: 25, servings: 6, difficulty: 'hard' });
     });
 });

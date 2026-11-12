@@ -1,9 +1,11 @@
 import type { Recurrence } from '@tandra/types';
+
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 const NONE = 'none';
+
 type Freq = Recurrence['freq'];
 
 export interface RecurrenceFieldProps {

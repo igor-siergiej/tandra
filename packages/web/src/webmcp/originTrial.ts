@@ -6,11 +6,13 @@ const META_NAME = 'origin-trial';
  */
 export const installWebMcpOriginTrialToken = (token: string | undefined, isProd: boolean): boolean => {
     if (!isProd || !token) return false;
+
     if (document.querySelector(`meta[http-equiv="${META_NAME}"][content="${token}"]`)) return false;
 
     const meta = document.createElement('meta');
     meta.httpEquiv = META_NAME;
     meta.content = token;
     document.head.appendChild(meta);
+
     return true;
 };

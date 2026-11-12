@@ -1,4 +1,5 @@
 import { Readable } from 'node:stream';
+
 import type { Context } from 'hono';
 
 import { dependencyContainer } from '../../dependencies';
@@ -17,9 +18,12 @@ const getLogger = () => dependencyContainer.resolve(DependencyToken.Logger);
 // fallow-ignore-next-line complexity
 const canReadUpload = async (key: string, userId: string): Promise<boolean> => {
     const recipeId = key.split('/')[2];
+
     if (!recipeId) return false;
+
     try {
         const recipe = await getRecipeService().getRecipe(recipeId);
+
         return recipe.coverImageKey === key && (recipe.users ?? []).some((u: { id: string }) => u.id === userId);
     } catch {
         return false;
@@ -35,9 +39,11 @@ export const getImage = async (c: Context<HonoVars>) => {
     try {
         if (name.startsWith('recipe-upload/')) {
             const user = c.get('user');
+
             if (!user?.id) {
                 return c.json({ error: 'Unauthorized' }, 401);
             }
+
             if (!(await canReadUpload(name, user.id))) {
                 return c.json({ error: 'Image not found' }, 404);
             }
@@ -58,6 +64,7 @@ export const getImage = async (c: Context<HonoVars>) => {
                 c.header('Content-Type', contentType);
                 // private: the key is immutable, but only recipe members may read it, so no shared cache may keep a copy.
                 c.header('Cache-Control', 'private, max-age=31536000, immutable');
+
                 return c.body(Readable.toWeb(stream as Readable) as unknown as ReadableStream);
             }
 
@@ -70,7 +77,9 @@ export const getImage = async (c: Context<HonoVars>) => {
             if (!(await getDiscoveryService().hasCoverImageKey(name))) {
                 return c.json({ error: 'Image not found' }, 404);
             }
+
             const bucketStore = getBucketStore();
+
             try {
                 const head = await bucketStore.getHeadObject(name);
                 const contentType = head?.metaData?.['content-type'] ?? 'image/webp';
@@ -78,6 +87,7 @@ export const getImage = async (c: Context<HonoVars>) => {
 
                 c.header('Content-Type', contentType);
                 c.header('Cache-Control', 'private, max-age=3600');
+
                 return c.body(Readable.toWeb(stream as Readable) as unknown as ReadableStream);
             } catch {
                 return c.json({ error: 'Image not found' }, 404);
@@ -86,6 +96,7 @@ export const getImage = async (c: Context<HonoVars>) => {
 
         if (name.startsWith('recipe-image/')) {
             const bucketStore = getBucketStore();
+
             try {
                 const head = await bucketStore.getHeadObject(name);
                 const contentType = head?.metaData?.['content-type'] ?? 'image/webp';
@@ -95,6 +106,7 @@ export const getImage = async (c: Context<HonoVars>) => {
 
                 c.header('Content-Type', contentType);
                 c.header('Cache-Control', 'public, max-age=31536000, immutable');
+
                 return c.body(Readable.toWeb(stream as Readable) as unknown as ReadableStream);
             } catch {
                 return c.json({ error: 'Image not found' }, 404);
@@ -107,11 +119,13 @@ export const getImage = async (c: Context<HonoVars>) => {
 
         c.header('Content-Type', contentType);
         c.header('Cache-Control', cacheControl);
+
         return c.body(Readable.toWeb(stream as Readable) as unknown as ReadableStream);
     } catch (error: unknown) {
         const err = error as { status?: number; message?: string };
 
         logger.error('API: Failed to retrieve image', { itemName: name, error: err.message });
+
         return c.json({ error: err.message ?? 'Internal Server Error' }, (err.status ?? 500) as 500);
     }
 };

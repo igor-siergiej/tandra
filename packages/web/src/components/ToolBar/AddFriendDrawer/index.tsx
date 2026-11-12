@@ -1,6 +1,7 @@
 import { REGEXP_ONLY_DIGITS_AND_CHARS } from 'input-otp';
 import { KeyRound, Plus, Send } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+
 import { Button } from '../../../components/ui/button';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from '../../../components/ui/drawer';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '../../../components/ui/input-otp';
@@ -56,10 +57,13 @@ const ModeToggle = ({ mode, onSwitchMode }: ModeToggleProps) => (
 
 const formatCountdown = (secondsLeft: number): string => {
     if (secondsLeft <= 0) return 'Expired';
+
     const mm = Math.floor(secondsLeft / 60)
         .toString()
         .padStart(2, '0');
+
     const ss = (secondsLeft % 60).toString().padStart(2, '0');
+
     return `${mm}:${ss}`;
 };
 
@@ -118,7 +122,9 @@ const InvitePanel = ({
 
 const resolveRedeemErrorMessage = (isRedeemError: boolean, redeemError: unknown): string | null => {
     if (!isRedeemError) return null;
+
     if (!(redeemError instanceof Error)) return null;
+
     return redeemError.message;
 };
 
@@ -208,6 +214,7 @@ export const AddFriendDrawer = ({ open, onOpenChange }: AddFriendDrawerProps) =>
 
         tick();
         const interval = setInterval(tick, 1000);
+
         return () => clearInterval(interval);
     }, [generated?.expiresAt]);
 
@@ -240,14 +247,17 @@ export const AddFriendDrawer = ({ open, onOpenChange }: AddFriendDrawerProps) =>
 
     const handleShare = async () => {
         if (!generated) return;
+
         if (navigator.share) {
             try {
                 await navigator.share({ text: generated.code });
+
                 return;
             } catch {
                 // user cancelled or share unsupported at runtime — fall back to clipboard
             }
         }
+
         await navigator.clipboard.writeText(generated.code);
         setCopyFeedback('Copied to clipboard');
     };

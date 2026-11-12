@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
+
 import { usePullToRefreshContext } from '../../contexts/PullToRefreshContext';
 import { ScrollContainerProvider } from '../../contexts/ScrollContainerContext';
 import { usePullToRefresh } from '../../hooks/usePullToRefresh';
@@ -52,6 +53,7 @@ export const Layout = ({ children }: LayoutProps) => {
 
     const flexDirectionClass = isNormalScrollRoute(pathname) ? 'flex-col' : 'flex-col-reverse';
     const widthClass = WIDE_ROUTES[pathname] ? 'max-w-[500px] sm:max-w-5xl' : 'max-w-[500px]';
+
     const containerClass = FULL_BLEED_ROUTES[pathname]
         ? 'fixed top-14 md:top-16 bottom-0 left-0 right-0'
         : `fixed top-14 md:top-16 bottom-24 left-0 right-0 px-4 py-2 mx-auto ${widthClass}`;

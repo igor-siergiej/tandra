@@ -1,8 +1,10 @@
 import { execFile } from 'node:child_process';
 import path from 'node:path';
 import { promisify } from 'node:util';
+
 import type { DiscoveryRecipe, User } from '@tandra/types';
 import { MongoClient } from 'mongodb';
+
 import { resolveMongoUri } from './mongo-uri';
 import { currentStack, type Stack } from './stack';
 
@@ -20,6 +22,7 @@ const sortPair = (a: User, b: User): { userIds: [string, string]; users: [User, 
 export async function seedFriendship(a: User, b: User): Promise<void> {
     const client = new MongoClient(resolveMongoUri());
     await client.connect();
+
     try {
         const { userIds, users } = sortPair(a, b);
         await client
@@ -74,15 +77,18 @@ export async function seedDiscoveryLibrary(
 ): Promise<void> {
     const client = new MongoClient(resolveMongoUri());
     await client.connect();
+
     try {
         for (const stack of stacks) {
             const collection = client.db(stack.dbName).collection('discoveryRecipes');
             await collection.deleteMany({});
+
             if (recipes.length > 0) await collection.insertMany(recipes.map((recipe) => ({ ...recipe })));
         }
     } finally {
         await client.close();
     }
+
     await Promise.all(stacks.map(reindexDiscovery));
 }
 
@@ -93,6 +99,7 @@ export async function seedRecipeImageKeys(
 ): Promise<void> {
     const client = new MongoClient(resolveMongoUri());
     await client.connect();
+
     try {
         await client.db(DB_NAME).collection('recipe').updateOne({ id: recipeId }, { $set: keys });
     } finally {
@@ -104,6 +111,7 @@ export async function seedRecipeImageKeys(
 export async function expireFriendCodes(): Promise<void> {
     const client = new MongoClient(resolveMongoUri());
     await client.connect();
+
     try {
         await client
             .db(DB_NAME)

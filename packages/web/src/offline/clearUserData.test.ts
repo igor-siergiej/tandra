@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto';
 import { QueryClient } from '@tanstack/react-query';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
+
 import { clearUserData } from './clearUserData';
 import { outboxStore } from './outboxStore';
 

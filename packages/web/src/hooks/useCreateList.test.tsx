@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 vi.mock('../offline/drainer', () => ({ drainOutbox: vi.fn().mockResolvedValue(undefined) }));
 
@@ -11,6 +11,7 @@ import { outboxStore } from '../offline/outboxStore';
 import { useCreateList } from './useCreateList';
 
 const user = { id: 'user-1', username: 'me' };
+
 const wrap =
     (client: QueryClient) =>
     ({ children }: { children: ReactNode }) => (

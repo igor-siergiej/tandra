@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
+
 import { urlBase64ToUint8Array } from './push';
 
 describe('urlBase64ToUint8Array', () => {

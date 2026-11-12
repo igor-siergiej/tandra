@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto';
 import { ListType } from '@tandra/types';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vite-plus/test';
+
 import { guestStore } from './guestStore';
 
 describe('guestStore', () => {

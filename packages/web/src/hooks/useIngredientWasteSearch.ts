@@ -27,6 +27,7 @@ export const useIngredientWasteSearch = (recipes: Recipe[], query: string): Ingr
 
     return useMemo(() => {
         if (!trimmed) return [];
+
         // fallow-ignore-next-line complexity
         return fuse.search(trimmed).map((result) => ({
             recipe: result.item,

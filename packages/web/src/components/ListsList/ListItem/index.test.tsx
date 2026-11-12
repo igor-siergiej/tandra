@@ -2,7 +2,8 @@ import type { ListResponse } from '@tandra/types';
 import { ListType } from '@tandra/types';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
+
 import { ListItem } from './index';
 
 describe('ListItem', () => {
@@ -126,6 +127,7 @@ describe('ListItem', () => {
         );
 
         const titleButton = screen.getByText('Test List').closest('button');
+
         if (titleButton) {
             await user.click(titleButton);
         }
@@ -264,6 +266,7 @@ describe('ListItem', () => {
             ...mockListResponse,
             users: [...mockListResponse.users, { id: currentUserId, username: 'me' }],
         };
+
         render(
             <ListItem
                 list={listWithSelf}

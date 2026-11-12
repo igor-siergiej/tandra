@@ -17,8 +17,10 @@ const result = <T>(value: T): LlmResult<T> => ({
 describe('FalRecipeExtractor', () => {
     it('calls the client with operation recipe.extract, the extracted-recipe schema and the page text in the prompt', async () => {
         let seen: CompleteArgs | undefined;
+
         const client = fakeClient(async (args) => {
             seen = args;
+
             return result({ title: 'Soup', ingredients: ['1 onion'], instructions: ['Boil.'] });
         });
 
@@ -41,8 +43,10 @@ describe('FalRecipeExtractor', () => {
 
     it('passes an explicit model and timeout through to the client', async () => {
         let seen: CompleteArgs | undefined;
+
         const client = fakeClient(async (args) => {
             seen = args;
+
             return result({ title: '', ingredients: [], instructions: [] });
         });
 

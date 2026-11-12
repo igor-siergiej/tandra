@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'bun:test';
-import type { Recipe } from '@tandra/types';
 
+import type { Recipe } from '@tandra/types';
 import sharp from 'sharp';
+
 import * as recipeHandlers from './index';
 
 const mockDependencyContainer = {
@@ -71,6 +72,7 @@ const createMockContext = (
     const vars: Record<string, unknown> = {
         user: 'user' in overrides ? overrides.user : { id: 'user-1', username: 'testuser' },
     };
+
     const headers: Record<string, string> = {};
 
     return {
@@ -106,9 +108,13 @@ describe('RecipeHandlers', () => {
         vi.clearAllMocks();
         mockDependencyContainer.resolve.mockImplementation((token: string) => {
             if (token === 'RecipeService') return mockRecipeService;
+
             if (token === 'RecipeImportService') return mockRecipeImportService;
+
             if (token === 'Logger') return mockLogger;
+
             if (token === 'ImageStore') return mockBucketStore;
+
             return null;
         });
         mockRecipeService.getRecipe.mockResolvedValue(baseRecipe);
@@ -274,15 +280,18 @@ describe('RecipeHandlers', () => {
                 body: { title: 'Test', ingredients: [] },
                 user: undefined,
             });
+
             const response = await recipeHandlers.createRecipe(ctx);
             expect(response.status).toBe(401);
         });
 
         it('creates recipe successfully', async () => {
             mockRecipeService.createRecipe.mockResolvedValue(baseRecipe);
+
             const ctx = createMockContext({
                 body: { title: 'Test', ingredients: [] },
             });
+
             const response = await recipeHandlers.createRecipe(ctx);
             expect(response.status).toBe(201);
             const body = (await response.json()) as { id: string };
@@ -291,17 +300,21 @@ describe('RecipeHandlers', () => {
 
         it('returns error status on service failure', async () => {
             mockRecipeService.createRecipe.mockRejectedValue(Object.assign(new Error('fail'), { status: 500 }));
+
             const ctx = createMockContext({
                 body: { title: 'Test', ingredients: [] },
             });
+
             await expect(recipeHandlers.createRecipe(ctx)).rejects.toThrow('fail');
         });
 
         it('passes prepTime, cookTime, servings and difficulty through to the service', async () => {
             mockRecipeService.createRecipe.mockResolvedValue(baseRecipe);
+
             const ctx = createMockContext({
                 body: { title: 'Test', ingredients: [], prepTime: 10, cookTime: 20, servings: 4, difficulty: 'easy' },
             });
+
             await recipeHandlers.createRecipe(ctx);
             expect(mockRecipeService.createRecipe).toHaveBeenCalledWith(
                 'Test',
@@ -328,6 +341,7 @@ describe('RecipeHandlers', () => {
                 body: { title: 'Updated', ingredients: [] },
                 user: undefined,
             });
+
             const response = await recipeHandlers.updateRecipe(ctx);
             expect(response.status).toBe(401);
         });
@@ -337,10 +351,12 @@ describe('RecipeHandlers', () => {
                 ...baseRecipe,
                 users: [{ id: 'other-user', username: 'other' }],
             });
+
             const ctx = createMockContext({
                 params: { recipeId: 'recipe-1' },
                 body: { title: 'Updated', ingredients: [] },
             });
+
             const response = await recipeHandlers.updateRecipe(ctx);
             expect(response.status).toBe(403);
         });
@@ -348,26 +364,31 @@ describe('RecipeHandlers', () => {
         it('updates recipe successfully', async () => {
             const updated = { ...baseRecipe, title: 'Updated' };
             mockRecipeService.updateRecipe.mockResolvedValue(updated);
+
             const ctx = createMockContext({
                 params: { recipeId: 'recipe-1' },
                 body: { title: 'Updated', ingredients: [] },
             });
+
             const response = await recipeHandlers.updateRecipe(ctx);
             expect(response.status).toBe(200);
         });
 
         it('returns error status on service failure', async () => {
             mockRecipeService.updateRecipe.mockRejectedValue(Object.assign(new Error('fail'), { status: 403 }));
+
             const ctx = createMockContext({
                 params: { recipeId: 'recipe-1' },
                 body: { title: 'Updated', ingredients: [] },
             });
+
             await expect(recipeHandlers.updateRecipe(ctx)).rejects.toThrow('fail');
         });
 
         it('passes prepTime, cookTime, servings and difficulty through to the service', async () => {
             const updated = { ...baseRecipe, title: 'Updated' };
             mockRecipeService.updateRecipe.mockResolvedValue(updated);
+
             const ctx = createMockContext({
                 params: { recipeId: 'recipe-1' },
                 body: {
@@ -379,6 +400,7 @@ describe('RecipeHandlers', () => {
                     difficulty: 'medium',
                 },
             });
+
             await recipeHandlers.updateRecipe(ctx);
             expect(mockRecipeService.updateRecipe).toHaveBeenCalledWith(
                 'recipe-1',
@@ -402,6 +424,7 @@ describe('RecipeHandlers', () => {
                 params: { recipeId: 'recipe-1' },
                 user: undefined,
             });
+
             const response = await recipeHandlers.deleteRecipe(ctx);
             expect(response.status).toBe(401);
         });
@@ -439,6 +462,7 @@ describe('RecipeHandlers', () => {
                 body: { friendId: newUser.id },
                 user: undefined,
             });
+
             const response = await recipeHandlers.addUserToRecipe(ctx);
             expect(response.status).toBe(401);
         });
@@ -448,6 +472,7 @@ describe('RecipeHandlers', () => {
                 params: { recipeId: 'recipe-1' },
                 body: { friendId: '' },
             });
+
             const response = await recipeHandlers.addUserToRecipe(ctx);
             expect(response.status).toBe(400);
         });
@@ -457,10 +482,12 @@ describe('RecipeHandlers', () => {
                 ...baseRecipe,
                 users: [{ id: 'other-user', username: 'other' }],
             });
+
             const ctx = createMockContext({
                 params: { recipeId: 'recipe-1' },
                 body: { friendId: newUser.id },
             });
+
             const response = await recipeHandlers.addUserToRecipe(ctx);
             expect(response.status).toBe(403);
         });
@@ -468,20 +495,24 @@ describe('RecipeHandlers', () => {
         it('adds user successfully', async () => {
             const updated = { ...baseRecipe, users: [baseRecipe.users[0], newUser] };
             mockRecipeService.addUserToRecipe.mockResolvedValue(updated);
+
             const ctx = createMockContext({
                 params: { recipeId: 'recipe-1' },
                 body: { friendId: newUser.id },
             });
+
             const response = await recipeHandlers.addUserToRecipe(ctx);
             expect(response.status).toBe(200);
         });
 
         it('returns error on service failure', async () => {
             mockRecipeService.addUserToRecipe.mockRejectedValue(Object.assign(new Error('fail'), { status: 400 }));
+
             const ctx = createMockContext({
                 params: { recipeId: 'recipe-1' },
                 body: { friendId: newUser.id },
             });
+
             await expect(recipeHandlers.addUserToRecipe(ctx)).rejects.toThrow('fail');
         });
     });
@@ -492,6 +523,7 @@ describe('RecipeHandlers', () => {
                 params: { recipeId: 'recipe-1', targetUserId: 'user-2' },
                 user: undefined,
             });
+
             const response = await recipeHandlers.removeUserFromRecipe(ctx);
             expect(response.status).toBe(401);
         });
@@ -501,27 +533,33 @@ describe('RecipeHandlers', () => {
                 ...baseRecipe,
                 users: [{ id: 'other-user', username: 'other' }],
             });
+
             const ctx = createMockContext({
                 params: { recipeId: 'recipe-1', targetUserId: 'user-2' },
             });
+
             const response = await recipeHandlers.removeUserFromRecipe(ctx);
             expect(response.status).toBe(403);
         });
 
         it('removes user successfully', async () => {
             mockRecipeService.removeUserFromRecipe.mockResolvedValue(baseRecipe);
+
             const ctx = createMockContext({
                 params: { recipeId: 'recipe-1', targetUserId: 'user-2' },
             });
+
             const response = await recipeHandlers.removeUserFromRecipe(ctx);
             expect(response.status).toBe(200);
         });
 
         it('returns error on service failure', async () => {
             mockRecipeService.removeUserFromRecipe.mockRejectedValue(Object.assign(new Error('fail'), { status: 400 }));
+
             const ctx = createMockContext({
                 params: { recipeId: 'recipe-1', targetUserId: 'user-2' },
             });
+
             await expect(recipeHandlers.removeUserFromRecipe(ctx)).rejects.toThrow('fail');
         });
     });
@@ -533,6 +571,7 @@ describe('RecipeHandlers', () => {
                 body: { imageKey: 'some-key' },
                 user: undefined,
             });
+
             const response = await recipeHandlers.setCoverImageKey(ctx);
             expect(response.status).toBe(401);
         });
@@ -542,10 +581,12 @@ describe('RecipeHandlers', () => {
                 ...baseRecipe,
                 users: [{ id: 'other-user', username: 'other' }],
             });
+
             const ctx = createMockContext({
                 params: { recipeId: 'recipe-1' },
                 body: { imageKey: 'recipe-upload/user-1/recipe-1/1.webp' },
             });
+
             const response = await recipeHandlers.setCoverImageKey(ctx);
             expect(response.status).toBe(403);
         });
@@ -555,6 +596,7 @@ describe('RecipeHandlers', () => {
                 params: { recipeId: 'recipe-1' },
                 body: { imageKey: 'recipe-upload/someone-else/recipe-9/1.webp' },
             });
+
             const response = await recipeHandlers.setCoverImageKey(ctx);
             expect(response.status).toBe(403);
             expect(mockRecipeService.setCoverImageKey).not.toHaveBeenCalled();
@@ -565,26 +607,31 @@ describe('RecipeHandlers', () => {
                 params: { recipeId: 'recipe-1' },
                 body: { imageKey: 'discovery-image/abc.webp' },
             });
+
             const response = await recipeHandlers.setCoverImageKey(ctx);
             expect(response.status).toBe(403);
         });
 
         it('sets cover image key successfully', async () => {
             mockRecipeService.setCoverImageKey.mockResolvedValue({ ...baseRecipe, coverImageKey: 'some-key' });
+
             const ctx = createMockContext({
                 params: { recipeId: 'recipe-1' },
                 body: { imageKey: 'recipe-upload/user-1/recipe-1/1.webp' },
             });
+
             const response = await recipeHandlers.setCoverImageKey(ctx);
             expect(response.status).toBe(200);
         });
 
         it('returns error on service failure', async () => {
             mockRecipeService.setCoverImageKey.mockRejectedValue(Object.assign(new Error('fail'), { status: 403 }));
+
             const ctx = createMockContext({
                 params: { recipeId: 'recipe-1' },
                 body: { imageKey: 'recipe-upload/user-1/recipe-1/1.webp' },
             });
+
             await expect(recipeHandlers.setCoverImageKey(ctx)).rejects.toThrow('fail');
         });
     });
@@ -632,6 +679,7 @@ describe('RecipeHandlers', () => {
                 params: { recipeId: 'recipe-1' },
                 user: undefined,
             });
+
             const response = await recipeHandlers.uploadRecipeImage(ctx);
             expect(response.status).toBe(401);
         });
@@ -651,12 +699,14 @@ describe('RecipeHandlers', () => {
                 params: { recipeId: 'recipe-1' },
                 files: {},
             });
+
             const response = await recipeHandlers.uploadRecipeImage(ctx);
             expect(response.status).toBe(400);
         });
 
         it('rejects bytes that are not a raster image even when the client claims image/png', async () => {
             const mockFile = new File([new Uint8Array([1, 2, 3])], 'test.png', { type: 'image/png' });
+
             const ctx = createMockContext({
                 params: { recipeId: 'recipe-1' },
                 files: {
@@ -667,6 +717,7 @@ describe('RecipeHandlers', () => {
                     },
                 },
             });
+
             await expect(recipeHandlers.uploadRecipeImage(ctx)).rejects.toMatchObject({ status: 400 });
             expect(mockBucketStore.putObject).not.toHaveBeenCalled();
         });
@@ -674,6 +725,7 @@ describe('RecipeHandlers', () => {
         it('rejects an SVG upload', async () => {
             const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"><script>alert(1)</script></svg>';
             const mockFile = new File([svg], 'x.svg', { type: 'image/svg+xml' });
+
             const ctx = createMockContext({
                 params: { recipeId: 'recipe-1' },
                 files: {
@@ -684,6 +736,7 @@ describe('RecipeHandlers', () => {
                     },
                 },
             });
+
             await expect(recipeHandlers.uploadRecipeImage(ctx)).rejects.toMatchObject({ status: 400 });
             expect(mockBucketStore.putObject).not.toHaveBeenCalled();
         });
@@ -692,12 +745,14 @@ describe('RecipeHandlers', () => {
             const png = await sharp({ create: { width: 8, height: 8, channels: 3, background: '#ff0000' } })
                 .png()
                 .toBuffer();
+
             const mockFile = new File([png], 'img.png', { type: 'image/png' });
             mockBucketStore.putObject.mockResolvedValue(undefined);
             mockRecipeService.setCoverImageKey.mockResolvedValue({
                 ...baseRecipe,
                 coverImageKey: 'recipe-upload/user-1/recipe-1',
             });
+
             const ctx = createMockContext({
                 params: { recipeId: 'recipe-1' },
                 files: {
@@ -708,6 +763,7 @@ describe('RecipeHandlers', () => {
                     },
                 },
             });
+
             const response = await recipeHandlers.uploadRecipeImage(ctx);
             expect(response.status).toBe(200);
             const storedKey = mockBucketStore.putObject.mock.calls[0][0] as string;
@@ -721,8 +777,10 @@ describe('RecipeHandlers', () => {
             const png = await sharp({ create: { width: 8, height: 8, channels: 3, background: '#ff0000' } })
                 .png()
                 .toBuffer();
+
             const mockFile = new File([png], 'img.png', { type: 'image/png' });
             mockBucketStore.putObject.mockRejectedValue(Object.assign(new Error('bucket fail'), { status: 500 }));
+
             const ctx = createMockContext({
                 params: { recipeId: 'recipe-1' },
                 files: {
@@ -733,6 +791,7 @@ describe('RecipeHandlers', () => {
                     },
                 },
             });
+
             await expect(recipeHandlers.uploadRecipeImage(ctx)).rejects.toThrow('bucket fail');
         });
     });

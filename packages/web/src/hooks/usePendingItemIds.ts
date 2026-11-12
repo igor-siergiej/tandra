@@ -1,4 +1,5 @@
 import { useMemo, useSyncExternalStore } from 'react';
+
 import { outboxStore } from '../offline/outboxStore';
 
 const EMPTY: ReadonlySet<string> = new Set();
@@ -14,6 +15,7 @@ export const usePendingItemIds = (listTitle: string): ReadonlySet<string> => {
 
     return useMemo(() => {
         const ids = intents.filter((i) => i.entityType === 'item' && i.scope === listTitle).map((i) => i.targetId);
+
         return ids.length === 0 ? EMPTY : new Set(ids);
     }, [intents, listTitle]);
 };

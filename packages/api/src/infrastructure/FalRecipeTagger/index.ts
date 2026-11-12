@@ -1,4 +1,5 @@
 import type { Ingredient } from '@tandra/types';
+
 import type { FalLlmClient } from '../FalLlmClient';
 import { taggedRecipeSchema } from './schema';
 
@@ -41,6 +42,7 @@ export class FalRecipeTagger {
             ...(this.model !== undefined && { model: this.model }),
             ...(this.timeoutMs !== undefined && { timeoutMs: this.timeoutMs }),
         });
+
         return value.tags;
     }
 }

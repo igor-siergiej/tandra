@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto';
 import { ListType, type User } from '@tandra/types';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vite-plus/test';
+
 import { guestStore } from './guestStore';
 import { type MigrateAdapter, migrateGuestToAccount } from './migrateGuestToAccount';
 
@@ -14,21 +15,28 @@ const recordingAdapter = (
     calls: Array<{ kind: 'addList' | 'addItem' | 'selectItem'; args: unknown }>;
 } => {
     const calls: Array<{ kind: 'addList' | 'addItem' | 'selectItem'; args: unknown }> = [];
+
     return {
         calls,
         async addList(title, listType) {
             calls.push({ kind: 'addList', args: { title, listType } });
+
             if (overrides.addList) return await overrides.addList(title, listType);
+
             return null;
         },
         async addItem(input) {
             calls.push({ kind: 'addItem', args: input });
+
             if (overrides.addItem) return await overrides.addItem(input);
+
             return null;
         },
         async selectItem(input) {
             calls.push({ kind: 'selectItem', args: input });
+
             if (overrides.selectItem) return await overrides.selectItem(input);
+
             return null;
         },
     };
@@ -146,6 +154,7 @@ describe('migrateGuestToAccount', () => {
         await guestStore.addItem({ listId: good.id, name: 'Apples' });
 
         let badFails = true;
+
         const adapter = recordingAdapter({
             addList: (async (title: string) => {
                 if (title === 'Bad' && badFails) throw httpError(500, 'nope');

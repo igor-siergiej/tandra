@@ -9,6 +9,7 @@ import type { ImageFetcher, PageFetcher, ParsedRecipe, RecipeDraft, RecipeParser
 const MIN_INGREDIENTS = 2;
 const MAX_ITEMS = 100;
 const LLM_TEXT_LIMIT = 6000;
+
 // A serialized JSON-LD recipe node is sent whole: truncating it would hand the model broken JSON.
 // Past this cap the node is pathological, so fall back to page text instead.
 const LLM_JSON_LIMIT = 24000;
@@ -18,15 +19,20 @@ const collapse = (text: string): string => text.replace(/\s+/g, ' ').trim();
 const cleanList = (values: Array<string | undefined | null>): string[] => {
     const seen = new Set<string>();
     const out: string[] = [];
+
     for (const raw of values) {
         if (typeof raw !== 'string') continue;
         const value = collapse(raw);
+
         if (value.length < 2 || value.length > 500) continue;
+
         if (seen.has(value)) continue;
         seen.add(value);
         out.push(value);
+
         if (out.length >= MAX_ITEMS) break;
     }
+
     return out;
 };
 
@@ -97,22 +103,27 @@ export class RecipeImportService {
     // fallow-ignore-next-line unused-class-member
     async importImage(url: string): Promise<{ buffer: Buffer; contentType: string }> {
         const parsed = this.parseUrl(url);
+
         if (!this.imageFetcher) {
             throw Object.assign(new Error('Image proxy not configured'), { status: 501 });
         }
+
         return this.imageFetcher.fetchImage(parsed);
     }
 
     private parseUrl(url: string): string {
         let parsed: URL;
+
         try {
             parsed = new URL(url);
         } catch {
             throw Object.assign(new Error('Invalid URL'), { status: 400 });
         }
+
         if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
             throw Object.assign(new Error('URL must be http or https'), { status: 400 });
         }
+
         return parsed.toString();
     }
 
@@ -141,20 +152,26 @@ export class RecipeImportService {
     // Prefer the page's own JSON-LD recipe node; fall back to page text so the flag never silently no-ops.
     private llmSource(html: string): string {
         const $ = cheerio.load(html);
+
         for (const block of $('script[type="application/ld+json"]').toArray()) {
             const raw = $(block).text();
+
             if (!raw.trim()) continue;
 
             const parsed = this.parseJsonLoosely(raw);
+
             if (parsed === undefined) continue;
 
             const node = this.findRecipeNode(parsed);
+
             if (node) {
                 const serialized = JSON.stringify(node);
+
                 if (serialized.length <= LLM_JSON_LIMIT) return serialized;
                 break;
             }
         }
+
         return this.htmlToText(html).slice(0, LLM_TEXT_LIMIT);
     }
 
@@ -182,15 +199,21 @@ export class RecipeImportService {
     // Fill only what's still missing/weaker, so cheaper tiers win when they already succeeded.
     private mergeDraft(draft: RecipeDraft, next: Partial<RecipeDraft>): void {
         if (!draft.title && next.title) draft.title = next.title;
+
         if (next.ingredients && next.ingredients.length > draft.ingredients.length) {
             draft.ingredients = next.ingredients;
         }
+
         if (next.instructions && next.instructions.length > draft.instructions.length) {
             draft.instructions = next.instructions;
         }
+
         if (!draft.image && next.image) draft.image = next.image;
+
         if (!draft.prepTime && next.prepTime) draft.prepTime = next.prepTime;
+
         if (!draft.cookTime && next.cookTime) draft.cookTime = next.cookTime;
+
         if (!draft.recipeYield && next.recipeYield) draft.recipeYield = next.recipeYield;
     }
 
@@ -200,16 +223,20 @@ export class RecipeImportService {
 
         for (const block of blocks) {
             const raw = $(block).text();
+
             if (!raw.trim()) continue;
 
             const parsed = this.parseJsonLoosely(raw);
+
             if (parsed === undefined) continue;
 
             const recipe = this.findRecipeNode(parsed);
+
             if (recipe) {
                 return this.draftFromRecipeNode(recipe);
             }
         }
+
         return {};
     }
 
@@ -243,6 +270,7 @@ export class RecipeImportService {
             }
 
             const code = ch.charCodeAt(0);
+
             if (escaped) {
                 out += ch;
                 escaped = false;
@@ -270,23 +298,30 @@ export class RecipeImportService {
         if (Array.isArray(node)) {
             for (const item of node) {
                 const found = this.findRecipeNode(item);
+
                 if (found) return found;
             }
+
             return null;
         }
+
         if (!node || typeof node !== 'object') return null;
 
         const obj = node as Record<string, unknown>;
+
         if (Array.isArray(obj['@graph'])) {
             const found = this.findRecipeNode(obj['@graph']);
+
             if (found) return found;
         }
 
         const type = obj['@type'];
         const types = Array.isArray(type) ? type : [type];
+
         if (types.some((t) => typeof t === 'string' && t.toLowerCase() === 'recipe')) {
             return obj;
         }
+
         return null;
     }
 
@@ -294,15 +329,19 @@ export class RecipeImportService {
         const draft: Partial<RecipeDraft> = {};
 
         const name = recipe.name ?? recipe.headline;
+
         if (typeof name === 'string' && collapse(name)) draft.title = collapse(name);
 
         const ingredients = cleanList(this.toStringArray(recipe.recipeIngredient));
+
         if (ingredients.length) draft.ingredients = ingredients;
 
         const instructions = cleanList(this.flattenInstructions(recipe.recipeInstructions));
+
         if (instructions.length) draft.instructions = instructions;
 
         const image = this.extractImage(recipe.image);
+
         if (image) draft.image = image;
 
         for (const [field, key] of [
@@ -311,6 +350,7 @@ export class RecipeImportService {
             ['recipeYield', 'recipeYield'],
         ] as const) {
             const value = recipe[key];
+
             if (typeof value === 'string' && value.trim()) draft[field] = value.trim();
             else if (Array.isArray(value) && typeof value[0] === 'string') draft[field] = value[0].trim();
         }
@@ -320,45 +360,61 @@ export class RecipeImportService {
 
     private toStringArray(value: unknown): string[] {
         if (typeof value === 'string') return [value];
+
         if (Array.isArray(value)) return value.filter((v): v is string => typeof v === 'string');
+
         return [];
     }
 
     // recipeInstructions may be a string, string[], HowToStep[], or HowToSection[] (with nested steps).
     private flattenInstructions(value: unknown): string[] {
         if (!value) return [];
+
         if (typeof value === 'string') {
             return value.split('\n');
         }
+
         if (Array.isArray(value)) {
             return value.flatMap((item) => this.flattenInstructions(item));
         }
+
         if (typeof value === 'object') {
             const obj = value as Record<string, unknown>;
             const type = typeof obj['@type'] === 'string' ? (obj['@type'] as string).toLowerCase() : '';
+
             if (type === 'howtosection' || Array.isArray(obj.itemListElement)) {
                 return this.flattenInstructions(obj.itemListElement);
             }
+
             if (typeof obj.text === 'string') return [obj.text];
+
             if (typeof obj.name === 'string') return [obj.name];
         }
+
         return [];
     }
 
     private extractImage(value: unknown): string | undefined {
         if (!value) return undefined;
+
         if (typeof value === 'string') return value;
+
         if (Array.isArray(value)) {
             for (const item of value) {
                 const found = this.extractImage(item);
+
                 if (found) return found;
             }
+
             return undefined;
         }
+
         if (typeof value === 'object') {
             const url = (value as Record<string, unknown>).url;
+
             if (typeof url === 'string') return url;
         }
+
         return undefined;
     }
 
@@ -372,6 +428,7 @@ export class RecipeImportService {
                 .toArray()
                 .map((el) => $(el).text())
         );
+
         if (ingredients.length < MIN_INGREDIENTS) {
             ingredients = cleanList(
                 $('[class*="ingredient" i] li, [id*="ingredient" i] li')
@@ -379,6 +436,7 @@ export class RecipeImportService {
                     .map((el) => $(el).text())
             );
         }
+
         if (ingredients.length) draft.ingredients = ingredients;
 
         // Instructions: microdata first, then ordered-list items inside instruction/direction/step containers.
@@ -387,6 +445,7 @@ export class RecipeImportService {
                 .toArray()
                 .map((el) => $(el).text())
         );
+
         if (instructions.length < 1) {
             instructions = cleanList(
                 $(
@@ -396,12 +455,15 @@ export class RecipeImportService {
                     .map((el) => $(el).text())
             );
         }
+
         if (instructions.length) draft.instructions = instructions;
 
         const title = $('meta[property="og:title"]').attr('content') ?? $('title').first().text();
+
         if (title && collapse(title)) draft.title = collapse(title);
 
         const image = $('meta[property="og:image"]').attr('content');
+
         if (image) draft.image = image;
 
         return draft;
@@ -411,6 +473,7 @@ export class RecipeImportService {
         try {
             const text = this.htmlToText(html).slice(0, LLM_TEXT_LIMIT);
             const extracted = await this.llmExtractor?.extract(text);
+
             if (!extracted) return;
             this.mergeDraft(draft, {
                 title: extracted.title ? collapse(extracted.title) : undefined,
@@ -426,6 +489,7 @@ export class RecipeImportService {
     private htmlToText(html: string): string {
         const $ = cheerio.load(html);
         $('script, style, nav, header, footer, noscript, svg').remove();
+
         return collapse($('body').text() || $.root().text());
     }
 }

@@ -24,7 +24,9 @@ const authorName = (artistHtml: string | undefined): string => {
         .replace(MACHINE_READABLE_PREFIX, '')
         .replace(ASSUMED_SUFFIX, '')
         .trim();
+
     if (!text) return UNKNOWN_AUTHOR;
+
     return text.length > MAX_AUTHOR_LENGTH ? `${text.slice(0, MAX_AUTHOR_LENGTH).trimEnd()}…` : text;
 };
 
@@ -36,11 +38,16 @@ const via = (descriptionUrl: string): string =>
 // fallow-ignore-next-line complexity
 export const assessImage = (info: WikibooksImageInfo): ImageAssessment => {
     if (!info.found) return { ok: false, reason: 'file not found' };
+
     if (!(info.thumbUrl && info.descriptionUrl)) return { ok: false, reason: 'no downloadable rendition' };
+
     if (!(info.mime && ALLOWED_MIME.has(info.mime))) return { ok: false, reason: `unsupported type ${info.mime}` };
     const licence = info.licenceShortName?.trim();
+
     if (!licence) return { ok: false, reason: 'no licence stated' };
+
     if (!REUSABLE_LICENCE.test(licence)) return { ok: false, reason: `licence not reusable: ${licence}` };
+
     if (info.restrictions?.trim()) return { ok: false, reason: `restricted: ${info.restrictions.trim()}` };
 
     return {

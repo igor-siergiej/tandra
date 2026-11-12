@@ -22,6 +22,7 @@ export class MongoItemCategoryRepository implements ItemCategoryRepository {
 
     async get(name: string): Promise<ItemCategory | null> {
         const doc = await this.collection().findOne({ name });
+
         return doc?.category ?? null;
     }
 

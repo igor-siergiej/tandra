@@ -45,6 +45,7 @@ export interface IngestOptions {
 /** Pages are fetched, enriched and saved in chunks so an interrupted run keeps what it finished. */
 const CHUNK_SIZE = 50;
 const ENRICH_CONCURRENCY = 4;
+
 /** A refresh that would delete more than this share of the library is a broken listing, not a real change. */
 const MAX_REMOVAL_SHARE = 0.2;
 
@@ -56,6 +57,7 @@ const unique = (values: string[]): string[] => [
 
 const runPool = async <T>(items: T[], size: number, work: (item: T) => Promise<void>): Promise<void> => {
     let next = 0;
+
     const worker = async () => {
         while (next < items.length) {
             const item = items[next];
@@ -63,6 +65,7 @@ const runPool = async <T>(items: T[], size: number, work: (item: T) => Promise<v
             await work(item as T);
         }
     };
+
     await Promise.all(Array.from({ length: Math.min(size, items.length) }, worker));
 };
 
@@ -91,12 +94,15 @@ export class WikibooksIngestService {
 
         const isChanged = (ref: WikibooksPageRef) =>
             stored.get(recipeIdFor(ref.pageId))?.sourceRevision !== ref.revisionId;
+
         const changed = refs.filter(isChanged);
         const todo = options.limit === undefined ? changed : changed.slice(0, options.limit);
+
         // Unchanged pages whose cover picture has not been looked at yet (recipes ingested before covers existed).
         const needCover = refs.filter(
             (ref) => !isChanged(ref) && stored.get(recipeIdFor(ref.pageId))?.imageRevision !== ref.revisionId
         );
+
         const coverTodo = options.limit === undefined ? needCover : needCover.slice(0, options.limit);
 
         const summary: IngestSummary = {
@@ -112,6 +118,7 @@ export class WikibooksIngestService {
             coversRefused: 0,
             coversFailed: 0,
         };
+
         // Ids that must survive pruning: every listed page not being (re)processed now. Pages that fail below are
         // added too, so a bad fetch never deletes the copy we already have.
         const todoIds = new Set(todo.map((ref) => recipeIdFor(ref.pageId)));
@@ -120,18 +127,21 @@ export class WikibooksIngestService {
         for (let i = 0; i < todo.length; i += CHUNK_SIZE) {
             await this.processChunk(todo.slice(i, i + CHUNK_SIZE), stored, summary, keep);
         }
+
         for (let i = 0; i < coverTodo.length; i += CHUNK_SIZE) {
             await this.addCovers(coverTodo.slice(i, i + CHUNK_SIZE), summary);
         }
 
         await this.prune(stored, keep, summary);
         this.logger?.info('Wikibooks ingest finished', { ...summary });
+
         return summary;
     }
 
     /** One wiki lookup for every picture in a batch of pages, keyed by file name. */
     private async imageInfoFor(parsed: Array<ParsedWikibooksPage | null>) {
         const names = parsed.flatMap((page) => (page?.image ? [page.image] : []));
+
         return names.length > 0 ? this.source.fetchImageInfo(names) : new Map();
     }
 
@@ -149,6 +159,7 @@ export class WikibooksIngestService {
     ): Promise<void> {
         const pages = await this.source.fetchPages(chunk);
         const fetched = new Set(pages.map((page) => page.pageId));
+
         for (const ref of chunk) {
             if (!fetched.has(ref.pageId)) {
                 summary.failed += 1;
@@ -163,9 +174,11 @@ export class WikibooksIngestService {
         // fallow-ignore-next-line complexity
         await runPool(pages, ENRICH_CONCURRENCY, async (page) => {
             const id = recipeIdFor(page.pageId);
+
             try {
                 const parsedPage = parsed.get(page.pageId) ?? null;
                 const outcome = await this.ingestPage(page, parsedPage, imageInfo, stored.get(id)?.createdAt, summary);
+
                 if (outcome === 'skipped') {
                     summary.skipped += 1;
                 } else {
@@ -194,17 +207,20 @@ export class WikibooksIngestService {
     ): Promise<PageOutcome> {
         if (!parsed) return 'skipped';
         const recipe = await this.buildRecipe(page, parsed, createdAt);
+
         const cover = await this.covers.resolve(
             recipe.id,
             parsed.image,
             parsed.image ? imageInfo.get(parsed.image) : undefined
         );
+
         this.tally(summary, cover);
         await this.discovery.save({
             ...recipe,
             ...cover.fields,
             ...(cover.decided && { imageRevision: page.revisionId }),
         });
+
         return createdAt ? 'updated' : 'created';
     }
 
@@ -221,15 +237,19 @@ export class WikibooksIngestService {
 
         for (const page of pages) {
             const parsedPage = parsed.get(page.pageId);
+
             if (!parsedPage) continue;
             const id = recipeIdFor(page.pageId);
+
             try {
                 const existing = await this.discovery.getRecipe(id);
+
                 const cover = await this.covers.resolve(
                     id,
                     parsedPage.image,
                     parsedPage.image ? imageInfo.get(parsedPage.image) : undefined
                 );
+
                 this.tally(summary, cover);
                 // Only the cover fields, the stamp and the slug change; `updatedAt` stays so browsing order is not
                 // shuffled. The slug is the id, so a recipe stored before slugs existed picks it up here too.
@@ -252,15 +272,19 @@ export class WikibooksIngestService {
     /** Deletes library recipes whose page is gone or no longer a recipe, unless that would gut the library. */
     private async prune(stored: Map<string, unknown>, keep: Set<string>, summary: IngestSummary): Promise<void> {
         const stale = [...stored.keys()].filter((id) => !keep.has(id));
+
         if (stale.length === 0) return;
+
         if (stale.length > stored.size * MAX_REMOVAL_SHARE) {
             summary.removalsBlocked = stale.length;
             this.logger?.error('Refusing to remove an implausible share of the library; check the Wikibooks listing', {
                 stale: stale.length,
                 stored: stored.size,
             });
+
             return;
         }
+
         for (const id of stale) {
             await this.discovery.remove(id);
             summary.removed += 1;
@@ -287,9 +311,12 @@ export class WikibooksIngestService {
 
         // A single total lands in cookTime, so prepTime is only estimated when no time at all was given.
         const wanted: DiscoveryEstimatedField[] = [];
+
         if (prep === undefined && cook === undefined) wanted.push('prepTime', 'cookTime');
         else if (cook === undefined) wanted.push('cookTime');
+
         if (servings === undefined) wanted.push('servings');
+
         if (difficulty === undefined) wanted.push('difficulty');
 
         const [generatedTags, estimate] = await Promise.all([
@@ -300,14 +327,18 @@ export class WikibooksIngestService {
         ]);
 
         const tags = unique([cleanCategory(infobox.category) ?? '', ...generatedTags]);
+
         if (tags.length === 0) throw new Error('no tags from the page category or the tagger');
 
         const estimated: DiscoveryEstimatedField[] = [];
+
         const take = <T>(field: DiscoveryEstimatedField, value: T | undefined): T | undefined => {
             if (value === undefined || !wanted.includes(field)) return undefined;
             estimated.push(field);
+
             return value;
         };
+
         prep = prep ?? take('prepTime', estimate.prepTime);
         cook = cook ?? take('cookTime', estimate.cookTime);
         servings = servings ?? take('servings', estimate.servings);
@@ -315,6 +346,7 @@ export class WikibooksIngestService {
 
         const now = new Date();
         const id = recipeIdFor(page.pageId);
+
         return {
             id,
             // The id is already unique, stable and URL-safe, so it is also the public slug (`/recipe/wikibooks-123`).

@@ -1,6 +1,7 @@
 import { render } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
+
 import ShareTargetPage from './index';
 
 const renderAt = (path: string) => {
@@ -11,7 +12,9 @@ const renderAt = (path: string) => {
         ],
         { initialEntries: [path] }
     );
+
     render(<RouterProvider router={router} />);
+
     return router;
 };
 

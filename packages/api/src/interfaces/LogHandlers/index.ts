@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+
 import { dependencyContainer } from '../../dependencies';
 import { DependencyToken } from '../../dependencies/types';
 import { clientIpFrom } from '../../infrastructure/clientIp';
@@ -35,6 +36,7 @@ export const receiveLogs = async (c: Context) => {
 
     if (!rateLimiter.isAllowed(clientIp)) {
         logger.warn('Frontend logs rate limit exceeded', { clientIp });
+
         return c.json({ error: 'Rate limit exceeded' }, 429);
     }
 
@@ -42,11 +44,13 @@ export const receiveLogs = async (c: Context) => {
 
     if (!log.level || !log.message) {
         logger.warn('Invalid frontend log received', { clientIp, receivedData: log });
+
         return c.json({ error: 'level and message are required' }, 400);
     }
 
     if (!['debug', 'info', 'warn', 'error'].includes(log.level)) {
         logger.warn('Invalid log level received', { clientIp, level: log.level });
+
         return c.json({ error: 'Invalid log level' }, 400);
     }
 
@@ -64,6 +68,7 @@ export const receiveLogs = async (c: Context) => {
         return new Response(null, { status: 204 });
     } catch (error) {
         logger.error('Failed to process frontend log', { clientIp, error, log });
+
         return c.json({ error: 'Failed to process log' }, 500);
     }
 };

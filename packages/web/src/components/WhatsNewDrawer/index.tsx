@@ -1,4 +1,5 @@
 import { format, parseISO } from 'date-fns';
+
 import releaseNotes from '../../data/release-notes.json';
 import { compareVersions } from '../../hooks/useLastSeenVersion';
 import { PrivacyLink } from '../PrivacyLink';

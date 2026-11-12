@@ -20,6 +20,7 @@ test.describe('Public discover API', () => {
         const res = await request.get('/api/public/discover/recipes', {
             headers: { Origin: 'https://tandra.uk' },
         });
+
         expect(res.status()).toBe(200);
         const allowOrigin = res.headers()['access-control-allow-origin'];
         expect(['https://tandra.uk', '*']).toContain(allowOrigin);
@@ -29,6 +30,7 @@ test.describe('Public discover API', () => {
         const res = await request.get('/api/public/discover/recipes/definitely-not-a-real-slug-xyz', {
             failOnStatusCode: false,
         });
+
         expect(res.status()).toBe(404);
     });
 

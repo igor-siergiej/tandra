@@ -1,5 +1,6 @@
 import 'fake-indexeddb/auto';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vite-plus/test';
+
 import { outboxStore } from './outboxStore';
 
 const intent = (over = {}) => ({
@@ -41,9 +42,11 @@ describe('outboxStore', () => {
 
     it('subscribe fires on enqueue and remove', async () => {
         let calls = 0;
+
         const unsub = outboxStore.subscribe(() => {
             calls += 1;
         });
+
         const a = await outboxStore.enqueue(intent());
         await outboxStore.remove(a.seq);
         unsub();

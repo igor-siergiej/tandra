@@ -33,17 +33,21 @@ export class WebPushSender {
 
         try {
             await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, payload);
+
             return 'ok';
         } catch (error) {
             const statusCode = (error as { statusCode?: number }).statusCode;
+
             if (statusCode === 404 || statusCode === 410) {
                 return 'gone';
             }
+
             this.logger?.error('Failed to send web push', {
                 endpoint: sub.endpoint,
                 statusCode,
                 error: (error as Error).message,
             });
+
             return 'error';
         }
     }

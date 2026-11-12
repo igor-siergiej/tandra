@@ -19,9 +19,14 @@ export const recipeEstimateSchema: z.ZodType<RecipeEstimate> = z
     // fallow-ignore-next-line complexity
     .transform((raw): RecipeEstimate => {
         const estimate: RecipeEstimate = {};
+
         if (raw.prepTime !== undefined) estimate.prepTime = raw.prepTime;
+
         if (raw.cookTime !== undefined) estimate.cookTime = raw.cookTime;
+
         if (raw.servings !== undefined) estimate.servings = raw.servings;
+
         if (raw.difficulty !== undefined) estimate.difficulty = raw.difficulty;
+
         return estimate;
     });

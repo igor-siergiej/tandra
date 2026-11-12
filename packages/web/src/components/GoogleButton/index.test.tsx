@@ -1,13 +1,15 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const social = vi.fn();
+
 vi.mock('../../auth/client', () => ({
     authClient: { signIn: { social: (...args: unknown[]) => social(...args) } },
 }));
 
 const features = { googleSignIn: true };
+
 vi.mock('../../utils/useAiFeatures', () => ({ useAuthFeatures: () => features }));
 
 import { GoogleButton } from './index';

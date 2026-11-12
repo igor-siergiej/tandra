@@ -7,6 +7,7 @@ import { expect, test } from '../fixtures';
 // exists server-side after reload" — verified end-to-end here.
 
 type ServerItem = { id: string; name: string; isSelected: boolean; dateAdded: string };
+
 type ServerList = {
     id: string;
     title: string;
@@ -55,6 +56,7 @@ test.describe('Guest mode', () => {
             if (route.request().method() === 'PUT') {
                 const payload = route.request().postDataJSON?.() ?? {};
                 const id = `server-list-${++serverListCounter}`;
+
                 const created = {
                     id,
                     title: payload.title ?? 'Untitled',
@@ -64,10 +66,13 @@ test.describe('Guest mode', () => {
                     ownerId: 'user-testuser',
                     dateAdded: new Date().toISOString(),
                 };
+
                 serverLists.push(created);
                 await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(created) });
+
                 return;
             }
+
             await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) });
         });
         await page.route(/\/api\/lists\/title\//, (route) => {
@@ -96,16 +101,20 @@ test.describe('Guest mode', () => {
                 const payload = route.request().postDataJSON?.() ?? {};
                 const target = serverLists.find((list) => list.title === title);
                 const id = payload.id ?? `server-item-${++serverItemCounter}`;
+
                 const created: ServerItem = {
                     id,
                     name: payload.itemName ?? '',
                     isSelected: false,
                     dateAdded: new Date().toISOString(),
                 };
+
                 target?.items.push(created);
                 await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(created) });
+
                 return;
             }
+
             await route.fulfill({
                 status: 200,
                 contentType: 'application/json',
@@ -117,9 +126,11 @@ test.describe('Guest mode', () => {
             const segments = new URL(route.request().url()).pathname.split('/');
             const title = decodeURIComponent(segments.at(-3) ?? '');
             const itemId = decodeURIComponent(segments.at(-1) ?? '');
+
             const item = serverLists
                 .find((list) => list.title === title)
                 ?.items.find((candidate) => candidate.id === itemId);
+
             if (item) item.isSelected = route.request().postDataJSON()?.isSelected ?? item.isSelected;
             await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(item ?? {}) });
         });

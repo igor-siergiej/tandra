@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
+
 import { LoginForm } from './index';
 
 const mockUseLoginForm = vi.fn();
@@ -18,6 +19,7 @@ vi.mock('../../guest/GuestContext', () => ({
 }));
 
 let searchParams = new URLSearchParams();
+
 vi.mock('react-router-dom', () => ({
     useNavigate: () => vi.fn(),
     useSearchParams: () => [searchParams],
