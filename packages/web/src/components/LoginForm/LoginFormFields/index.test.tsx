@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom';
 import { cleanup, render } from '@testing-library/react';
 import { useForm } from 'react-hook-form';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vite-plus/test';
 
 import { LoginFormFields } from './index';
 

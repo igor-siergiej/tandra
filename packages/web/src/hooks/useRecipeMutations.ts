@@ -1,5 +1,6 @@
 import type { Ingredient, Recipe, User } from '@tandra/types';
 import { useQueryClient } from '@tanstack/react-query';
+
 import { drainOutbox } from '../offline/drainer';
 import { applyRecipeIntent } from '../offline/intents';
 import { type OutboxIntent, outboxStore } from '../offline/outboxStore';
@@ -20,15 +21,19 @@ export const useRecipeMutations = (user: User | undefined) => {
             payload,
             createdAt: Date.now(),
         };
+
         queryClient.setQueryData<Recipe[]>(['recipes', userId], (old) =>
             applyRecipeIntent(old ?? [], intent as OutboxIntent)
         );
+
         if (op === 'recipe.update') {
             queryClient.setQueryData<Recipe | undefined>(['recipe', targetId], (old) =>
                 old ? (applyRecipeIntent([old], intent as OutboxIntent)[0] ?? old) : old
             );
         }
+
         await outboxStore.enqueue(intent);
+
         if (op === 'recipe.create') {
             await drainOutbox();
         } else {
@@ -66,6 +71,7 @@ export const useRecipeMutations = (user: User | undefined) => {
                 servings,
                 difficulty,
             });
+
             return id;
         },
 

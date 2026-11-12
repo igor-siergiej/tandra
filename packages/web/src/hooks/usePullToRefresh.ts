@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 const RESISTANCE = 0.4;
 const THRESHOLD = 80;
 const MAX_PULL = 120;
+
 // Minimum downward travel before committing to pull mode and calling preventDefault.
 // Must be large enough that: (a) ordinary scroll-down gestures that start with a
 // tiny downward jitter don't accidentally lock into pull mode, and (b) the user's
@@ -44,6 +45,7 @@ export function usePullToRefresh(onRefresh: () => Promise<void>): UsePullToRefre
 
     useEffect(() => {
         const el = scrollRef.current;
+
         if (!el) return;
 
         // Abort any uncommitted pull the moment the container actually scrolls.
@@ -59,6 +61,7 @@ export function usePullToRefresh(onRefresh: () => Promise<void>): UsePullToRefre
 
         const onTouchStart = (e: TouchEvent) => {
             if (isRefreshingRef.current) return;
+
             // Use a tolerance of 1px to absorb sub-pixel rounding at the true top.
             if (el.scrollTop > 1) return;
             touchStartY.current = e.touches[0].clientY;
@@ -69,10 +72,12 @@ export function usePullToRefresh(onRefresh: () => Promise<void>): UsePullToRefre
 
         const onTouchMove = (e: TouchEvent) => {
             if (!isPulling.current) return;
+
             // User scrolled away from top — abort pull mode
             if (el.scrollTop > 1) {
                 isPulling.current = false;
                 isCommitted.current = false;
+
                 return;
             }
 
@@ -83,6 +88,7 @@ export function usePullToRefresh(onRefresh: () => Promise<void>): UsePullToRefre
                 isPulling.current = false;
                 isCommitted.current = false;
                 pullY.set(0);
+
                 return;
             }
 
@@ -116,15 +122,19 @@ export function usePullToRefresh(onRefresh: () => Promise<void>): UsePullToRefre
             // If we never committed (user didn't clearly pull down), do nothing
             if (!isCommitted.current) {
                 isCommitted.current = false;
+
                 return;
             }
+
             isCommitted.current = false;
 
             const current = pullY.get();
+
             if (current >= THRESHOLD) {
                 springTo(THRESHOLD, SPRING_HOLD);
                 isRefreshingRef.current = true;
                 setIsRefreshing(true);
+
                 try {
                     await onRefresh();
                 } finally {

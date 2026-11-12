@@ -36,6 +36,7 @@ describe('parsedRecipeSchema', () => {
             ingredients: [{ name: 'onion', quantity: 'one', unit: 'pcs' }],
             instructions: ['Do.'],
         });
+
         expect(result.ingredients).toEqual([{ name: 'onion' }]);
     });
 
@@ -62,6 +63,7 @@ describe('parsedRecipeSchema', () => {
             ingredients: [{ name: 'eggs', quantity: 3, unit: '   ' }],
             instructions: ['Do.'],
         });
+
         expect(result.ingredients).toEqual([{ name: 'eggs', quantity: 3, unit: 'pcs' }]);
     });
 
@@ -71,6 +73,7 @@ describe('parsedRecipeSchema', () => {
             ingredients: [{ name: 'salt', quantity: 0, unit: 'g' }],
             instructions: ['Do.'],
         });
+
         expect(result.ingredients).toEqual([{ name: 'salt', quantity: 0, unit: 'g' }]);
     });
 
@@ -80,6 +83,7 @@ describe('parsedRecipeSchema', () => {
             ingredients: [{ name: 'salt' }],
             instructions: ['Do.', 5, 'Then.'],
         });
+
         expect(result.instructions).toEqual(['Do.', 'Then.']);
     });
 

@@ -3,7 +3,9 @@ import type { ImageStore } from '../ImageService/types';
 
 const readAll = async (stream: NodeJS.ReadableStream): Promise<Buffer> => {
     const chunks: Buffer[] = [];
+
     for await (const chunk of stream) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+
     return Buffer.concat(chunks);
 };
 
@@ -18,5 +20,6 @@ export const copyImage = async (store: ImageStore, fromKey: string, toKeyBase: s
     const buffer = await readAll(await store.getObjectStream(fromKey));
     const toKey = withImageExtension(toKeyBase, contentType);
     await store.putObject(toKey, buffer, { contentType });
+
     return toKey;
 };

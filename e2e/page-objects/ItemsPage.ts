@@ -64,6 +64,7 @@ export class ItemsPage {
     async swipeLeft(itemName: string) {
         const item = this.itemRow(itemName);
         const box = await item.boundingBox();
+
         if (!box) throw new Error(`Item "${itemName}" not found`);
         const cx = box.x + box.width / 2;
         const cy = box.y + box.height / 2;
@@ -77,6 +78,7 @@ export class ItemsPage {
     async swipeRight(itemName: string) {
         const item = this.itemRow(itemName);
         const box = await item.boundingBox();
+
         if (!box) throw new Error(`Item "${itemName}" not found`);
         const cx = box.x + box.width / 2;
         const cy = box.y + box.height / 2;

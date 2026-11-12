@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+
 import type { Page } from '@playwright/test';
 
 export const ANALYTICS_WEBSITE_ID = 'e2e-website';
@@ -43,5 +44,6 @@ export const mockAnalytics = async (page: Page): Promise<Array<CollectedHit>> =>
         hits.push(route.request().postDataJSON() as CollectedHit);
         await route.fulfill({ contentType: 'application/json', body: '{}' });
     });
+
     return hits;
 };

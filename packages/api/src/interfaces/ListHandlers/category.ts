@@ -19,8 +19,10 @@ export const setItemCategory = async (c: Context<HonoVars>) => {
 
     try {
         const list = await listService.getList(title);
+
         if (!list.users?.some((member: { id: string }) => member.id === user?.id)) {
             logger.warn('Unauthorized item category change', { authenticatedUserId: user?.id, listTitle: title });
+
             return c.json({ error: 'Forbidden' }, 403);
         }
 

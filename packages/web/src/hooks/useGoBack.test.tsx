@@ -1,7 +1,8 @@
 import { act, renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
+
 import { recordInAppNavigation, resetNavigationDepthForTests } from '../utils/navigationHistory';
 
 const { mockNavigate } = vi.hoisted(() => ({
@@ -10,6 +11,7 @@ const { mockNavigate } = vi.hoisted(() => ({
 
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+
     return {
         ...actual,
         useNavigate: () => mockNavigate,

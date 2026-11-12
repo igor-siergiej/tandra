@@ -1,10 +1,15 @@
 import { type DBSchema, type IDBPDatabase, openDB } from 'idb';
 
 export type ItemOp = 'item.add' | 'item.toggle' | 'item.delete' | 'item.rename' | 'item.quantity' | 'item.category';
+
 export type ListOp = 'list.create';
+
 export type TodoOp = 'todo.create' | 'todo.update' | 'todo.delete' | 'todo.complete';
+
 export type LabelOp = 'label.create' | 'label.update' | 'label.delete';
+
 export type RecipeOp = 'recipe.create' | 'recipe.update' | 'recipe.delete';
+
 export type EntityType = 'item' | 'list' | 'todo' | 'label' | 'recipe';
 
 export interface OutboxIntent {
@@ -26,6 +31,7 @@ const DB_NAME = 'tandra-outbox';
 const STORE = 'intents';
 
 let dbPromise: Promise<IDBPDatabase<OutboxDB>> | null = null;
+
 const getDB = () => {
     if (!dbPromise) {
         dbPromise = openDB<OutboxDB>(DB_NAME, 1, {
@@ -34,14 +40,17 @@ const getDB = () => {
             },
         });
     }
+
     return dbPromise;
 };
 
 let mirror: OutboxIntent[] = [];
 const listeners = new Set<() => void>();
+
 const notify = () => {
     for (const cb of listeners) cb();
 };
+
 const sortBySeq = (a: OutboxIntent, b: OutboxIntent) => a.seq - b.seq;
 
 export const outboxStore = {
@@ -56,6 +65,7 @@ export const outboxStore = {
         const stored: OutboxIntent = { ...(intent as OutboxIntent), seq };
         mirror = [...mirror, stored].sort(sortBySeq);
         notify();
+
         return stored;
     },
     peekAll() {
@@ -72,6 +82,7 @@ export const outboxStore = {
     },
     subscribe(cb: () => void) {
         listeners.add(cb);
+
         return () => listeners.delete(cb);
     },
     async clear() {

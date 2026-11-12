@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
+
 import { getListSocketTicket } from '../api';
 import { openListSocket, type Viewer } from '../realtime/listSocket';
 
@@ -12,12 +13,14 @@ export const useListRealtime = (listTitle: string | undefined, currentUserId: st
 
     useEffect(() => {
         if (!listTitle) return;
+
         const close = openListSocket({
             listTitle,
             getTicket: getListSocketTicket,
             onChanged: () => void queryClient.invalidateQueries({ queryKey: [listTitle] }),
             onPresence: setViewers,
         });
+
         return () => {
             close();
             setViewers([]);

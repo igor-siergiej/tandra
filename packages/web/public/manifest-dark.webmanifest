@@ -1,35 +1,35 @@
 {
-  "name": "Tandra",
-  "short_name": "Tandra",
-  "description": "Shopping list application",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#1a1a1a",
-  "theme_color": "#1a1a1a",
-  "scope": "/",
-  "orientation": "portrait-primary",
-  "categories": ["shopping", "productivity", "lifestyle"],
-  "share_target": {
-    "action": "/share",
-    "method": "GET",
-    "params": {
-      "url": "url",
-      "title": "title",
-      "text": "text"
-    }
-  },
-  "icons": [
-    {
-      "src": "logo-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+    "name": "Tandra",
+    "short_name": "Tandra",
+    "description": "Shopping list application",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#1a1a1a",
+    "theme_color": "#1a1a1a",
+    "scope": "/",
+    "orientation": "portrait-primary",
+    "categories": ["shopping", "productivity", "lifestyle"],
+    "share_target": {
+        "action": "/share",
+        "method": "GET",
+        "params": {
+            "url": "url",
+            "title": "title",
+            "text": "text"
+        }
     },
-    {
-      "src": "logo-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ]
+    "icons": [
+        {
+            "src": "logo-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "logo-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
 }

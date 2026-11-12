@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+
 import { check, summarise } from './check-coverage.js';
 
 const lcov = (rows) =>

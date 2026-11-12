@@ -19,5 +19,6 @@ import { csrf } from 'hono/csrf';
  */
 export const csrfForFormPosts = (allowedOrigins: Array<string>) => {
     const checkOrigin = csrf({ origin: allowedOrigins });
+
     return async (c: Context, next: Next) => (c.req.header('content-type') ? checkOrigin(c, next) : next());
 };

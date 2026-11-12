@@ -24,6 +24,7 @@ const PRIVATE_V4_RANGES: Array<[string, number]> = [
 
 const isPrivateIpv4 = (ip: string): boolean => {
     const value = toInt(ip);
+
     return PRIVATE_V4_RANGES.some(
         ([network, bits]) => Math.floor(value / 2 ** (32 - bits)) === Math.floor(toInt(network) / 2 ** (32 - bits))
     );
@@ -35,18 +36,22 @@ export const isPrivateIp = (ip: string): boolean => {
     if (isIP(ip) === 4) return isPrivateIpv4(ip);
 
     const v6 = ip.toLowerCase();
+
     if (v6 === '::' || v6 === '::1') return true;
 
     // IPv4-mapped (::ffff:a.b.c.d or ::ffff:hhhh:hhhh) must be judged by the embedded v4 address.
     const mapped = v6.match(/^::ffff:(?:(\d+\.\d+\.\d+\.\d+)|([0-9a-f]{1,4}):([0-9a-f]{1,4}))$/);
+
     if (mapped) {
         if (mapped[1]) return isPrivateIpv4(mapped[1]);
         const hi = Number.parseInt(mapped[2], 16);
         const lo = Number.parseInt(mapped[3], 16);
+
         return isPrivateIpv4(`${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`);
     }
 
     const first = Number.parseInt(v6.split(':')[0] || '0', 16);
+
     return (first & 0xfe00) === 0xfc00 || (first & 0xffc0) === 0xfe80;
 };
 
@@ -58,17 +63,20 @@ const defaultLookup: HostLookup = (hostname) => lookup(hostname, { all: true });
 // fallow-ignore-next-line complexity, unused-export
 export const assertPublicUrl = async (rawUrl: string, resolveHost: HostLookup = defaultLookup): Promise<void> => {
     let parsed: URL;
+
     try {
         parsed = new URL(rawUrl);
     } catch {
         throw blocked('Invalid URL');
     }
+
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
         throw blocked('URL must be http or https');
     }
 
     const host = parsed.hostname.replace(/^\[|\]$/g, '');
     let addresses: Array<string>;
+
     if (isIP(host)) {
         addresses = [host];
     } else {
@@ -103,9 +111,11 @@ export const safeFetch = async (
         const response = await doFetch(current, { ...init, redirect: 'manual' });
 
         const location = response.headers.get('location');
+
         if (response.status < 300 || response.status >= 400 || !location) {
             return response;
         }
+
         await response.body?.cancel().catch(() => {});
         current = new URL(location, current).toString();
     }
@@ -140,13 +150,16 @@ export const guardedFetch = async <T>(
             { ...init, signal: controller.signal },
             { resolveHost: options.resolveHost }
         );
+
         return await handle(response);
     } catch (error) {
         if (typeof (error as { status?: unknown })?.status === 'number') throw error;
+
         const message =
             (error as Error)?.name === 'AbortError'
                 ? `Timed out fetching ${options.noun}`
                 : `Failed to fetch ${options.noun}`;
+
         throw Object.assign(new Error(message), { status: 502 });
     } finally {
         clearTimeout(timeout);

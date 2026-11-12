@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'bun:test';
+
 import type { ItemCategory } from '@tandra/types';
 
 import { ItemCategoryService } from './index';
 
 const setup = () => {
     const store = new Map<string, ItemCategory>();
+
     const repo = {
         ensureIndexes: vi.fn(),
         get: vi.fn(async (name: string) => store.get(name) ?? null),
@@ -12,7 +14,9 @@ const setup = () => {
             store.set(name, category);
         }),
     };
+
     const classifier = { classify: vi.fn().mockResolvedValue('dairy' as ItemCategory) };
+
     return { repo, classifier, service: new ItemCategoryService(repo, classifier) };
 };
 

@@ -25,6 +25,7 @@ export class RecipeImageService {
             try {
                 await this.store.getHeadObject(key);
                 this.logger?.info('Recipe image already exists in store', { recipeId });
+
                 return key;
             } catch {
                 this.logger?.info('Recipe image not found in store, generating', { recipeId });
@@ -46,7 +47,9 @@ export class RecipeImageService {
             .slice(0, 5)
             .map((i) => i.name)
             .join(', ');
+
         const clause = top ? `, featuring ${top}` : '';
+
         return `Appetising food photography of ${title}${clause}, soft natural lighting, shallow depth of field, served on a wooden table, no text, no watermark.`;
     }
 }

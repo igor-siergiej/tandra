@@ -15,6 +15,7 @@ import { DEFAULT_INDEX_ALIAS, indexBody } from './mapping';
 import { buildSearchBody, buildSimilarBody, TIME_RANGES } from './query';
 
 type Reply<T = unknown> = Promise<{ body: T }>;
+
 type Options = { ignore?: number[] };
 
 /**
@@ -48,6 +49,7 @@ const isUnreachable = (error: unknown): boolean =>
     (error instanceof errors.ResponseError && (error.statusCode === 503 || error.statusCode === 502));
 
 type Bucket = { key: string | number; doc_count: number };
+
 type SearchResponse = {
     hits: { total: { value: number }; hits: Array<{ _source: Record<string, unknown> }> };
     aggregations?: Record<string, { buckets: Bucket[] }>;
@@ -60,6 +62,7 @@ const toBuckets = (buckets: Bucket[] | undefined): DiscoveryFacetBucket[] =>
 const toTimeBuckets = (buckets: Bucket[] | undefined): DiscoveryTimeBucket[] =>
     TIME_RANGES.map((range) => {
         const found = buckets?.find((b) => b.key === range.key);
+
         return { key: range.key, count: found?.doc_count ?? 0, from: range.from, to: range.to };
     });
 
@@ -87,15 +90,19 @@ export class OpenSearchDiscoveryIndex implements DiscoveryIndex {
     /** Runs `fn` once the index exists, turning "engine unreachable" into a 503 instead of a 500. */
     private async guarded<T>(fn: (client: OpenSearchApi) => Promise<T>): Promise<T> {
         const client = this.client;
+
         if (!client) throw unavailable('Recipe discovery is not configured');
+
         try {
             await this.ensureIndex();
+
             return await fn(client);
         } catch (error) {
             if (isUnreachable(error)) {
                 this.logger?.warn('Discovery search engine unreachable', { error: (error as Error).message });
                 throw unavailable('Recipe discovery is temporarily unavailable', error);
             }
+
             throw error;
         }
     }
@@ -103,13 +110,16 @@ export class OpenSearchDiscoveryIndex implements DiscoveryIndex {
     /** Memoised on success only, so an engine that was down at startup is picked up on the next request. */
     ensureIndex(): Promise<void> {
         const client = this.client;
+
         if (!client) return Promise.reject(unavailable('Recipe discovery is not configured'));
+
         if (!this.ready) {
             this.ready = this.createIfMissing(client).catch((error) => {
                 this.ready = null;
                 throw error;
             });
         }
+
         return this.ready;
     }
 
@@ -117,8 +127,10 @@ export class OpenSearchDiscoveryIndex implements DiscoveryIndex {
     // fallow-ignore-next-line complexity
     private async createIfMissing(client: OpenSearchApi): Promise<void> {
         const { body: exists } = await client.indices.existsAlias({ name: this.alias });
+
         if (exists) return;
         const initial = `${this.alias}-000001`;
+
         try {
             await client.indices.create({
                 index: initial,
@@ -153,6 +165,7 @@ export class OpenSearchDiscoveryIndex implements DiscoveryIndex {
         const { body } = await this.guarded((client) =>
             client.search<SearchResponse>({ index: this.alias, body: buildSearchBody(query) })
         );
+
         return {
             hits: body.hits.hits.map((hit) => toSummary(hit._source)),
             total: body.hits.total.value,
@@ -166,6 +179,7 @@ export class OpenSearchDiscoveryIndex implements DiscoveryIndex {
         const { body } = await this.guarded((client) =>
             client.search<SearchResponse>({ index: this.alias, body: buildSimilarBody(this.alias, id, limit) })
         );
+
         return body.hits.hits.map((hit) => toSummary(hit._source));
     }
 
@@ -173,10 +187,12 @@ export class OpenSearchDiscoveryIndex implements DiscoveryIndex {
         return this.guarded(async (client) => {
             const next = `${this.alias}-${Date.now()}`;
             await client.indices.create({ index: next, body: indexBody });
+
             try {
                 const count = await this.load(client, next, batches);
                 await client.indices.refresh({ index: next });
                 await this.swapAlias(client, next);
+
                 return count;
             } catch (error) {
                 await client.indices.delete({ index: next }, { ignore: [404] });
@@ -191,18 +207,23 @@ export class OpenSearchDiscoveryIndex implements DiscoveryIndex {
         batches: AsyncIterable<DiscoveryRecipe[]>
     ): Promise<number> {
         let count = 0;
+
         for await (const batch of batches) {
             const operations = batch.flatMap((recipe) => [
                 { index: { _index: index, _id: recipe.id } },
                 toIndexDocument(recipe),
             ]);
+
             const { body } = await client.bulk({ body: operations });
+
             if (body.errors) {
                 const failed = body.items.find((item) => item.index?.error);
                 throw new Error(`Bulk indexing failed: ${JSON.stringify(failed?.index?.error)}`);
             }
+
             count += batch.length;
         }
+
         return count;
     }
 
@@ -218,6 +239,7 @@ export class OpenSearchDiscoveryIndex implements DiscoveryIndex {
                 ],
             },
         });
+
         for (const index of previous) {
             await client.indices.delete({ index }, { ignore: [404] });
         }

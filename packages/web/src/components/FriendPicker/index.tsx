@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+
 import { useFriends } from '../../hooks/useFriends';
 import { Switch } from '../ui/switch';
 
@@ -16,6 +17,7 @@ export const FriendPicker = ({ value, onChange, seedAllByDefault }: FriendPicker
         if (hasSeeded.current || !seedAllByDefault || friends.length === 0 || value.length > 0) {
             return;
         }
+
         hasSeeded.current = true;
         onChange(friends.map((f) => f.id));
         // hasSeeded ref guards against re-seeding regardless of dependency changes.

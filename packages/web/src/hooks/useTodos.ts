@@ -1,5 +1,6 @@
 import type { Todo } from '@tandra/types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+
 import { type CreateTodoBody, getTodosQuery, type UpdateTodoBody } from '../api';
 import { useUser } from '../auth';
 import { drainOutbox } from '../offline/drainer';
@@ -23,6 +24,7 @@ export const useTodos = () => {
             payload,
             createdAt: Date.now(),
         };
+
         queryClient.setQueryData<Todo[]>(['todos'], (old) => applyTodoIntent(old ?? [], intent as OutboxIntent));
         await outboxStore.enqueue(intent);
         void drainOutbox();

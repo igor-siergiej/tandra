@@ -1,5 +1,6 @@
 import type { RecipeDifficulty } from '@tandra/types';
 import { useId } from 'react';
+
 import { RecipeTimingFields } from '../../components/RecipeTimingFields';
 
 interface RecipeDetails {

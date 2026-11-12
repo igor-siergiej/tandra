@@ -1,5 +1,6 @@
 import type { Label } from '@tandra/types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+
 import { getLabelsQuery } from '../api';
 import { useUser } from '../auth';
 import { drainOutbox } from '../offline/drainer';
@@ -23,6 +24,7 @@ export const useLabels = () => {
             payload,
             createdAt: Date.now(),
         };
+
         queryClient.setQueryData<Label[]>(['labels'], (old) => applyLabelIntent(old ?? [], intent as OutboxIntent));
         await outboxStore.enqueue(intent);
         void drainOutbox();

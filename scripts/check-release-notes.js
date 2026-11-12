@@ -50,6 +50,7 @@ export const check = (message) => {
                 `This is a "${header.type}" commit, so a user can notice it, but it has no "Release-Notes:" trailer.`
             );
         }
+
         return problems;
     }
 
@@ -58,6 +59,7 @@ export const check = (message) => {
 
 if (import.meta.main) {
     const file = process.argv[2];
+
     if (!file) {
         console.error('Usage: bun scripts/check-release-notes.js <commit-message-file>');
         process.exit(2);
@@ -67,6 +69,7 @@ if (import.meta.main) {
 
     if (problems.length > 0) {
         console.error('\n❌ Release notes are missing from this commit:\n');
+
         for (const problem of problems) console.error(`   ${problem}`);
         console.error('\n   Add a trailer at the end of the commit body, one sentence in plain language:');
         console.error('\n   Release-Notes: Usage stats no longer include your list names.\n');

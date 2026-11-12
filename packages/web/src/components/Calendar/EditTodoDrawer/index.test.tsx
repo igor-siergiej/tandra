@@ -1,5 +1,6 @@
 import type { Todo } from '@tandra/types';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
+
 import { buildUpdateBody } from './buildUpdateBody';
 
 const todo: Todo = {

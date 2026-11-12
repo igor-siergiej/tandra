@@ -6,6 +6,7 @@ interface Measurement {
 }
 
 type Dimension = 'mass' | 'volume';
+
 type System = 'metric' | 'imperial';
 
 interface UnitDef {
@@ -74,13 +75,17 @@ const normalizeUnit = (unit: string): string => unit.trim().toLowerCase().replac
 const lookupUnit = (unit: string | undefined): UnitDef | undefined => {
     if (!unit) return undefined;
     const key = normalizeUnit(unit);
+
     return UNIT_TABLE[key] ?? UNIT_TABLE[`${key}s`];
 };
 
 const roundQuantity = (value: number): number => {
     if (value >= 100) return Math.round(value);
+
     if (value >= 10) return Math.round(value * 2) / 2;
+
     if (value >= 1) return Math.round(value * 10) / 10;
+
     return Math.round(value * 100) / 100;
 };
 
@@ -91,11 +96,14 @@ const hasUsableQuantity = (quantity: number | undefined): quantity is number =>
 const pickUnit = (base: number, candidateKeys: string[]): Measurement => {
     for (const key of candidateKeys) {
         const def = UNIT_TABLE[key];
+
         if (base / def.toBase >= 1) {
             return { quantity: roundQuantity(base / def.toBase), unit: def.label };
         }
     }
+
     const smallest = UNIT_TABLE[candidateKeys[candidateKeys.length - 1]];
+
     return { quantity: roundQuantity(base / smallest.toBase), unit: smallest.label };
 };
 
@@ -111,6 +119,7 @@ const convertMeasurement = (
     target: System
 ): Measurement | null => {
     const def = lookupUnit(unit);
+
     if (!hasUsableQuantity(quantity) || !def || !canConvertTo(def, target)) return null;
 
     return pickUnit(quantity * def.toBase, PREFERRED[target][def.dimension]);
@@ -132,6 +141,7 @@ export const convertIngredients = <T extends ConvertibleIngredient>(ingredients:
 
     return ingredients.map((ingredient) => {
         const converted = convertMeasurement(ingredient.quantity, ingredient.unit, system);
+
         return converted ? { ...ingredient, quantity: converted.quantity, unit: converted.unit } : ingredient;
     });
 };

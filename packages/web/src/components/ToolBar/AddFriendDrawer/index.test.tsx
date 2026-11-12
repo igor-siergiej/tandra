@@ -1,5 +1,6 @@
 import { fireEvent, render, within } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
+
 import { useGenerateFriendCode, useRedeemFriendCode } from '../../../hooks/useFriends';
 import { AddFriendDrawer } from './index';
 

@@ -27,7 +27,8 @@ tandra/
 │   └── types/        # Shared TypeScript types
 ├── .env              # Environment variables
 ├── .bunfig.toml      # Bun registry configuration
-├── biome.json        # Biome linter/formatter config
+├── vite.config.ts    # Vite+ lint (Oxlint), format (Oxfmt) and staged-file config
+├── .vite-hooks/      # Git hooks installed by `vp config`
 ├── commitlint.config.js  # Conventional commit rules
 ├── .releaserc.json   # Semantic-release config (auto changelog & versioning)
 ├── package.json      # Root workspace configuration
@@ -43,16 +44,16 @@ Run these from the root directory:
 - `bun run start:api` - Start only API (port 4001)
 
 ### Code Quality
-- `bun run lint` - Run Biome linter across all packages
-- `bun run lint:fix` - Auto-fix Biome linting issues
+- `bun run lint` - Run `vp check` (Oxfmt formatting + Oxlint) across all packages
+- `bun run lint:fix` - Auto-fix formatting and lint issues (`vp check --fix`)
 - `bun run typecheck` - Type-check the API and web packages (see [Type Checking](#type-checking))
 
 ### Testing
 - `bun run test` - Run the API tests (Bun native test runner). CI also enforces 90% line and function coverage via `scripts/check-coverage.js` on the lcov report (bun's own `coverageThreshold` is per file, so it can't express a global gate)
-- `bun run --filter @tandra/web test` - Run web component tests (Vitest). No coverage gate: the web package has no coverage provider installed and the e2e suite is the main safety net for UI; add `@vitest/coverage-v8` and a threshold if that changes
+- `bun run --filter @tandra/web test` - Run web component tests (Vitest, via `vp test`). No coverage gate: the web package has no coverage provider installed and the e2e suite is the main safety net for UI; add `@vitest/coverage-v8` and a threshold if that changes
 - `bun run test:scripts` - Run the script tests (`scripts/` and `packages/api/scripts/`)
 - `bun run load:local` - On-demand k6 API capacity test against a throwaway local API/DB with a mock auth verifier (not in CI; see `scripts/load/README.md`)
-- API and script tests use Bun's native runner: import from `bun:test`. The API `test` scripts (and the root `bun run test`) pass `--parallel`, which runs files across one worker per CPU core and implies `--isolate`, so `mock.module`/`vi.mock` and spies on shared singletons (e.g. `config`) can't leak into other files, and files must not share mutable external state; script tests (`bun run test:scripts`) aren't isolated, so prefer injecting dependencies there. Web tests use Vitest (`vitest`).
+- API and script tests use Bun's native runner: import from `bun:test`. The API `test` scripts (and the root `bun run test`) pass `--parallel`, which runs files across one worker per CPU core and implies `--isolate`, so `mock.module`/`vi.mock` and spies on shared singletons (e.g. `config`) can't leak into other files, and files must not share mutable external state; script tests (`bun run test:scripts`) aren't isolated, so prefer injecting dependencies there. Web tests use Vitest through Vite+: import from `vite-plus/test`, not `vitest`.
 - The root `bunfig.toml` scopes Bun's test collection to the API package, so a bare `bun test` at the root does not try to run the Playwright specs in `e2e/` or the Vitest specs in `packages/web/` under the wrong runner.
 
 ## Environment Setup
@@ -103,11 +104,11 @@ Common TypeScript interfaces and types shared between frontend and backend.
 
 ## Development Workflow
 1. **Starting development**: Run `bun run start` to start both services
-2. **Code style**: The project uses **Biome** for linting and formatting (not ESLint)
+2. **Code style**: The project uses **Vite+** (`vp check`: Oxlint for linting, Oxfmt for formatting) with the shared `@imapps/oxc-config` presets. Preset rules report as warnings for now
 3. **Testing**: API tests run on Bun's test runner, web tests on Vitest, browser tests on Playwright (`e2e/`)
 4. **Linting before commits**: **IMPORTANT** - Run `bun run lint:fix` to fix all linting issues before committing
 5. **Building**: Use `bun run --filter @tandra/web build` for production build
-6. **Commit messages**: Must follow Conventional Commits (enforced by commitlint + Husky)
+6. **Commit messages**: Must follow Conventional Commits (enforced by commitlint in the `.vite-hooks/commit-msg` hook)
 7. **Versioning**: Automated via semantic-release on main branch merges
 8. **Release notes**: Every user-visible change adds a `Release-Notes:` trailer to its commit body (see below)
 
@@ -146,8 +147,11 @@ trailer is rejected. Run `bun run check:release-notes <file>` to check a message
 without committing. The check reads the trailer with the same parser the release
 notes use, so the two cannot disagree about what counts as one.
 
-## Pre-commit Hooks (Husky)
-- **pre-commit**: Runs lint-staged on `*.{ts,tsx,json}` files, then the type-check gate
+## Git Hooks (`.vite-hooks`)
+`bun install` runs `vp config`, which points git at `.vite-hooks/`. Clones made before the move to Vite+ still point git at the old Husky hooks; run
+`git config --unset core.hooksPath && bun install` once so the `.vite-hooks` ones take over.
+
+- **pre-commit**: Runs `vp staged` (`vp check --fix` on staged code and JSON files), then the type-check gate
 - **commit-msg**: Validates commit message format via commitlint, then requires a
   `Release-Notes:` trailer on a `feat`/`fix`/`perf` commit
 - **pre-push**: Runs `bun run audit` (fallow complexity and duplication audit)
@@ -171,7 +175,7 @@ with a count, so moving code around does not read as a new error.
    This is the single command that tells you the change is good; it stops at the
    first failure and says what to do about it. `bun run verify:fast` runs just lint
    and the type-check.
-2. **Linting**: Run `bun run lint:fix` to auto-fix all Biome linting issues
+2. **Linting**: Run `bun run lint:fix` to auto-fix formatting and lint issues
 3. **Type check**: Run `bun run typecheck` to verify no new TypeScript errors
 4. **Tests**: Run `bun run --filter @tandra/api test` to verify all API tests pass
 5. **Builds**: Verify `bun run --filter @tandra/web build` and `bun run --filter @tandra/api build` succeed
@@ -202,7 +206,7 @@ Production runs as Dokploy swarm apps (`tandra-web`, `tandra-api`) on the `found
 Three workflows under `.github/workflows/`:
 
 **`pr.yml`** (every pull request) — the merge gates:
-1. **lint**: Biome linting (`bun run lint`) + the e2e suite's own type check (`bun run tsc:e2e`)
+1. **lint**: Vite+ check (`bun run lint`) + the e2e suite's own type check (`bun run tsc:e2e`)
 2. **test**: the type-check gate (`bun run typecheck`), the API tests with a 90% coverage threshold, the web tests, and the script tests
 3. **e2e**: Playwright suite, including visual regression, against seeded Mongo and OpenSearch
 4. **report**: publishes the Playwright report and links it from a sticky PR comment

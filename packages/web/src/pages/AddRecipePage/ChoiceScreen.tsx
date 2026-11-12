@@ -1,4 +1,5 @@
 import { ChefHat, Download } from 'lucide-react';
+
 import { Button } from '../../components/ui/button';
 import { Drawer, DrawerClose, DrawerContent, DrawerFooter } from '../../components/ui/drawer';
 import { useAiFeatures } from '../../utils/useAiFeatures';
@@ -15,6 +16,7 @@ interface ChoiceScreenProps {
 // onCancel the same way the header X used to.
 export const ChoiceScreen = ({ onSelectImport, onSelectManual, onCancel }: ChoiceScreenProps) => {
     const { recipeImport } = useAiFeatures();
+
     return (
         <Drawer open onOpenChange={(open) => !open && onCancel()}>
             <DrawerContent>

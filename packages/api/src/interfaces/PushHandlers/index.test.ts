@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'bun:test';
+
 import * as pushHandlers from './index';
 
 const mockDependencyContainer = {
@@ -50,8 +51,11 @@ describe('PushHandlers', () => {
         vi.clearAllMocks();
         mockDependencyContainer.resolve.mockImplementation((token: string) => {
             if (token === 'PushSubscriptionRepository') return mockRepo;
+
             if (token === 'Logger') return mockLogger;
+
             if (token === 'WebPushSender') return mockWebPushSender;
+
             return null;
         });
     });

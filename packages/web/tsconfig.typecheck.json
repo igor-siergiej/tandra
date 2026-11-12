@@ -6,6 +6,6 @@
     "composite": false,
     "declaration": false
   },
-  "include": ["src", "vite-env.d.ts", "global.d.ts", "../types/src"],
+  "include": ["src", "vite-env.d.ts", "global.d.ts", "vitest-matchers.d.ts", "../types/src"],
   "exclude": ["../types/src/**/*.test.ts"]
 }

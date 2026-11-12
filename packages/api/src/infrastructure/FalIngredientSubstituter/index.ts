@@ -39,6 +39,7 @@ export class FalIngredientSubstituter {
             ...(this.model !== undefined && { model: this.model }),
             ...(this.timeoutMs !== undefined && { timeoutMs: this.timeoutMs }),
         });
+
         return value.substitutes;
     }
 }

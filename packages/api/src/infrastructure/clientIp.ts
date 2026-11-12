@@ -12,6 +12,8 @@ export const clientIpFrom = (forwardedFor: string | undefined, realIp: string | 
         .split(',')
         .map((entry) => entry.trim())
         .filter(Boolean);
+
     if (entries.length === 0) return realIp ?? 'unknown';
+
     return [...entries].reverse().find((entry) => !isPrivateIp(entry)) ?? entries[entries.length - 1];
 };

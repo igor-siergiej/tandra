@@ -3,6 +3,7 @@
 import type { ListResponse, Recipe } from '@tandra/types';
 import { ListType } from '@tandra/types';
 import { useState } from 'react';
+
 import { IngredientSelectRow } from '../../components/IngredientSelectRow';
 import { PortionsStepper } from '../../components/PortionsStepper';
 import { Button } from '../../components/ui/button';
@@ -22,6 +23,7 @@ interface IngredientSelectSectionProps {
 export const IngredientSelectSection = ({ recipe, lists, onCancel, onConfirm }: IngredientSelectSectionProps) => {
     const { selectedIds, toggleIngredient, portions, setPortions, scaledIngredients, selectedScaledIngredients } =
         useIngredientSelection(recipe.ingredients, recipe.servings ?? 1);
+
     const [chosenList, setChosenList] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 

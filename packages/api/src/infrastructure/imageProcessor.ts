@@ -9,6 +9,7 @@ const sharpLib = sharp;
  */
 export async function processImage(inputBuffer: Buffer, sharpFactory?: typeof sharp, size = 256): Promise<Buffer> {
     const sharpToUse = sharpFactory || sharpLib;
+
     return await sharpToUse(inputBuffer)
         .resize(size, size, {
             fit: 'contain',
@@ -38,9 +39,11 @@ export async function normaliseUpload(inputBuffer: Buffer): Promise<Buffer> {
     try {
         const image = sharp(inputBuffer, { limitInputPixels: UPLOAD_MAX_PIXELS });
         const { format } = await image.metadata();
+
         if (!format || !UPLOAD_FORMATS.has(format)) {
             throw new Error(`unsupported format: ${format}`);
         }
+
         return await image
             .rotate()
             .resize(UPLOAD_MAX_EDGE, UPLOAD_MAX_EDGE, { fit: 'inside', withoutEnlargement: true })

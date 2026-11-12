@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
+
 import type { Logger } from '@imapps/api-utils';
 
 import { ImageService } from './index';
@@ -24,25 +25,31 @@ class MockImageStore {
 
     async getHeadObject(objName: string) {
         this.calls.getHeadObject.push([objName]);
+
         if (this.rejectedErrors.getHeadObject) {
             throw this.rejectedErrors.getHeadObject;
         }
+
         return this.resolvedValues.getHeadObject;
     }
 
     async getObjectStream(objName: string) {
         this.calls.getObjectStream.push([objName]);
+
         if (this.rejectedErrors.getObjectStream) {
             throw this.rejectedErrors.getObjectStream;
         }
+
         return this.resolvedValues.getObjectStream;
     }
 
     async putObject(objName: string, buffer: unknown, options?: unknown) {
         this.calls.putObject.push([objName, buffer, options]);
+
         if (this.rejectedErrors.putObject) {
             throw this.rejectedErrors.putObject;
         }
+
         return this.resolvedValues.putObject;
     }
 
@@ -78,6 +85,7 @@ class MockImageGenerator {
 
     private async defaultGenerate(prompt: string) {
         this.calls.generateImage.push([prompt]);
+
         return this.resolvedValues.generateImage;
     }
 
@@ -144,6 +152,7 @@ describe('ImageService', () => {
                 const mockStream = {
                     read: () => {},
                 } as unknown as NodeJS.ReadableStream;
+
                 const mockHeadObject = {
                     metaData: { 'content-type': 'image/png' },
                 };
@@ -164,6 +173,7 @@ describe('ImageService', () => {
                 const mockStream = {
                     read: () => {},
                 } as unknown as NodeJS.ReadableStream;
+
                 const mockHeadObject = { metaData: {} };
 
                 mockImageStore.resolvedValues.getHeadObject = mockHeadObject;
@@ -304,6 +314,7 @@ describe('ImageService', () => {
 
             it('should stream cached image data properly', async () => {
                 const mockBuffer = Buffer.from('cached-image-data-content');
+
                 const mockStream = {
                     on: function (event: string, callback: (data?: Buffer) => void) {
                         if (event === 'data') {
@@ -316,6 +327,7 @@ describe('ImageService', () => {
                                 callback();
                             }, 10);
                         }
+
                         return this;
                     },
                     read: () => {},
@@ -357,12 +369,15 @@ describe('ImageService', () => {
         it('generates once for concurrent misses of the same name', async () => {
             mockImageStore.rejectedErrors.getHeadObject = notFound();
             let release: () => void = () => {};
+
             const gate = new Promise<void>((resolve) => {
                 release = resolve;
             });
+
             mockImageGenerator.generateImage = async (prompt: string) => {
                 mockImageGenerator.calls.generateImage.push([prompt]);
                 await gate;
+
                 return generated;
             };
 
@@ -371,6 +386,7 @@ describe('ImageService', () => {
                 imageService.getImage('pear', 'u2'),
                 imageService.getImage('Pear ', 'u3'),
             ]);
+
             await new Promise((resolve) => setTimeout(resolve, 0));
             release();
             await pending;

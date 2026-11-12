@@ -35,12 +35,16 @@ export class MongoDiscoveryRecipeRepository implements DiscoveryRecipeRepository
             source: { $ne: 'wikibooks' },
             slug: { $regex: WIKIBOOKS_RECIPE_ID },
         });
+
         const slugless = { source: 'wikibooks' as const, slug: { $exists: false } };
+
         const { modifiedCount } = await this.collection().updateMany({ ...slugless, id: { $nin: claimed } }, [
             { $set: { slug: '$id' } },
         ]);
+
         const blocked =
             claimed.length === 0 ? [] : await this.collection().distinct('id', { ...slugless, id: { $in: claimed } });
+
         return { assigned: modifiedCount, blocked };
     }
 
@@ -58,6 +62,7 @@ export class MongoDiscoveryRecipeRepository implements DiscoveryRecipeRepository
 
     async getByIds(ids: string[]): Promise<DiscoveryRecipe[]> {
         if (ids.length === 0) return [];
+
         return this.collection()
             .find({ id: { $in: ids } }, NO_OBJECT_ID)
             .toArray();
@@ -77,6 +82,7 @@ export class MongoDiscoveryRecipeRepository implements DiscoveryRecipeRepository
         const filter = after
             ? { slug: { $exists: true }, _id: { $lt: new ObjectId(after) } }
             : { slug: { $exists: true } };
+
         return this.collection()
             .find(filter, WITH_OBJECT_ID)
             .sort({ createdAt: -1, _id: -1 })
@@ -108,13 +114,16 @@ export class MongoDiscoveryRecipeRepository implements DiscoveryRecipeRepository
     async *batches(size: number): AsyncGenerator<DiscoveryRecipe[]> {
         const cursor = this.collection().find({}, NO_OBJECT_ID).sort({ id: 1 });
         let batch: DiscoveryRecipe[] = [];
+
         for await (const recipe of cursor) {
             batch.push(recipe as DiscoveryRecipe);
+
             if (batch.length >= size) {
                 yield batch;
                 batch = [];
             }
         }
+
         if (batch.length > 0) yield batch;
     }
 }

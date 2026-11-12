@@ -34,11 +34,11 @@ images and uses HMR via Vite.
 Run these from the repo root before opening a PR:
 
 ```bash
-bun run lint                                       # Biome (not ESLint)
+bun run lint                                       # vp check: Oxfmt + Oxlint
 bunx tsc -p packages/api/tsconfig.json --noEmit    # API types
 bunx tsc -p packages/web/tsconfig.app.json --noEmit # web types
 bun run --filter @tandra/api test               # Bun runner; 90% coverage gate
-bun run --filter @tandra/web test               # Vitest component tests
+bun run --filter @tandra/web test               # Vitest (vp test) component tests
 ```
 
 End-to-end tests use Playwright:
@@ -51,10 +51,12 @@ bun run test:e2e --grep "@smoke"  # smoke subset; safe to run against any deploy
 ## Project conventions
 
 - **Commits** follow Conventional Commits (`feat:`, `fix:`, `chore:`, `refactor:`)
-  — enforced by `commitlint` + Husky. Use `bunx commit` if you'd like the
+  — enforced by `commitlint` in the `.vite-hooks` commit-msg hook. Use `bunx commit` if you'd like the
   prompts.
-- **Lint** is Biome, not ESLint. Run `bun run lint:fix` before committing;
-  pre-commit hooks run `lint-staged` on staged files.
+- **Lint and format** run through Vite+ (Oxlint and Oxfmt). Run `bun run lint:fix`
+  before committing; the pre-commit hook runs `vp staged` on staged files.
+  Clones made before the move to Vite+ still point git at the old Husky hooks; run
+  `git config --unset core.hooksPath && bun install` once so the `.vite-hooks` ones take over.
 - **Architecture** is documented in `AGENTS.md`. Read it before touching
   `domain/`, `infrastructure/`, or route handlers — clean architecture means
   services depend on interfaces, not on MongoDB or FalLlmClient directly.

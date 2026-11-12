@@ -2,6 +2,7 @@ import { apiAddItem, apiCreateList, apiUpdateItem } from '../api-helpers';
 import { expect, test } from '../fixtures';
 
 const LIST_TITLE = 'Groceries';
+
 // Lists are opened by their id, so the URL no longer carries the title.
 const LIST_URL = /\/list\/[^/]+$/;
 
@@ -146,6 +147,7 @@ test.describe('Items page', () => {
 
         const itemEl = authenticatedPage.getByText('Butter');
         const box = await itemEl.boundingBox();
+
         if (box) {
             const cx = box.x + box.width / 2;
             const cy = box.y + box.height / 2;
@@ -158,6 +160,7 @@ test.describe('Items page', () => {
             const deleteButtons = authenticatedPage.locator(
                 'button[class*="destructive"], button[class*="bg-destructive"]'
             );
+
             if ((await deleteButtons.count()) > 0) {
                 await deleteButtons.first().click();
                 await expect(authenticatedPage.getByText('Butter')).not.toBeVisible();
@@ -188,6 +191,7 @@ test.describe('Items page', () => {
 
         const itemEl = authenticatedPage.getByText('Butter');
         const box = await itemEl.boundingBox();
+
         if (box) {
             const cx = box.x + box.width / 2;
             const cy = box.y + box.height / 2;
@@ -198,6 +202,7 @@ test.describe('Items page', () => {
             await authenticatedPage.waitForTimeout(300);
 
             const editButtons = authenticatedPage.locator('button[class*="bg-blue"]');
+
             if ((await editButtons.count()) > 0) {
                 await editButtons.first().click();
                 await expect(authenticatedPage.getByText('Edit Item', { exact: true })).toBeVisible();
@@ -217,6 +222,7 @@ test.describe('Items page', () => {
 
         const itemEl = authenticatedPage.getByText('Butter');
         const box = await itemEl.boundingBox();
+
         if (box) {
             const cx = box.x + box.width / 2;
             const cy = box.y + box.height / 2;
@@ -227,6 +233,7 @@ test.describe('Items page', () => {
             await authenticatedPage.waitForTimeout(300);
 
             const editButtons = authenticatedPage.locator('button[class*="bg-blue"]');
+
             if ((await editButtons.count()) > 0) {
                 await editButtons.first().click();
                 await expect(authenticatedPage.getByText('Edit Item', { exact: true })).toBeVisible();

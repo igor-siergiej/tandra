@@ -58,6 +58,7 @@ describe('assertPublicUrl', () => {
         const fail = async () => {
             throw new Error('ENOTFOUND');
         };
+
         await expect(assertPublicUrl('http://nope.invalid/', fail)).rejects.toMatchObject({ status: 400 });
     });
 

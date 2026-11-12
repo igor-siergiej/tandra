@@ -1,4 +1,5 @@
 import { ImageOff } from 'lucide-react';
+
 import { Skeleton } from '../ui/skeleton';
 
 export interface IngredientAvatarProps {

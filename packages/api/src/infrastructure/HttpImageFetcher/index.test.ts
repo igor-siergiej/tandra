@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'bun:test';
+
 import { HttpImageFetcher } from './index';
 
 const resolveHost = async () => [{ address: '93.184.216.34' }];

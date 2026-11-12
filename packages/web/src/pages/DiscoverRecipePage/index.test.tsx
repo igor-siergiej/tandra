@@ -3,17 +3,21 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
+
 import * as api from '../../api';
 import DiscoverRecipePage from './index';
 
 const mockNavigate = vi.fn();
+
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+
     return { ...actual, useNavigate: () => mockNavigate };
 });
 
 vi.mock('../../auth', () => ({ useUser: () => ({ user: { id: 'user-1', username: 'me' } }) }));
+
 vi.mock('../../components/ToolBar', () => ({ default: () => <div data-testid="toolbar" /> }));
 
 const SOURCE_URL = 'https://en.wikibooks.org/wiki/Cookbook:Fairy_Cakes';
@@ -67,6 +71,7 @@ const setup = ({
         queryKey: ['discover-recipe', 'wikibooks-1'],
         queryFn: async () => {
             if (recipe instanceof Error) throw recipe;
+
             return recipe;
         },
     } as never);
@@ -93,6 +98,7 @@ const setup = ({
             </MemoryRouter>
         </QueryClientProvider>
     );
+
     return { copy };
 };
 
@@ -190,12 +196,14 @@ describe('DiscoverRecipePage', () => {
 
     it('stops a second tap while the first add is still in flight', async () => {
         let finish: (recipe: Recipe) => void = () => {};
+
         const copy = vi.fn(
             () =>
                 new Promise<Recipe>((resolve) => {
                     finish = resolve;
                 })
         );
+
         setup({ copy });
 
         await userEvent.click(await screen.findByRole('button', { name: 'Add to my recipes' }));
@@ -211,6 +219,7 @@ describe('DiscoverRecipePage', () => {
             .fn()
             .mockRejectedValueOnce(new Error('boom'))
             .mockResolvedValueOnce(personal({ id: 'new-1', link: SOURCE_URL }));
+
         setup({ copy });
 
         await userEvent.click(await screen.findByRole('button', { name: 'Add to my recipes' }));

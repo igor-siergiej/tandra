@@ -6,6 +6,8 @@ import * as chrono from 'chrono-node';
  */
 export const parseNaturalDate = (text: string, ref: Date = new Date()): Date | undefined => {
     const trimmed = text.trim();
+
     if (!trimmed) return undefined;
+
     return chrono.parseDate(trimmed, ref, { forwardDate: true }) ?? undefined;
 };

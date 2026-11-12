@@ -1,7 +1,7 @@
 import type { Recipe } from '@tandra/types';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const revertRecipeAiImage = vi.fn();
 const uploadRecipeImage = vi.fn();

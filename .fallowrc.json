@@ -44,12 +44,19 @@
     "**/coverage/**",
     "scripts/**",
     "**/scripts/**",
-    "e2e/mocks/data/umami-tracker.js"
+    "e2e/mocks/data/umami-tracker.js",
+    "packages/web/src/__mocks__/**"
   ],
   "ignoreUnresolvedImports": ["bun:test", "virtual:pwa-register/react"],
   "ignoreExports": [
-    { "file": "packages/api/src/dependencies/types.ts", "exports": ["CollectionNames"] },
-    { "file": "packages/web/src/hooks/useRegisterForm.ts", "exports": ["registerSchema"] }
+    {
+      "file": "packages/api/src/dependencies/types.ts",
+      "exports": ["CollectionNames"]
+    },
+    {
+      "file": "packages/web/src/hooks/useRegisterForm.ts",
+      "exports": ["registerSchema"]
+    }
   ],
   "ignoreDependencies": [
     "@radix-ui/react-alert-dialog",
@@ -65,7 +72,6 @@
     "react-day-picker",
     "@tailwindcss/vite",
     "shadcn",
-    "@imapps/biome-config",
     "@imapps/dev-scripts",
     "class-variance-authority",
     "clsx",

@@ -6,6 +6,7 @@ const DEFAULT_ALLOWED_ORIGINS = ['https://tandra.uk', 'http://localhost:4000', '
 
 const parseOrigins = (raw: string | undefined): string[] => {
     if (!raw) return DEFAULT_ALLOWED_ORIGINS;
+
     return raw
         .split(',')
         .map((origin) => origin.trim())
@@ -29,6 +30,7 @@ export const publicDiscoverCors = async (c: Context, next: Next): Promise<void> 
     if (requestOrigin) {
         const allowAll = !config.get('publicDiscoverOrigins');
         const allowed = allowAll || ALLOWED_ORIGINS.includes(requestOrigin);
+
         if (allowed) {
             c.res.headers.set('Access-Control-Allow-Origin', allowAll ? '*' : requestOrigin);
             c.res.headers.set('Vary', 'Origin');
@@ -40,7 +42,9 @@ export const publicDiscoverCors = async (c: Context, next: Next): Promise<void> 
 
     if (c.req.method === 'OPTIONS') {
         c.res = new Response(null, { status: 204, headers: c.res.headers });
+
         return;
     }
+
     await next();
 };

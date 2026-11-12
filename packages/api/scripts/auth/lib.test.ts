@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+
 import { memoryAdapter } from 'better-auth/adapters/memory';
 
 import { type Auth, type AuthOptions, createAuth } from '../../src/infrastructure/BetterAuth';
@@ -6,12 +7,14 @@ import { resetPassword } from './lib';
 
 const makeAuth = () => {
     const db: Record<string, unknown[]> = { user: [], session: [], account: [], verification: [], rateLimit: [] };
+
     const auth = createAuth({
         database: memoryAdapter(db) as unknown as AuthOptions['database'],
         secret: 'test-secret-test-secret-test-secret-123',
         baseURL: 'http://localhost:4000',
         trustedOrigins: ['http://localhost:4000'],
     });
+
     return { auth, db };
 };
 

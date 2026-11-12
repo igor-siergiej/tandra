@@ -1,4 +1,5 @@
 import { useState } from 'react';
+
 import { authClient } from '../../auth/client';
 import { track } from '../../utils/analytics';
 import { logger } from '../../utils/logger';
@@ -41,6 +42,7 @@ export const GoogleButton = () => {
         setRedirecting(true);
         setFailed(false);
         track('google_sign_in_started');
+
         try {
             const { error } = await authClient.signIn.social({
                 provider: 'google',
@@ -48,6 +50,7 @@ export const GoogleButton = () => {
                 newUserCallbackURL: '/choose-username',
                 errorCallbackURL: '/login',
             });
+
             if (error) throw new Error(error.message ?? 'Google sign-in failed');
         } catch (error) {
             logger.warn('Google sign-in failed to start', { error: String(error) });

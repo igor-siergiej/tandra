@@ -2,7 +2,8 @@ import 'fake-indexeddb/auto';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
+
 import * as api from '../api';
 import { outboxStore } from '../offline/outboxStore';
 import { useTodos } from './useTodos';
@@ -15,6 +16,7 @@ vi.mock('../offline/drainer', () => ({ drainOutbox: vi.fn().mockResolvedValue(un
 
 vi.mock('../api', async (importOriginal) => {
     const actual = await importOriginal<typeof api>();
+
     return {
         ...actual,
         getTodosQuery: actual.getTodosQuery,
@@ -23,6 +25,7 @@ vi.mock('../api', async (importOriginal) => {
 
 const wrapper = ({ children }: { children: ReactNode }) => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
     return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 };
 
@@ -62,8 +65,10 @@ describe('useTodos', () => {
         const client = new QueryClient({
             defaultOptions: { queries: { retry: false, staleTime: Infinity } },
         });
+
         client.setQueryData(['todos'], []);
         vi.spyOn(api, 'getTodosQuery').mockReturnValue({ queryKey: ['todos'], queryFn: async () => [] } as never);
+
         const localWrapper = ({ children }: { children: ReactNode }) => (
             <QueryClientProvider client={client}>{children}</QueryClientProvider>
         );

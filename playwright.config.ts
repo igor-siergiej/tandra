@@ -1,5 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 import { config } from 'dotenv';
+
 import { resolveMongoUri } from './e2e/mongo-uri';
 import { allStacks, E2E_WORKERS } from './e2e/stack';
 
@@ -77,7 +78,7 @@ export default defineConfig({
             // A prebuilt bundle, not the Vite dev server: every test opens a fresh browser context, and the dev
             // server makes each one fetch and transform the whole unbundled module graph again. A running dev
             // server is still reused locally.
-            command: `${slot === 0 ? 'bun run build:e2e && ' : ''}bunx vite preview --port ${stack.webPort} --strictPort --outDir build-e2e`,
+            command: `${slot === 0 ? 'bun run build:e2e && ' : ''}bunx vp preview --port ${stack.webPort} --strictPort --outDir build-e2e`,
             cwd: 'packages/web',
             url: stack.webOrigin,
             reuseExistingServer: !process.env.CI,

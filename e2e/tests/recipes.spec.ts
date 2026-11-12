@@ -41,6 +41,7 @@ test.describe('Recipes page', () => {
 
         const searchInput = authenticatedPage.getByPlaceholder('Search recipes...');
         const box = await searchInput.boundingBox();
+
         if (!box) throw new Error('search input has no bounding box');
         // Pinned to the bottom of the page, not scrolled away above the fold.
         expect(box.y).toBeGreaterThan(500);
@@ -62,7 +63,9 @@ test.describe('Recipes page', () => {
 
         const bestBox = await bestMatch.boundingBox();
         const worseBox = await worseMatch.boundingBox();
+
         if (!bestBox) throw new Error('best match has no bounding box');
+
         if (!worseBox) throw new Error('worse match has no bounding box');
         expect(bestBox.y).toBeGreaterThan(worseBox.y);
     });
@@ -71,6 +74,7 @@ test.describe('Recipes page', () => {
         for (let i = 0; i < 15; i++) {
             await apiCreateRecipe(`Recipe ${i}`);
         }
+
         await authenticatedPage.setViewportSize({ width: 390, height: 700 });
         await authenticatedPage.goto('/recipes');
         await authenticatedPage.getByPlaceholder('Search recipes...').fill('Recipe 1');

@@ -6,12 +6,12 @@
     "isolatedModules": true,
     "noEmit": true,
     "emitDeclarationOnly": false,
-    "types": ["vite/client", "vitest/globals", "node"],
+    "types": ["vite/client", "vite-plus/test/globals", "node"],
     "paths": {
       "@tandra/types": ["../types/src"],
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "vite-env.d.ts", "global.d.ts"],
+  "include": ["src", "vite-env.d.ts", "global.d.ts", "vitest-matchers.d.ts"],
   "references": [{ "path": "../types" }]
 }

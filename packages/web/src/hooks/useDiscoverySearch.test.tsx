@@ -2,7 +2,8 @@ import type { DiscoverySearchResult } from '@tandra/types';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type MockInstance, vi } from 'vite-plus/test';
+
 import * as api from '../api';
 import { useDiscoverySearch } from './useDiscoverySearch';
 

@@ -1,4 +1,5 @@
 import { Search, X } from 'lucide-react';
+
 import { Input } from '../ui/input';
 
 interface PinnedSearchFieldProps {

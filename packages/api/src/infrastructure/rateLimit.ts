@@ -13,8 +13,10 @@ export class IpRateLimiter {
      */
     isAllowed(key: string): boolean {
         const count = this.counts.get(key) ?? 0;
+
         if (count >= this.limit) return false;
         this.counts.set(key, count + 1);
+
         return true;
     }
 
@@ -42,11 +44,13 @@ export class SlidingWindowLimiter {
 
         if (recent.length >= this.limit) {
             this.hits.set(key, recent);
+
             return { allowed: false, retryAfterSeconds: Math.ceil((recent[0] + this.windowMs - now) / 1000) };
         }
 
         recent.push(now);
         this.hits.set(key, recent);
+
         return { allowed: true, retryAfterSeconds: 0 };
     }
 

@@ -9,7 +9,9 @@ export interface UseAuthedImageResult {
 // Images sit behind the session cookie, which a same-origin fetch sends by itself.
 const fetchImageObjectUrl = async (imageKey: string): Promise<string> => {
     const response = await fetch(`/api/image/${encodeURIComponent(imageKey)}`);
+
     if (!response.ok) throw new Error('Image request failed');
+
     return URL.createObjectURL(await response.blob());
 };
 
@@ -26,6 +28,7 @@ export const useAuthedImage = (imageKey: string | undefined): UseAuthedImageResu
     useEffect(() => {
         if (!imageKey) {
             setIsLoading(false);
+
             return;
         }
 
@@ -37,8 +40,10 @@ export const useAuthedImage = (imageKey: string | undefined): UseAuthedImageResu
             .then((url) => {
                 if (cancelled) {
                     URL.revokeObjectURL(url);
+
                     return;
                 }
+
                 objectUrlRef.current = url;
                 setImageUrl(url);
             })
@@ -51,6 +56,7 @@ export const useAuthedImage = (imageKey: string | undefined): UseAuthedImageResu
 
         return () => {
             cancelled = true;
+
             if (objectUrlRef.current) {
                 URL.revokeObjectURL(objectUrlRef.current);
                 objectUrlRef.current = null;

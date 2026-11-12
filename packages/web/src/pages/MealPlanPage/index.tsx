@@ -2,6 +2,7 @@ import type { MealPlanEntry, Recipe } from '@tandra/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { addDays, format } from 'date-fns';
 import { useMemo, useState } from 'react';
+
 import {
     addItemsBulk,
     createMealPlanEntry,
@@ -36,9 +37,11 @@ const MealPlanPage = () => {
     const planKey = getMealPlanQuery(from, to).queryKey;
 
     const { data: entries = [] } = useQuery(getMealPlanQuery(from, to));
+
     const { data: recipes = [] } = useQuery(
         user?.id ? getRecipesQuery(user.id) : { queryKey: [], queryFn: async () => [] as Recipe[] }
     );
+
     const { data: lists = [] } = useQuery(
         user?.id ? getListsQuery(user.id) : { queryKey: [], queryFn: async () => [] }
     );
@@ -47,6 +50,7 @@ const MealPlanPage = () => {
     const onError = (error: unknown) => notifyError(error instanceof Error ? error.message : 'Something went wrong');
 
     const addMutation = useMutation({ mutationFn: createMealPlanEntry, onSuccess: refresh, onError });
+
     // The stepper reads entry.servings from this cache, so it's updated before the request: a second
     // tap before the refetch would otherwise send the same value again and lose an increment. The
     // scope runs the updates one after another, so the server ends on the last tap's value.
@@ -59,6 +63,7 @@ const MealPlanPage = () => {
             queryClient.setQueryData<Array<MealPlanEntry>>(planKey, (old) =>
                 old?.map((entry) => (entry.id === id ? { ...entry, servings } : entry))
             );
+
             return { previous };
         },
         onError: (error, _variables, context) => {
@@ -67,18 +72,23 @@ const MealPlanPage = () => {
         },
         onSettled: refresh,
     });
+
     const removeMutation = useMutation({ mutationFn: deleteMealPlanEntry, onSuccess: refresh, onError });
 
     const recipeById = useMemo(() => new Map(recipes.map((recipe) => [recipe.id, recipe])), [recipes]);
+
     const entriesByDay = useMemo(() => {
         const map = new Map<string, Array<MealPlanEntry>>();
+
         for (const entry of entries) {
             const list = map.get(entry.date) ?? [];
             list.push(entry);
             map.set(entry.date, list);
         }
+
         return map;
     }, [entries]);
+
     const todayKey = dayKey(new Date());
     const isOnCurrentWeek = dayKey(start) === dayKey(weekStart(new Date()));
     const shoppingRows = buildShoppingRows(entries, recipes);
@@ -94,6 +104,7 @@ const MealPlanPage = () => {
             listTitle,
             rows.map((row) => ({ itemName: row.name, quantity: row.quantity, unit: row.unit }))
         );
+
         await queryClient.invalidateQueries({ queryKey: [listTitle] });
         notifySuccess(`${result.added} items added, ${result.skipped} merged`);
     };
@@ -111,6 +122,7 @@ const MealPlanPage = () => {
 
                 {days.map((day) => {
                     const key = dayKey(day);
+
                     return (
                         <MealPlanDayCard
                             key={key}

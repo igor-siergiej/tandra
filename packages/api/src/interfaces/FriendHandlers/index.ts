@@ -12,6 +12,7 @@ export const generateFriendCode = withAuth(async (c, user) => {
 export const redeemFriendCode = withAuth(async (c, user) => {
     const { code } = await c.req.json<{ code: string }>();
     const friend = await getFriendService().redeem(code, user.id, user.username);
+
     return c.json({ friend }, 200);
 });
 
@@ -22,5 +23,6 @@ export const getFriends = withAuth(async (c, user) => {
 export const removeFriend = withAuth(async (c, user) => {
     const friendId = c.req.param('friendId');
     await getFriendService().unfriend(user.id, friendId);
+
     return new Response(null, { status: 204 });
 });

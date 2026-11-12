@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
+
 import { convertIngredients, scaleIngredients } from './convertUnits';
 
 const one = (quantity: number | undefined, unit: string | undefined, system: 'metric' | 'imperial') =>

@@ -19,6 +19,7 @@ export interface Stack {
 export const stackFor = (slot: number): Stack => {
     const webPort = PORT_BASE + slot * 10;
     const apiPort = webPort + 1;
+
     return {
         webOrigin: `http://localhost:${webPort}`,
         webPort,

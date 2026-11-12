@@ -40,6 +40,7 @@ export class FalRecipeExtractor implements RecipeTextExtractor {
             ...(this.model !== undefined && { model: this.model }),
             ...(this.timeoutMs !== undefined && { timeoutMs: this.timeoutMs }),
         });
+
         return value;
     }
 }

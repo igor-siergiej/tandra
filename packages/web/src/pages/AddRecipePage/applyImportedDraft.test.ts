@@ -1,5 +1,5 @@
 import type { RecipeImportResult } from '@tandra/types';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 vi.mock('../../api', () => ({
     importRecipeImage: vi.fn().mockRejectedValue(new Error('no image')),

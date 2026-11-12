@@ -1,6 +1,7 @@
 import { ArrowLeft, BookOpen, Calendar, Menu, ShoppingCart, Users } from 'lucide-react';
 import { forwardRef, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { ToolBarButton } from '../ToolBarButton';
 
 interface ToolBarAppBarProps {

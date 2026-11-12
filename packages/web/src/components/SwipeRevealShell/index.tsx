@@ -2,6 +2,7 @@ import { Edit2, Loader2, Trash2 } from 'lucide-react';
 import type { AnimationControls, MotionValue } from 'motion/react';
 import { motion } from 'motion/react';
 import type { MouseEvent, ReactNode } from 'react';
+
 import type { PanInfo } from '../../hooks/useSwipeGesture';
 import { SWIPE_REVEAL_DISTANCE } from '../../hooks/useSwipeGesture';
 import { Button } from '../ui/button';
@@ -52,7 +53,9 @@ const RevealedActionButton = ({
 const handleContentClick =
     (swipeState: 'closed' | 'left' | 'right', onCloseSwipe: () => void) => (e: MouseEvent<HTMLElement>) => {
         const target = e.target as HTMLElement;
+
         if (target.closest('button')) return;
+
         if (swipeState !== 'closed') onCloseSwipe();
     };
 

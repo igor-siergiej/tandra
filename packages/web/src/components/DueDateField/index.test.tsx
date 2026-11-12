@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
+
 import { DueDateField } from './index';
 
 describe('DueDateField', () => {
@@ -40,6 +41,7 @@ describe('DueDateField', () => {
 
         // Calendar should be visible now
         const calendarButton = screen.getAllByRole('button').find((btn) => btn.textContent?.match(/^\d+$/));
+
         if (calendarButton) {
             await user.click(calendarButton);
             expect(mockOnChange).toHaveBeenCalled();

@@ -1,5 +1,6 @@
 import type { Item } from '@tandra/types';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
+
 import { groupByCategory } from './itemCategories';
 
 const item = (id: string, category?: Item['category']): Item =>

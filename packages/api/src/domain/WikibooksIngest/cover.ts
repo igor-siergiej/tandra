@@ -45,10 +45,12 @@ export class WikibooksCoverService {
         info: WikibooksImageInfo | undefined
     ): Promise<CoverOutcome> {
         if (!filename) return { fields: {}, decided: true };
+
         // No answer from the wiki for this name: the lookup failed, which is not the same as "no picture".
         if (!info) return { fields: {}, decided: false };
 
         const assessment = assessImage(info);
+
         if (!assessment.ok) return { fields: {}, decided: true, refused: assessment.reason };
 
         try {
@@ -57,6 +59,7 @@ export class WikibooksCoverService {
             // A key of its own per recipe: it names neither a person nor a private recipe, and a rebuilt page gets a fresh one.
             const key = withImageExtension(`${COVER_PREFIX}/${libraryId}/${Date.now()}`, contentType);
             await this.images.putObject(key, download.buffer, { contentType });
+
             return {
                 fields: {
                     coverImageKey: key,
@@ -71,6 +74,7 @@ export class WikibooksCoverService {
                 filename,
                 error: (error as Error).message,
             });
+
             return { fields: {}, decided: false };
         }
     }

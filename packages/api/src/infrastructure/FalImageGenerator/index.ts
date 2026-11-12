@@ -75,15 +75,18 @@ export class FalImageGenerator implements ImageGenerator {
 
         if (image && typeof image === 'object' && typeof image.url === 'string') {
             const { url } = image;
+
             if (url.startsWith('data:')) {
                 // Data URI: strip the "data:<mime>;base64," prefix and decode.
                 const b64 = url.slice(url.indexOf(',') + 1);
                 originalBuffer = Buffer.from(b64, 'base64');
             } else {
                 const imageResponse = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+
                 if (!imageResponse.ok) {
                     throw Object.assign(new Error('Failed to download image from fal.ai'), { status: 502 });
                 }
+
                 originalBuffer = Buffer.from(await imageResponse.arrayBuffer());
             }
         } else {

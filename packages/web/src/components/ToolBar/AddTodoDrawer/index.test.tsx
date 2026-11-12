@@ -1,6 +1,7 @@
 import { isoDay } from '@tandra/types';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
+
 import { useFriends } from '../../../hooks/useFriends';
 import { AddTodoDrawer } from './index';
 
@@ -50,6 +51,7 @@ describe('AddTodoDrawer', () => {
         const onAdd = vi.fn().mockResolvedValue(undefined);
         render(<AddTodoDrawer open onOpenChange={noop} onAdd={onAdd} labels={[]} />);
         const switches = await screen.findAllByRole('switch');
+
         for (const s of switches) expect(s).not.toBeChecked();
         fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Private' } });
         fireEvent.click(screen.getByRole('button', { name: 'Add Todo' }));

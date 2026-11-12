@@ -12,6 +12,7 @@ export const validateJson =
     // fallow-ignore-next-line complexity
     async (c: Context, next: Next) => {
         let body: unknown;
+
         try {
             body = await c.req.json();
         } catch {
@@ -20,14 +21,19 @@ export const validateJson =
         }
 
         const result = schema.safeParse(body);
+
         if (!result.success) {
             const fields: Record<string, string> = {};
+
             for (const issue of result.error.issues) {
                 fields[issue.path.join('.') || '(body)'] ??= issue.message;
             }
+
             const [first] = result.error.issues;
             const where = first.path.length > 0 ? `${first.path.join('.')}: ` : '';
+
             return c.json({ error: `${where}${first.message}`, fields }, 400);
         }
+
         return next();
     };

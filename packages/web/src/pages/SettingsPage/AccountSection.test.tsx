@@ -2,10 +2,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const listAccounts = vi.fn();
 const linkSocial = vi.fn();
+
 vi.mock('../../auth/client', () => ({
     authClient: {
         listAccounts: (...args: unknown[]) => listAccounts(...args),
@@ -14,9 +15,11 @@ vi.mock('../../auth/client', () => ({
 }));
 
 const session = { user: { id: 'u1', username: 'Igor' } as { id: string; username: string } | null };
+
 vi.mock('../../auth', () => ({ useUser: () => ({ user: session.user, needsUsername: false }) }));
 
 const features = { googleSignIn: true };
+
 vi.mock('../../utils/useAiFeatures', () => ({ useAuthFeatures: () => features }));
 
 import { AccountSection } from './AccountSection';

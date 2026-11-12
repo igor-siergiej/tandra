@@ -2,6 +2,7 @@ import { Bell, Download, Loader2, LogOut, Moon, RefreshCw, Settings, Sparkles, S
 import { motion } from 'motion/react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { Button } from '../../../components/ui/button';
 import { Switch } from '../../../components/ui/switch';
 import { useTheme } from '../../../contexts/ThemeContext';
@@ -40,6 +41,7 @@ interface SimpleButtonItem {
 const ThemeToggle = () => {
     const { theme, toggleTheme } = useTheme();
     const isDark = theme === 'dark';
+
     return (
         <button
             type="button"
@@ -57,6 +59,7 @@ const ThemeToggle = () => {
 
 const NotificationToggle = () => {
     const { isSupported, isSubscribed, isBusy, subscribe, unsubscribe } = usePushNotifications();
+
     if (!isSupported) return null;
 
     const handleToggle = () => {
@@ -96,6 +99,7 @@ const UpdateButton = ({ hasUpdate, isCheckingForUpdate, onUpdate, onCheck }: Upd
             </Button>
         );
     }
+
     return (
         <Button variant="outline" onClick={onCheck} disabled={isCheckingForUpdate} className={OUTLINE_BTN}>
             {isCheckingForUpdate ? (
@@ -115,6 +119,7 @@ export const HamburgerMenu = ({ onClose, onLogout }: HamburgerMenuProps) => {
 
     const handleInstall = async () => {
         const success = await installApp();
+
         if (success) onClose();
     };
 

@@ -7,6 +7,7 @@ import { NetworkFirst } from 'workbox-strategies';
 declare const self: ServiceWorkerGlobalScope & { __WB_MANIFEST: Array<{ url: string; revision: string | null }> };
 
 precacheAndRoute(self.__WB_MANIFEST);
+
 clientsClaim();
 
 // Offline reads depend on this cache (react-query is not persisted). It holds per-user data, so the app deletes
@@ -17,6 +18,7 @@ registerRoute(
     ({ url }) => url.pathname.startsWith('/api/') && !url.pathname.startsWith('/api/auth/'),
     new NetworkFirst({ cacheName: 'api-cache', networkTimeoutSeconds: 2 })
 );
+
 registerRoute(({ url }) => url.pathname === '/config.json', new NetworkFirst({ cacheName: 'config-cache' }));
 
 // Preserve the update-prompt flow: the app posts SKIP_WAITING when the user accepts an update.
@@ -30,7 +32,9 @@ self.addEventListener('push', (event: PushEvent) => {
     if (!event.data) {
         return;
     }
+
     let payload: { title?: string; body?: string; data?: { url?: string } };
+
     try {
         payload = event.data.json();
     } catch {
@@ -56,9 +60,11 @@ self.addEventListener('push', (event: PushEvent) => {
             // Only suppress the OS notification when the user is actively focused on the app.
             // Backgrounded (hidden) or closed windows still get notified.
             const focused = windows.some((client) => (client as WindowClient).focused);
+
             if (focused) {
                 return;
             }
+
             await self.registration.showNotification(payload.title ?? 'Tandra', options);
         })()
     );
@@ -76,7 +82,9 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
                         if ('navigate' in client) {
                             await (client as WindowClient).navigate(targetUrl);
                         }
+
                         await client.focus();
+
                         return;
                     } catch {
                         // Focus/navigate failed (e.g. uncontrolled window) — fall through to open a new one.
@@ -84,6 +92,7 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
                     }
                 }
             }
+
             await self.clients.openWindow(targetUrl);
         })
     );

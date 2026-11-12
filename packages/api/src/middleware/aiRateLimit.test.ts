@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'bun:test';
+
 import { Hono } from 'hono';
+
 import { aiRateLimit } from './aiRateLimit';
 
 const app = (userId?: string) => {
@@ -9,12 +11,14 @@ const app = (userId?: string) => {
         await next();
     });
     a.post('/ai', aiRateLimit, (c) => c.json({ ok: true }));
+
     return a;
 };
 
 describe('aiRateLimit', () => {
     it('returns a friendly 429 with Retry-After after 60 calls in the window, per user', async () => {
         const a = app('limit-user');
+
         for (let i = 0; i < 60; i++) {
             expect((await a.request('/ai', { method: 'POST' })).status).toBe(200);
         }

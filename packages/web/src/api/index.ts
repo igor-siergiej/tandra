@@ -16,6 +16,7 @@ import type {
     Todo,
     User,
 } from '@tandra/types';
+
 import {
     foldPendingItems,
     foldPendingLabels,
@@ -53,6 +54,7 @@ export const getListSocketTicket = async (listTitle: string): Promise<string> =>
         method: MethodType.POST,
         operationString: 'get list socket ticket',
     });
+
     return ticket;
 };
 
@@ -77,6 +79,7 @@ export const addList = async (
     id?: string
 ): Promise<unknown> => {
     const dateAdded = generateTimestamp(new Date());
+
     const requestBody = {
         title: listTitle,
         dateAdded,
@@ -136,6 +139,7 @@ export const parseSpokenItems = async (transcript: string): Promise<Array<Spoken
         operationString: 'parse spoken items',
         body: JSON.stringify({ transcript }),
     });
+
     return (result as { items: Array<SpokenItem> }).items;
 };
 
@@ -298,6 +302,7 @@ export const addRecipe = async (
     tags?: string[]
 ): Promise<Recipe> => {
     const dateAdded = generateTimestamp(new Date());
+
     const requestBody = {
         title,
         dateAdded,
@@ -352,12 +357,14 @@ export const importRecipeImage = async (imageUrl: string, signal?: AbortSignal):
     const response = await fetch(`/api/recipes/import/image?url=${encodeURIComponent(imageUrl)}`, {
         ...(signal && { signal }),
     });
+
     if (!response.ok) {
         throw new Error(`Failed to fetch recipe cover image: ${response.status}`);
     }
 
     const blob = await response.blob();
     const extension = blob.type.split('/')[1]?.split('+')[0] || 'jpg';
+
     return new File([blob], `imported-cover.${extension}`, { type: blob.type });
 };
 
@@ -635,15 +642,19 @@ export const unfriend = async (friendId: string): Promise<void> => {
 // fallow-ignore-next-line complexity
 const discoveryQueryString = (query: DiscoverySearchQuery): string => {
     const params = new URLSearchParams();
+
     for (const [key, value] of Object.entries(query)) {
         if (value === undefined || value === '') continue;
+
         for (const entry of Array.isArray(value) ? value : [value]) params.append(key, String(entry));
     }
+
     return params.toString();
 };
 
 export const searchDiscoveryRecipes = async (query: DiscoverySearchQuery): Promise<DiscoverySearchResult> => {
     const queryString = discoveryQueryString(query);
+
     return await makeRequest({
         pathname: `/api/discover/recipes${queryString ? `?${queryString}` : ''}`,
         method: MethodType.GET,

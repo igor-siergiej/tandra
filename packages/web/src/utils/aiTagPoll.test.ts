@@ -1,5 +1,6 @@
 import type { Recipe } from '@tandra/types';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
+
 import { aiTagPollInterval } from './aiTagPoll';
 
 const recipe = (over: Partial<Recipe>): Recipe =>

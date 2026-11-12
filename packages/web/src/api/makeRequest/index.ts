@@ -7,14 +7,17 @@ const buildUrl = (pathname: string, queryParams?: Record<string, string>) =>
 // Parse error message from response, handling both ok and error responses
 const parseErrorMessage = async (response: Response): Promise<string> => {
     let errorMessage = response.statusText;
+
     try {
         const errorBody = await response.json();
+
         if (errorBody?.error) {
             errorMessage = errorBody.error;
         }
     } catch {
         // If parsing fails, use status text
     }
+
     return errorMessage;
 };
 
@@ -46,14 +49,17 @@ export const makeRequest = async ({
             if (response.status === 204) {
                 return undefined;
             }
+
             return await response.json();
         }
 
         const errorMessage = await parseErrorMessage(response);
+
         if (response.status === 403 && errorMessage === 'username_required') {
             // Signed in through Google but no username picked yet: the app sends them to choose one.
             window.dispatchEvent(new CustomEvent('auth:username-required'));
         }
+
         logger.warn(`Request failed for ${operationString}`, {
             status: response.status,
             statusText: response.statusText,
@@ -66,6 +72,7 @@ export const makeRequest = async ({
             });
             throw error;
         }
+
         logger.error(`Error while trying to ${operationString}`, {
             error: 'Unknown error',
         });

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'bun:test';
+
 import type { MealPlanEntry, Recipe, User } from '@tandra/types';
 
 import { MealPlanService } from './index';
@@ -19,10 +20,12 @@ class MemoryRepo {
     }
     async insert(entry: MealPlanEntry) {
         this.store.set(entry.id, entry);
+
         return entry;
     }
     async update(id: string, entry: MealPlanEntry) {
         this.store.set(id, entry);
+
         return entry;
     }
     async deleteById(id: string) {

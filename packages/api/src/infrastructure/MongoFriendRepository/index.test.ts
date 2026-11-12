@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+
 import { canonicalPair, MongoFriendRepository } from './index';
 
 describe('canonicalPair', () => {
@@ -11,6 +12,7 @@ describe('canonicalPair', () => {
 describe('MongoFriendRepository indexes', () => {
     it('indexes friendships by member and pairing codes by code, keeping the TTL on code expiry', async () => {
         const created: Record<string, unknown[][]> = { friendships: [], pairingCodes: [] };
+
         const db = {
             getCollection: (name: string) => ({
                 createIndex: async (...args: unknown[]) => {

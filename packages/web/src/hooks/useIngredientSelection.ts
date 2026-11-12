@@ -1,5 +1,6 @@
 import type { Ingredient } from '@tandra/types';
 import { useState } from 'react';
+
 import { scaleIngredients } from '../utils/convertUnits';
 
 /**
@@ -17,11 +18,13 @@ export const useIngredientSelection = (ingredients: Ingredient[], baselinePortio
     const toggleIngredient = (id: string) => {
         setSelectedIds((previous) => {
             const next = new Set(previous);
+
             if (next.has(id)) {
                 next.delete(id);
             } else {
                 next.add(id);
             }
+
             return next;
         });
     };

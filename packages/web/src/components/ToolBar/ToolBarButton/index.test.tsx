@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import { cleanup, render } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vite-plus/test';
 
 import { ToolBarButton } from './index';
 
@@ -20,6 +20,7 @@ describe('ToolBarButton', () => {
     it('calls onClick handler when clicked', () => {
         let called = false;
         const TestIcon = () => <span>icon</span>;
+
         const { getByRole } = render(
             <ToolBarButton
                 icon={TestIcon}
@@ -44,6 +45,7 @@ describe('ToolBarButton', () => {
 
     it('applies variant styling for destructive', () => {
         const TestIcon = () => <span>icon</span>;
+
         const { container } = render(
             <ToolBarButton icon={TestIcon} title="Test" onClick={() => {}} variant="destructive" />
         );

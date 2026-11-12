@@ -1,10 +1,12 @@
 import type { Logger } from '@imapps/api-utils';
 import type { Friendship, PairingCode, User } from '@tandra/types';
+
 import type { FriendRepository } from '../FriendRepository';
 import type { IdGenerator } from '../IdGenerator';
 
 const CODE_TTL_MS = 15 * 60 * 1000;
 const CODE_LEN = 6;
+
 /** Readable charset — excludes 0/O/1/I. */
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -27,9 +29,11 @@ export class FriendService {
 
     private randomCode(): string {
         let out = '';
+
         for (let i = 0; i < CODE_LEN; i += 1) {
             out += ALPHABET[Math.floor(Math.random() * ALPHABET.length)];
         }
+
         return out;
     }
 
@@ -39,17 +43,23 @@ export class FriendService {
         const pairing: PairingCode = { code, creatorId, creatorUsername, expiresAt };
         await this.repo.insertCode(pairing);
         this.logger?.info('Pairing code generated', { creatorId });
+
         return { code, expiresAt };
     }
 
     async redeem(code: string, requesterId: string, requesterUsername: string): Promise<User> {
         const pairing = await this.repo.getCode(code);
+
         if (!pairing) throw err('Code not found', 404);
+
         if (pairing.expiresAt.getTime() < Date.now()) throw err('This code has expired', 410);
+
         if (pairing.usedAt) throw err('This code has already been used', 409);
+
         if (pairing.creatorId === requesterId) throw err('You cannot redeem your own code', 400);
 
         const existing = await this.repo.findPair(pairing.creatorId, requesterId);
+
         if (existing) throw err('You are already friends', 409);
 
         await this.repo.markCodeUsed(code, new Date());
@@ -61,11 +71,13 @@ export class FriendService {
         const friendship: Friendship = { id: this.idGenerator.generate(), userIds, users, createdAt: new Date() };
         await this.repo.insertFriendship(friendship);
         this.logger?.info('Friendship formed', { userIds });
+
         return creator;
     }
 
     async listFriends(userId: string): Promise<User[]> {
         const friendships = await this.repo.findByUserId(userId);
+
         return friendships.map((f) => (f.users[0].id === userId ? f.users[1] : f.users[0]));
     }
 
@@ -81,12 +93,14 @@ export class FriendService {
     async createFriendship(userA: User, userB: User): Promise<Friendship> {
         if (userA.id === userB.id) throw err('Cannot friend yourself', 400);
         const existing = await this.repo.findPair(userA.id, userB.id);
+
         if (existing) return existing;
         const userIds = sortPair(userA.id, userB.id);
         const users: [User, User] = userIds[0] === userA.id ? [userA, userB] : [userB, userA];
         const friendship: Friendship = { id: this.idGenerator.generate(), userIds, users, createdAt: new Date() };
         await this.repo.insertFriendship(friendship);
         this.logger?.info('Friendship created', { userIds });
+
         return friendship;
     }
 

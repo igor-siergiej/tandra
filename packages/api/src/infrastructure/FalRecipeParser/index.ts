@@ -44,6 +44,7 @@ export class FalRecipeParser implements RecipeParser {
             ...(this.model !== undefined && { model: this.model }),
             ...(this.timeoutMs !== undefined && { timeoutMs: this.timeoutMs }),
         });
+
         return value;
     }
 }

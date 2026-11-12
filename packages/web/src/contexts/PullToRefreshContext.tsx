@@ -24,6 +24,7 @@ export const PullToRefreshProvider = ({ children }: PullToRefreshProviderProps) 
 
     const registerRefresh = useCallback((fn: RefreshFn) => {
         refreshFnRef.current = fn;
+
         return () => {
             refreshFnRef.current = null;
         };
@@ -32,6 +33,7 @@ export const PullToRefreshProvider = ({ children }: PullToRefreshProviderProps) 
     const executeRefresh = useCallback(async () => {
         if (isExecutingRef.current) return;
         isExecutingRef.current = true;
+
         try {
             await refreshFnRef.current?.();
         } finally {

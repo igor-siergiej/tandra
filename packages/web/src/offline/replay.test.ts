@@ -1,10 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const { addRecipe, updateRecipe, createTodo } = vi.hoisted(() => ({
     addRecipe: vi.fn(),
     updateRecipe: vi.fn(),
     createTodo: vi.fn(),
 }));
+
 vi.mock('../api', () => ({ addRecipe, updateRecipe, createTodo }));
 
 import type { OutboxIntent } from './outboxStore';

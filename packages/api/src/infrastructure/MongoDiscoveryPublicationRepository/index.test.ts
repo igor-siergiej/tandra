@@ -10,7 +10,9 @@ const setup = () => {
         replaceOne: vi.fn(),
         deleteOne: vi.fn(),
     };
+
     const db = { getCollection: vi.fn(() => collection) };
+
     return { repo: new MongoDiscoveryPublicationRepository(db as never), collection, db };
 };
 

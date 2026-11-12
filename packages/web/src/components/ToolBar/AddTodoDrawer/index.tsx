@@ -1,6 +1,7 @@
 import { isoDay, type Label as LabelType, type Recurrence } from '@tandra/types';
 import { Plus } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
+
 import type { CreateTodoBody } from '../../../api';
 import { FriendPicker } from '../../../components/FriendPicker';
 import { TodoFields } from '../../../components/TodoFields';
@@ -29,10 +30,13 @@ interface BuildTodoBodyArgs {
 
 const buildTodoBody = ({ title, dueDate, userIds, ...rest }: BuildTodoBodyArgs): CreateTodoBody => {
     const body: CreateTodoBody = { title, ...rest };
+
     // Serialize the picked Date as a tz-agnostic day so the server-side reminder can't drift it.
     if (dueDate !== undefined) body.dueDate = isoDay(dueDate);
+
     // Sent even when empty: the API reads a missing list as "share with every friend".
     if (userIds !== undefined) body.userIds = userIds;
+
     return body;
 };
 
@@ -71,12 +75,16 @@ export const AddTodoDrawer = ({ open, onOpenChange, onAdd, labels, prefillDate }
 
     const handleSubmit = async () => {
         const trimmed = title.trim();
+
         if (!trimmed) {
             setError('Title is required');
+
             return;
         }
+
         setIsLoading(true);
         setError('');
+
         try {
             await onAdd(buildTodoBody({ title: trimmed, dueDate, time, labelId, recurrence, userIds: shareWith }));
             reset();

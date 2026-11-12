@@ -19,7 +19,9 @@ export const parseSpokenItems = async (c: Context<HonoVars>) => {
         const items = await dependencyContainer
             .resolve(DependencyToken.ItemTextParser)
             .parse(transcript.trim().slice(0, MAX_TRANSCRIPT_CHARS));
+
         logger.info('API: Spoken items parsed', { userId: user?.id, itemCount: items.length });
+
         return c.json({ items: items.slice(0, MAX_ITEMS) }, 200);
     } catch (error: unknown) {
         const err = error as { status?: number; message?: string };

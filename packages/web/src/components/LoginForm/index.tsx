@@ -1,5 +1,6 @@
 import { Sparkles } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+
 import { oauthErrorMessage } from '../../auth/errors';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -18,6 +19,7 @@ export const LoginForm: React.FC = () => {
     const [searchParams] = useSearchParams();
     // A failed Google round trip lands back here with Better Auth's `?error=<code>`.
     const googleError = searchParams.get('error');
+
     const errorMessage =
         errors.root?.message ??
         (googleError && oauthErrorMessage(googleError, "Couldn't sign in with Google. Please try again."));

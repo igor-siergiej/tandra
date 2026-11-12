@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
+
 import { PullToRefreshProvider } from '../../contexts/PullToRefreshContext';
 import { Layout } from './index';
 
@@ -54,6 +55,7 @@ describe('Layout', () => {
                 <p>Content</p>
             </Layout>
         );
+
         const { container: wide } = renderAtPath(
             '/recipes',
             <Layout>
@@ -127,6 +129,7 @@ describe('Layout', () => {
                 <p>Content</p>
             </Layout>
         );
+
         const { container: useUp } = renderAtPath(
             '/recipes/use-up',
             <Layout>
