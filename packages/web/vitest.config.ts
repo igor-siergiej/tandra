@@ -23,7 +23,7 @@ export default defineConfig({
         pool: 'threads',
         // date-fns ships hundreds of separate ESM files; Vite pre-bundles it for the app, but Vitest
         // otherwise loads each one, ~2s per test file that reaches it. Pre-bundling makes that one file.
-        deps: { optimizer: { web: { enabled: true, include: ['date-fns'] } } },
+        deps: { optimizer: { client: { enabled: true, include: ['date-fns'] } } },
         coverage: {
             provider: 'v8',
             reporter: ['text', 'json', 'html'],

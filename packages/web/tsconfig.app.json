@@ -6,7 +6,7 @@
     "isolatedModules": true,
     "noEmit": true,
     "emitDeclarationOnly": false,
-    "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"],
+    "types": ["vite/client", "vitest/globals", "node"],
     "paths": {
       "@tandra/types": ["../types/src"],
       "@/*": ["./src/*"]
