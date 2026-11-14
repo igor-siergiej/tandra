@@ -14,7 +14,7 @@
   },
   "ci": {
     "workflowNames": ["PR"],
-    "checkNamesRequired": ["lint", "test", "e2e", "fallow-deadcode"]
+    "checkNamesRequired": ["lint", "test", "test-web", "e2e", "fallow-deadcode"]
   },
   "deploy": {
     "workflowName": "CD",
