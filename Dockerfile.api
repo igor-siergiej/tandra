@@ -4,7 +4,6 @@ WORKDIR /app
 
 COPY package.json bun.lock .bunfig.toml ./
 # bun install applies package.json's patchedDependencies from here and fails without it.
-COPY patches patches/
 
 COPY packages/types/package.json packages/types/package.json
 COPY packages/api/package.json packages/api/package.json
@@ -26,7 +25,6 @@ WORKDIR /app
 
 # Copy package files for installation
 COPY package.json bun.lock ./
-COPY patches patches/
 COPY packages/api/package.json packages/api/package.json
 COPY packages/types/package.json packages/types/package.json
 
