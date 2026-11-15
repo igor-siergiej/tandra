@@ -226,6 +226,14 @@ label picks out small, contained starting points.
   linked from a sticky PR comment). `.kanban-cli.json` treats `lint`,
   `test`, `e2e`, `fallow-deadcode`, `docker-build-api`, `docker-build-web`
   as the required checks.
+  Verification on [PR #313](https://github.com/igor-siergiej/tandra/pull/313):
+  [initial run](https://github.com/igor-siergiej/tandra/actions/runs/43661871093/attempts/1)
+  built API/web in 97s/94s (slowest other job: e2e shard 1, 121s);
+  [same-SHA warm-cache run](https://github.com/igor-siergiej/tandra/actions/runs/43661871093/attempts/2)
+  took 14s/26s (slowest other job: test, 136s), with cached install/build layers.
+  An [isolated mutation run](https://github.com/igor-siergiej/tandra/actions/runs/43661835456)
+  removed only the three `COPY patches patches/` lines; both image jobs failed
+  with `patch file not found: patches/playwright-core@1.65.0.patch`.
 - **`cd.yml`** on push to `main`: semantic-release (version bump in every
   `package.json`, `CHANGELOG.md`, `packages/web/src/data/release-notes.json`
   from `Release-Notes:` trailers) → `publish-images.sh` from the
