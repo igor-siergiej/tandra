@@ -76,10 +76,31 @@ jobs:
       - run: bun run --filter @tandra/api test --coverage --coverage-reporter=text --coverage-reporter=lcov
         env:
           OPENSEARCH_TEST_URL: http://localhost:9200
-      - run: bun run --filter @tandra/web test
-      - run: bun run test:scripts
       - name: Check coverage threshold (90% lines and functions)
         run: bun scripts/check-coverage.js packages/api/coverage/lcov.info 90
+
+  # Web unit tests (Vitest, happy-dom) and the script tests need no services, so they run
+  # here in parallel with `test` instead of waiting ~45s for its OpenSearch container.
+  test-web:
+    runs-on: ubuntu-latest
+    needs: lint
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      # vp (Vite+) needs Node >= 22.18; the runner's default Node is older
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - run: bun install --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GH_TOKEN }}
+      - run: bun run --filter @tandra/web test
+      - run: bun run test:scripts
 
   # The suite is split across runners, and each runner runs several Playwright
   # workers. Every worker gets its own api/web servers, Mongo database and

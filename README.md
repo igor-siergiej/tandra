@@ -211,7 +211,8 @@ label picks out small, contained starting points.
 
 - **`pr.yml`** on every PR: `lint` (`vp check` + `tsc:e2e`), then in parallel
   `test` (`tsc --noEmit`, api tests with coverage against a real OpenSearch
-  service, web tests, script tests, 90 % gate), `e2e`, `fallow-deadcode` and
+  service, 90 % gate), `test-web` (web tests and script tests; no service
+  containers, so it doesn't wait for OpenSearch), `e2e`, `fallow-deadcode` and
   `semgrep`. `docker-build-api` and `docker-build-web` start at once, not
   waiting for `lint`: they build `Dockerfile.api` / `Dockerfile.web` with CD's
   `NODE_AUTH_TOKEN` build arg, build-only (no push, no run) with a buildx
@@ -224,7 +225,7 @@ label picks out small, contained starting points.
   every shard passed, and `report` merges the shards' blob reports into one
   HTML report (artifact `playwright-report`, published to GitHub Pages and
   linked from a sticky PR comment). `.kanban-cli.json` treats `lint`,
-  `test`, `e2e`, `fallow-deadcode`, `docker-build-api`, `docker-build-web`
+  `test`, `test-web`, `e2e`, `fallow-deadcode`, `docker-build-api`, `docker-build-web`
   as the required checks.
   Verification on [PR #313](https://github.com/igor-siergiej/tandra/pull/313):
   [initial run](https://github.com/igor-siergiej/tandra/actions/runs/43661871093/attempts/1)

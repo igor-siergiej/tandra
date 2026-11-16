@@ -15,7 +15,7 @@
   "ci": {
     "workflowNames": ["PR"],
     "postTimings": true,
-    "checkNamesRequired": ["lint", "test", "e2e", "fallow-deadcode", "docker-build-api", "docker-build-web"]
+    "checkNamesRequired": ["lint", "test", "test-web", "e2e", "fallow-deadcode", "docker-build-api", "docker-build-web"]
   },
   "deploy": {
     "workflowName": "CD",
