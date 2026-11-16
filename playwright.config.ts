@@ -106,6 +106,10 @@ export default defineConfig({
                 // The public read endpoint echoes the allow-listed origin in Access-Control-Allow-Origin.
                 // Without an allow-list the middleware falls back to "*"; the test asserts the echo path.
                 PUBLIC_DISCOVER_ORIGINS: 'https://tandra.uk',
+                // AI off, as in CI, whatever a developer's .env holds: specs mock /api/features and the AI routes,
+                // and a real key would send background calls (tagging, images) to fal.ai during the run.
+                FAL_KEY: '',
+                RECIPE_IMPORT_LLM_API_KEY: '',
             },
         },
     ]),
