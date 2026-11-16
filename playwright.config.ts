@@ -14,6 +14,10 @@ const E2E_MONGO_URI = resolveMongoUri();
 // unset and keep :4000.
 const BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:4000';
 
+// A run aimed at a deployed URL starts no local stack and seeds no local database: the smoke specs only read what is
+// already live, and a sandbox without Mongo or a build toolchain must still be able to run them.
+const AGAINST_DEPLOYED = process.env.E2E_BASE_URL !== undefined && process.env.E2E_BASE_URL !== '';
+
 export default defineConfig({
     testDir: './e2e/tests',
     tsconfig: './e2e/tsconfig.json',
@@ -26,7 +30,7 @@ export default defineConfig({
     forbidOnly: !!process.env.CI,
     retries: process.env.CI ? 2 : 0,
     reporter: 'html',
-    globalSetup: './e2e/global-setup.ts',
+    globalSetup: AGAINST_DEPLOYED ? undefined : './e2e/global-setup.ts',
     expect: {
         toHaveScreenshot: {
             animations: 'disabled',
@@ -37,6 +41,16 @@ export default defineConfig({
         baseURL: BASE_URL,
         trace: 'on-first-retry',
         serviceWorkers: 'block',
+        // Playwright's request fixture does not read HTTPS_PROXY. A sandbox whose only way out is a proxy (the factory's
+        // smoke run) would fail every API check with EAI_AGAIN while the browser-based ones pass.
+        ...(AGAINST_DEPLOYED && process.env.HTTPS_PROXY
+            ? {
+                  proxy: {
+                      server: process.env.HTTPS_PROXY,
+                      ...(process.env.NO_PROXY ? { bypass: process.env.NO_PROXY } : {}),
+                  },
+              }
+            : {}),
     },
     projects: [
         {
@@ -73,44 +87,46 @@ export default defineConfig({
     ],
     // Servers start in order, each waiting for the previous one to be ready, so slot 0 builds the bundle once and
     // later slots only serve it.
-    webServer: allStacks().flatMap((stack, slot) => [
-        {
-            // A prebuilt bundle, not the Vite dev server: every test opens a fresh browser context, and the dev
-            // server makes each one fetch and transform the whole unbundled module graph again. A running dev
-            // server is still reused locally.
-            command: `${slot === 0 ? 'bun run build:e2e && ' : ''}bunx vp preview --port ${stack.webPort} --strictPort --outDir build-e2e`,
-            cwd: 'packages/web',
-            url: stack.webOrigin,
-            reuseExistingServer: !process.env.CI,
-            timeout: 120_000,
-            env: { E2E_API_PROXY_TARGET: stack.apiBase },
-        },
-        {
-            command: 'bun run --filter @tandra/api start:e2e',
-            url: `${stack.apiBase}/api/health`,
-            reuseExistingServer: false,
-            env: {
-                PORT: String(stack.apiPort),
-                // Fixed test values, never a developer's .env: e2e signs in through these.
-                BETTER_AUTH_SECRET: 'e2e-better-auth-secret-not-for-prod-32+',
-                BETTER_AUTH_URL: stack.webOrigin,
-                CONNECTION_URI: E2E_MONGO_URI,
-                DATABASE_NAME: stack.dbName,
-                BUCKET_ENDPOINT: 'localhost:9000',
-                BUCKET_NAME: 'tandra',
-                BUCKET_ACCESS_KEY: 'rustfsadmin',
-                BUCKET_SECRET_KEY: 'rustfsadmin',
-                // Only the dedicated e2e search engine, never a developer's OPENSEARCH_URL from .env. Empty = discovery off.
-                OPENSEARCH_URL: process.env.E2E_OPENSEARCH_URL ?? '',
-                OPENSEARCH_INDEX: stack.discoveryIndex,
-                // The public read endpoint echoes the allow-listed origin in Access-Control-Allow-Origin.
-                // Without an allow-list the middleware falls back to "*"; the test asserts the echo path.
-                PUBLIC_DISCOVER_ORIGINS: 'https://tandra.uk',
-                // AI off, as in CI, whatever a developer's .env holds: specs mock /api/features and the AI routes,
-                // and a real key would send background calls (tagging, images) to fal.ai during the run.
-                FAL_KEY: '',
-                RECIPE_IMPORT_LLM_API_KEY: '',
-            },
-        },
-    ]),
+    webServer: AGAINST_DEPLOYED
+        ? []
+        : allStacks().flatMap((stack, slot) => [
+              {
+                  // A prebuilt bundle, not the Vite dev server: every test opens a fresh browser context, and the dev
+                  // server makes each one fetch and transform the whole unbundled module graph again. A running dev
+                  // server is still reused locally.
+                  command: `${slot === 0 ? 'bun run build:e2e && ' : ''}bunx vp preview --port ${stack.webPort} --strictPort --outDir build-e2e`,
+                  cwd: 'packages/web',
+                  url: stack.webOrigin,
+                  reuseExistingServer: !process.env.CI,
+                  timeout: 120_000,
+                  env: { E2E_API_PROXY_TARGET: stack.apiBase },
+              },
+              {
+                  command: 'bun run --filter @tandra/api start:e2e',
+                  url: `${stack.apiBase}/api/health`,
+                  reuseExistingServer: false,
+                  env: {
+                      PORT: String(stack.apiPort),
+                      // Fixed test values, never a developer's .env: e2e signs in through these.
+                      BETTER_AUTH_SECRET: 'e2e-better-auth-secret-not-for-prod-32+',
+                      BETTER_AUTH_URL: stack.webOrigin,
+                      CONNECTION_URI: E2E_MONGO_URI,
+                      DATABASE_NAME: stack.dbName,
+                      BUCKET_ENDPOINT: 'localhost:9000',
+                      BUCKET_NAME: 'tandra',
+                      BUCKET_ACCESS_KEY: 'rustfsadmin',
+                      BUCKET_SECRET_KEY: 'rustfsadmin',
+                      // Only the dedicated e2e search engine, never a developer's OPENSEARCH_URL from .env. Empty = discovery off.
+                      OPENSEARCH_URL: process.env.E2E_OPENSEARCH_URL ?? '',
+                      OPENSEARCH_INDEX: stack.discoveryIndex,
+                      // The public read endpoint echoes the allow-listed origin in Access-Control-Allow-Origin.
+                      // Without an allow-list the middleware falls back to "*"; the test asserts the echo path.
+                      PUBLIC_DISCOVER_ORIGINS: 'https://tandra.uk',
+                      // AI off, as in CI, whatever a developer's .env holds: specs mock /api/features and the AI routes,
+                      // and a real key would send background calls (tagging, images) to fal.ai during the run.
+                      FAL_KEY: '',
+                      RECIPE_IMPORT_LLM_API_KEY: '',
+                  },
+              },
+          ]),
 });
