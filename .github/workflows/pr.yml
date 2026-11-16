@@ -279,6 +279,54 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.GH_TOKEN }}
       - run: bunx fallow@2.100.0 dead-code
 
+  # Build-only check that both production images still build, so a broken
+  # Dockerfile (a COPY missing for a patchedDependencies file, say) fails the PR
+  # instead of CD's build-publish after the release is cut. Same NODE_AUTH_TOKEN
+  # build arg as CD; nothing is pushed or run (the web image's nginx needs an
+  # `api` upstream). Not gated on lint, so it runs alongside everything else.
+  # Dependabot PRs can't read Actions secrets, so they skip, like semgrep.
+  # The gha cache is branch-scoped (PRs also read main's), one scope per image.
+  docker-build-api:
+    if: github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.api
+          push: false
+          build-args: |
+            NODE_AUTH_TOKEN=${{ secrets.GH_TOKEN }}
+          cache-from: type=gha,scope=docker-api
+          cache-to: type=gha,scope=docker-api,mode=max
+
+  docker-build-web:
+    if: github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v6
+      - id: version
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.web
+          push: false
+          build-args: |
+            NODE_AUTH_TOKEN=${{ secrets.GH_TOKEN }}
+            APP_VERSION=${{ steps.version.outputs.version }}
+          cache-from: type=gha,scope=docker-web
+          cache-to: type=gha,scope=docker-web,mode=max
+
   semgrep:
     if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
