@@ -207,11 +207,12 @@ Three workflows under `.github/workflows/`:
 
 **`pr.yml`** (every pull request) — the merge gates:
 1. **lint**: Vite+ check (`bun run lint`) + the e2e suite's own type check (`bun run tsc:e2e`)
-2. **test**: the type-check gate (`bun run typecheck`), the API tests with a 90% coverage threshold, the web tests, and the script tests
-3. **e2e**: Playwright suite, including visual regression, against seeded Mongo and OpenSearch
-4. **report**: publishes the Playwright report and links it from a sticky PR comment
-5. **fallow-deadcode**: dead-code analysis (blocking)
-6. **semgrep**: security pattern scan
+2. **test**: the type-check gate (`bun run typecheck`) and the API tests with a 90% coverage threshold, against a real OpenSearch service container
+3. **test-web**: the web tests and the script tests, in parallel with `test` and with no service containers
+4. **e2e**: Playwright suite, including visual regression, against seeded Mongo and OpenSearch
+5. **report**: publishes the Playwright report and links it from a sticky PR comment
+6. **fallow-deadcode**: dead-code analysis (blocking)
+7. **semgrep**: security pattern scan
 
 **`cd.yml`** (push to `main`) — **release** (semantic-release), **build-publish**
 (Docker images), **deploy** (webhooks).
