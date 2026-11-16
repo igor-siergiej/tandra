@@ -211,8 +211,7 @@ label picks out small, contained starting points.
 
 - **`pr.yml`** on every PR: `lint` (`vp check` + `tsc:e2e`), then in parallel
   `test` (`tsc --noEmit`, api tests with coverage against a real OpenSearch
-  service, 90 % gate), `test-web` (web tests and script tests; no service
-  containers, so it doesn't wait for OpenSearch), `e2e`, `fallow-deadcode` and
+  service, web tests, script tests, 90 % gate), `e2e`, `fallow-deadcode` and
   `semgrep`. Playwright runs as four `e2e-shard` jobs (`--shard=N/4`), each
   starting Mongo 7 + OpenSearch in the background and running three workers,
   each with its own api, web server, database and search alias
@@ -220,7 +219,7 @@ label picks out small, contained starting points.
   every shard passed, and `report` merges the shards' blob reports into one
   HTML report (artifact `playwright-report`, published to GitHub Pages and
   linked from a sticky PR comment). `.kanban-cli.json` treats `lint`,
-  `test`, `test-web`, `e2e`, `fallow-deadcode` as the required checks.
+  `test`, `e2e`, `fallow-deadcode` as the required checks.
 - **`cd.yml`** on push to `main`: semantic-release (version bump in every
   `package.json`, `CHANGELOG.md`, `packages/web/src/data/release-notes.json`
   from `Release-Notes:` trailers) → `publish-images.sh` from the
