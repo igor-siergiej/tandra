@@ -74,9 +74,12 @@ services:
       BUCKET_NAME: ${BUCKET_NAME:-tandra}
       BUCKET_ACCESS_KEY: ${RUSTFS_ACCESS_KEY}
       BUCKET_SECRET_KEY: ${RUSTFS_SECRET_KEY}
-      # AI features: leave FAL_KEY unset to disable recipe-import LLM, image
-      # generation and substitutes. With no key the routes return upstream
-      # errors; the UI flows that need them can be ignored or skipped.
+      # AI features: leave GEMINI_API_KEY unset to disable the text AI (recipe-import
+      # LLM, tagging, substitutes, item aisles, voice add) and FAL_KEY unset to
+      # disable image generation. With no key the routes answer 503 ai_disabled
+      # and the UI hides the flows that need them.
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      RECIPE_IMPORT_LLM_MODEL: ${RECIPE_IMPORT_LLM_MODEL:-}
       FAL_KEY: ${FAL_KEY:-}
       FAL_MODEL: ${FAL_MODEL:-}
       FAL_RECIPE_MODEL: ${FAL_RECIPE_MODEL:-}

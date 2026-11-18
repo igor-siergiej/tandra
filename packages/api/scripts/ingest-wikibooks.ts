@@ -22,8 +22,8 @@ if (!config.get('opensearchUrl')) {
     process.exit(1);
 }
 
-if (!(config.get('falKey') || config.get('recipeImportLlmApiKey'))) {
-    console.error('FAL_KEY is not set; recipes cannot be tagged.');
+if (!(config.get('geminiApiKey') || config.get('recipeImportLlmApiKey'))) {
+    console.error('GEMINI_API_KEY is not set; recipes cannot be tagged.');
     process.exit(1);
 }
 

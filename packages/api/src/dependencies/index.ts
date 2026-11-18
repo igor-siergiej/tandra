@@ -364,9 +364,9 @@ export const registerDepdendencies = () => {
     register(DependencyToken.ImageFetcher, () => new HttpImageFetcher());
 
     register(DependencyToken.FalLlmClient, () => {
-        // Reuses FAL_KEY unless a dedicated import key is set.
+        // Uses GEMINI_API_KEY unless a dedicated import key is set.
         return new FalLlmClient(
-            config.get('recipeImportLlmApiKey') || config.get('falKey') || '',
+            config.get('recipeImportLlmApiKey') || config.get('geminiApiKey') || '',
             dependencyContainer.resolve(DependencyToken.Logger),
             { model: config.get('recipeImportLlmModel') || undefined }
         );

@@ -9,6 +9,7 @@ const schema = {
     connectionUri: { parser: parsers.string, from: 'CONNECTION_URI' },
     databaseName: { parser: parsers.string, from: 'DATABASE_NAME' },
     falKey: { parser: parsers.string, from: 'FAL_KEY', optional: true },
+    geminiApiKey: { parser: parsers.string, from: 'GEMINI_API_KEY', optional: true },
     falModel: { parser: parsers.string, from: 'FAL_MODEL', optional: true },
     falRecipeModel: { parser: parsers.string, from: 'FAL_RECIPE_MODEL', optional: true },
     recipeImportLlmEnabled: { parser: parsers.boolean, from: 'RECIPE_IMPORT_LLM_ENABLED', optional: true },
@@ -43,7 +44,7 @@ export const config = new ConfigService(schema);
 /**
  * Snapshot of which AI features the api is wired to call. Used by the
  * `/api/features` endpoint to tell the web which controls to hide when the
- * server is self-hosted without FAL_KEY / RECIPE_IMPORT_LLM_API_KEY.
+ * server is self-hosted without FAL_KEY (images) / GEMINI_API_KEY or RECIPE_IMPORT_LLM_API_KEY (text AI).
  */
 export interface AiFeaturesSummary {
     imageGeneration: boolean;
@@ -61,9 +62,10 @@ export interface AiFeaturesSummary {
  */
 export const aiFeaturesFromEnv = (env: NodeJS.ProcessEnv = process.env): AiFeaturesSummary => {
     const falKey = env.FAL_KEY ?? '';
+    const geminiKey = env.GEMINI_API_KEY ?? '';
     const llmKey = env.RECIPE_IMPORT_LLM_API_KEY ?? '';
     const imageGeneration = falKey.length > 0;
-    const llm = falKey.length > 0 || llmKey.length > 0;
+    const llm = geminiKey.length > 0 || llmKey.length > 0;
 
     return {
         imageGeneration,

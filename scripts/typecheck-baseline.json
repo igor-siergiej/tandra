@@ -22,7 +22,7 @@
   "packages/api/src/domain/WikibooksIngest/cover.ts::TS2339": 1,
   "packages/api/src/infrastructure/BucketStore/index.test.ts::TS2769": 1,
   "packages/api/src/infrastructure/FalImageGenerator/index.test.ts::TS2741": 9,
-  "packages/api/src/infrastructure/FalLlmClient/index.test.ts::TS2345": 17,
+  "packages/api/src/infrastructure/FalLlmClient/structuredOutput.test.ts::TS7011": 3,
   "packages/api/src/infrastructure/HttpPageFetcher/index.test.ts::TS2345": 6,
   "packages/api/src/infrastructure/MediaWikiCookbookSource/index.ts::TS7011": 2,
   "packages/api/src/infrastructure/MongoDiscoveryPublicationRepository/index.test.ts::TS7023": 1,

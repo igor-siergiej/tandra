@@ -76,10 +76,14 @@ Bun-workspace monorepo — `packages/web`, `packages/api`, `packages/types`
   daily scheduler in the api sends todo reminders.
 - **sharing** — friend codes, per-list/per-recipe members, and list invite
   links (`/api/lists/invites/*`).
-- **AI** — everything goes through fal.ai with `FAL_KEY`: images via
-  `fal-ai/flux/schnell` (`FalImageGenerator`), text via `fal-ai/any-llm`
-  (`FalLlmClient`, default model `google/gemini-2.5-flash-lite`) for recipe
-  tagging, substitutes, item aisles and spoken-item parsing. Recipe import
+- **AI** — images go through fal.ai with `FAL_KEY` (`fal-ai/flux/schnell`,
+  `FalImageGenerator`). Text goes to the Gemini API with `GEMINI_API_KEY`
+  (`FalLlmClient`, `generateContent`, default model `gemini-3.5-flash-lite`)
+  for recipe import, tagging, substitutes, item aisles and spoken-item
+  parsing. Every call uses native structured output: the request carries a
+  JSON schema generated from the call's Zod schema, so there is no
+  brace-slicing and no validation re-prompt (an invalid reply is a 502).
+  Recipe import
   is JSON-LD first, then HTML heuristics; the LLM is only a third tier when
   `RECIPE_IMPORT_LLM_ENABLED`, or the sole parser when
   `RECIPE_IMPORT_LLM_FIRST`. Outbound fetches of recipe pages and images go
@@ -105,8 +109,9 @@ required value).
 | `BUCKET_ENDPOINT`, `BUCKET_NAME`, `BUCKET_ACCESS_KEY`, `BUCKET_SECRET_KEY` | yes | S3-compatible object store (RustFS) |
 | `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` | yes | Better Auth at `/api/auth/*`: cookie-signing secret and the public origin the browser sees |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | no | Google sign-in (both or neither) |
-| `FAL_KEY`, `FAL_MODEL`, `FAL_RECIPE_MODEL` | no | fal.ai key and model overrides |
-| `RECIPE_IMPORT_LLM_ENABLED`, `RECIPE_IMPORT_LLM_FIRST`, `RECIPE_IMPORT_LLM_API_KEY`, `RECIPE_IMPORT_LLM_MODEL` | no | recipe-import LLM tier; the key falls back to `FAL_KEY` |
+| `FAL_KEY`, `FAL_MODEL`, `FAL_RECIPE_MODEL` | no | fal.ai key and model overrides (image generation only) |
+| `GEMINI_API_KEY` | no | Gemini API key for every text AI feature |
+| `RECIPE_IMPORT_LLM_ENABLED`, `RECIPE_IMPORT_LLM_FIRST`, `RECIPE_IMPORT_LLM_API_KEY`, `RECIPE_IMPORT_LLM_MODEL` | no | recipe-import LLM tier; the key falls back to `GEMINI_API_KEY`; the model defaults to `gemini-3.5-flash-lite` |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | no | Web Push |
 | `OPENSEARCH_URL` | no | Discover search index; unset = Discover off |
 | `OPENSEARCH_INDEX` | no | alias the Discover index lives under (default `discovery-recipes`), so several APIs can share one engine |
@@ -297,17 +302,17 @@ the API. Mongo and RustFS persist into named volumes (`mongo-data`, `rustfs-data
 A one-shot `rustfs-init` container (the `rc` CLI) creates the configured bucket
 on first run.
 
-`FAL_KEY` is optional. Without it, the API wires disabled AI
-implementations and every AI endpoint (recipe import, image generation,
-ingredient substitutes, voice add) responds with
+`GEMINI_API_KEY` and `FAL_KEY` are optional. Without them, the API wires disabled AI
+implementations and the matching AI endpoints (recipe import, ingredient
+substitutes, voice add with `GEMINI_API_KEY`; image generation with `FAL_KEY`) respond with
 `503 { error: 'ai_disabled' }`. The web reads `GET /api/features` on boot
 and hides those entry points with a short "Not available on this server"
 note. The rest of the app — lists, recipes, calendar, sharing, PWA/offline,
 item/recipe creation with a default placeholder picture — works exactly as
 it does in production.
 
-`RECIPE_IMPORT_LLM_API_KEY` is also optional and falls back to `FAL_KEY`
-when unset. If you set only the LLM key, recipe import and substitutes
+`RECIPE_IMPORT_LLM_API_KEY` is also optional and, when set, is used instead of
+`GEMINI_API_KEY`. If you set only a Gemini key, recipe import and substitutes
 work but image generation stays off.
 
 Backups: `docker compose exec -T mongo mongodump --archive` (or
