@@ -197,7 +197,9 @@ describe('LLM client: Gemini native structured output', () => {
         });
 
         it('sends no schema that differs between two schemas: each call carries its own', async () => {
-            const requests = capture(() => geminiReply('{"other":"x"}'));
+            const replies = ['{"title":"Hi","count":3}', '{"other":"x"}'];
+            let n = 0;
+            const requests = capture(() => geminiReply(replies[n++] ?? '{}'));
 
             await call(new FalLlmClient('secret'));
             await call(new FalLlmClient('secret'), { schema: z.object({ other: z.string() }) });
