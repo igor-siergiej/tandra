@@ -7,6 +7,7 @@ import { config } from '../config';
 import { allowedOrigins } from '../config/cors';
 import { AuthorizationService } from '../domain/AuthorizationService';
 import { DailyReminderScheduler } from '../domain/DailyReminderScheduler';
+import { DataExportService } from '../domain/DataExportService';
 import { DiscoveryCopyService } from '../domain/DiscoveryCopyService';
 import { DiscoveryModerationService } from '../domain/DiscoveryModeration';
 import { DiscoveryPublishService } from '../domain/DiscoveryPublish';
@@ -273,6 +274,23 @@ export const registerDepdendencies = () => {
                 dependencyContainer.resolve(DependencyToken.RecipeRepository),
                 dependencyContainer.resolve(DependencyToken.TodoRepository),
                 dependencyContainer.resolve(DependencyToken.MealPlanRepository)
+            )
+    );
+
+    // Settings → Account → Export my data: reads through the same services the app's own endpoints use.
+    register(
+        DependencyToken.DataExportService,
+        () =>
+            new DataExportService(
+                {
+                    lists: dependencyContainer.resolve(DependencyToken.ListService),
+                    recipes: dependencyContainer.resolve(DependencyToken.RecipeService),
+                    mealPlans: dependencyContainer.resolve(DependencyToken.MealPlanService),
+                    todos: dependencyContainer.resolve(DependencyToken.TodoService),
+                    labels: dependencyContainer.resolve(DependencyToken.LabelService),
+                    friends: dependencyContainer.resolve(DependencyToken.FriendService),
+                },
+                dependencyContainer.resolve(DependencyToken.AuthorizationService)
             )
     );
 

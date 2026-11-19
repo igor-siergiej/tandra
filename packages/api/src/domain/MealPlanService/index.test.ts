@@ -72,6 +72,18 @@ describe('MealPlanService', () => {
         expect(repo.store.size).toBe(1);
     });
 
+    it('lists every day the user owns or is shared on, however far apart, and nobody else’s', async () => {
+        await service.create('u1', { ...input, date: '2019-01-01', userIds: [] });
+        await service.create('u1', { ...input, date: '2090-12-31' });
+        repo.store.set('other', { ...input, id: 'other', ownerId: 'u9', dateAdded: new Date() });
+
+        const mine = await service.listAllForUser('u1');
+        const theirs = await service.listAllForUser('u2');
+
+        expect(mine.map((e) => e.date).sort()).toEqual(['2019-01-01', '2090-12-31']);
+        expect(theirs.map((e) => e.date)).toEqual(['2090-12-31']);
+    });
+
     it('shares only with the chosen friends and rejects non-friends', async () => {
         expect((await service.create('u1', { ...input, userIds: [] })).users).toBeUndefined();
 
