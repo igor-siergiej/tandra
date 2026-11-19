@@ -45,7 +45,8 @@ and retention rows need to match this behaviour:
 
 - **Erasure:** You can delete your account yourself in Settings → Account → Delete my account. It takes effect at once:
   your lists, recipes, todos, meal plans, labels, friends, photos, notification subscriptions and sign-in details are
-  deleted, and any recipe you published to Discover is taken down. Lists you shared stay with the people you shared them
-  with, without you. Copies of a published recipe that other people already added to their own recipes stay theirs.
+  deleted, and any recipe you published to Discover is taken down. Lists, recipes, todos and meal plans you own are deleted
+  for everyone they were shared with; ones other people own stay with them, without you. Copies of a published recipe that
+  other people already added to their own recipes stay theirs.
 - **Retention:** Nothing is kept for a grace period after you delete your account. (Check the log retention period
   before publishing a statement about server logs: logs mention user ids and are not touched by the deletion.)
