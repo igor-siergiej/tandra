@@ -1,3 +1,10 @@
+# [2.9.0](https://github.com/igor-siergiej/tandra/compare/v2.8.0...v2.9.0) (2026-11-19)
+
+
+### Features
+
+* **export:** Settings → Account "Export my data" downloads everything as one JSON file ([#321](https://github.com/igor-siergiej/tandra/issues/321)) ([5108722](https://github.com/igor-siergiej/tandra/commit/51087224cc72a9df1ae74732d3aa2d56508b56ea))
+
 # [2.8.0](https://github.com/igor-siergiej/tandra/compare/v2.7.0...v2.8.0) (2026-10-24)
 
 
