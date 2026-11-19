@@ -326,8 +326,10 @@ item/recipe creation with a default placeholder picture — works exactly as
 it does in production.
 
 `RECIPE_IMPORT_LLM_API_KEY` is also optional and, when set, is used instead of
-`GEMINI_API_KEY`. If you set only a Gemini key, recipe import and substitutes
-work but image generation stays off.
+`GEMINI_API_KEY`. It must be a Google Gemini key: it used to be allowed to hold
+a fal key, and a leftover fal key there now makes every text AI call fail with
+a 502, so replace or unset it when upgrading. If you set only a Gemini key,
+recipe import and substitutes work but image generation stays off.
 
 Backups: `docker compose exec -T mongo mongodump --archive` (or
 `mongodump` to a mounted dir) for MongoDB, and an `rc mirror` (the
