@@ -42,3 +42,36 @@ describe('session replay resumes on page load only with consent', () => {
         expect(await loadPage()).toBe(started);
     });
 });
+
+describe('session replay for a visitor who loaded the page opted out', () => {
+    beforeEach(() => {
+        delete window.umami;
+        document.head.innerHTML = '';
+        localStorage.clear();
+    });
+
+    it('loads the recorder and starts replay once they turn usage statistics and recordings on', async () => {
+        localStorage.setItem('umami.disabled', 'true');
+        vi.resetModules();
+        // Dynamic import on purpose: the injected flags are module state, so this page load needs a fresh module instance.
+        const analytics = await import('./analytics');
+        const startSessionReplay = vi.fn();
+        analytics.loadTracker();
+        window.umami = { track: vi.fn(), identify: vi.fn(), startSessionReplay };
+        document.querySelector('script[src$="/p.js"]')?.dispatchEvent(new Event('load'));
+        expect(document.querySelector('script[src$="/recorder.js"]')).toBeNull();
+
+        localStorage.removeItem('umami.disabled');
+        localStorage.setItem('tandra.replayConsent', 'true');
+        analytics.startReplay();
+        expect(document.querySelectorAll('script[src$="/recorder.js"]')).toHaveLength(1);
+        expect(startSessionReplay).not.toHaveBeenCalled();
+
+        document.querySelector('script[src$="/recorder.js"]')?.dispatchEvent(new Event('load'));
+        expect(startSessionReplay).toHaveBeenCalledTimes(1);
+
+        analytics.startReplay();
+        expect(document.querySelectorAll('script[src$="/recorder.js"]')).toHaveLength(1);
+        expect(startSessionReplay).toHaveBeenCalledTimes(2);
+    });
+});

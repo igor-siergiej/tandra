@@ -21,8 +21,9 @@
  * Once the tracker has loaded, `<host>/recorder.js` follows. It records click
  * positions and scroll depth for Umami's heatmaps (and replay, if the website
  * settings ever turn it on). It sends nothing until the tracker has a session,
- * and is not loaded at all for visitors who opted out via Umami's own
- * `localStorage['umami.disabled']` flag.
+ * and is not loaded on page load for visitors who opted out via Umami's own
+ * `localStorage['umami.disabled']` flag; `startReplay()` loads it for them if they
+ * later turn usage statistics and recordings on.
  *
  * Both scripts POST to `<host>`, and every list page path in what they send is
  * rewritten to `/list/:list` (see `redactListPaths`). The recorder has no hook
@@ -104,6 +105,21 @@ const redactAnalyticsRequests = (base: string): void => {
     };
 };
 
+let recorderSource: { src: string; websiteId: string } | null = null;
+let recorderRequested = false;
+let recorderLoaded = false;
+
+/** Append the recorder once; it resumes replay itself for a visitor who agreed earlier. */
+const loadRecorder = (): void => {
+    if (recorderRequested || !recorderSource) return;
+
+    recorderRequested = true;
+    appendScript(recorderSource.src, recorderSource.websiteId, () => {
+        recorderLoaded = true;
+        resumeReplay();
+    });
+};
+
 const injectScript = (host: string, websiteId: string): void => {
     if (injected || injectStarted) return;
 
@@ -112,13 +128,14 @@ const injectScript = (host: string, websiteId: string): void => {
     injectStarted = true;
     const base = host.replace(/\/$/, '');
     redactAnalyticsRequests(base);
+    recorderSource = { src: `${base}/recorder.js`, websiteId };
     // Never pre-define window.umami: the tracker skips installing its API when
     // the global already exists, which would silently drop every event.
     appendScript(`${base}/p.js`, websiteId, () => {
         injected = true;
         flushPending();
 
-        if (!isUsageOptedOut()) appendScript(`${base}/recorder.js`, websiteId, resumeReplay);
+        if (!isUsageOptedOut()) loadRecorder();
     });
 };
 
@@ -191,7 +208,10 @@ export const isAnalyticsConfigured = (): boolean => trackerConfig() !== null;
  */
 export const startReplay = (): void => {
     if (!ensureInjected() || isUsageOptedOut()) return;
-    window.umami?.startSessionReplay?.();
+
+    // A visitor who loaded the page opted out never got the recorder: load it now, it starts replay on load.
+    if (injected && !recorderRequested) loadRecorder();
+    else if (recorderLoaded) window.umami?.startSessionReplay?.();
 };
 
 // fallow-ignore-next-line unused-export
