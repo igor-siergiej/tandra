@@ -93,6 +93,16 @@ Bun-workspace monorepo — `packages/web`, `packages/api`, `packages/types`
   `RECIPE_IMPORT_LLM_FIRST`. Outbound fetches of recipe pages and images go
   through the SSRF guard in `infrastructure/safeFetch.ts`. AI routes are
   rate-limited (`middleware/aiRateLimit.ts`).
+
+  **Criterion 3 waiver (tandra #76).** The owner waived the live before/after
+  run on ~10 real recipe URLs (journal waits 192 and 194, 2026-11-19: "skip the
+  live comparison and ship on the tests and code review" and "Amend criterion 3
+  to drop the live comparison and accept the card as verified"). The build
+  sandbox has no `GEMINI_API_KEY` and no outbound network, so the run could not
+  be done. After deploy the owner can run
+  `bun run import:compare <urls.txt> --price-in N --price-out N` on commit
+  `07b40eef` (before, needs `FAL_KEY`) and on the branch head (after, needs
+  `GEMINI_API_KEY`) and diff the JSON outputs.
 - **Discover** — shared recipe library fed from the Wikibooks Cookbook and
   user-published recipes; public read-only `/api/public/discover/*` (CORS
   allow-list `PUBLIC_DISCOVER_ORIGINS`) feeds the marketing site. See

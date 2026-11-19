@@ -10,6 +10,9 @@
  * `--price-in` / `--price-out` are US dollars per million input / output tokens from the provider's price list; without
  * them the cost column is left out and only token counts are reported. Token counts come from the provider's
  * `usageMetadata`, so a provider that does not return one (fal any-llm) reports none.
+ *
+ * Criterion 3 waiver (tandra #76): the owner waived the live before/after run on ~10 real recipe URLs (journal waits 192
+ * and 194, 2026-11-19). The build sandbox had no GEMINI_API_KEY and no network. Run this on 07b40eef (before) and the branch head (after) and diff.
  */
 import 'dotenv/config';
 import { readFileSync, writeFileSync } from 'node:fs';
