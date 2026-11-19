@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+
 import { z } from 'zod';
 
 import { parsedRecipeSchema } from './schema';
@@ -105,9 +106,7 @@ describe('parsedRecipeSchema', () => {
     });
 
     it('tells the model the title is a string', () => {
-        const sent = z.toJSONSchema(parsedRecipeSchema, { io: 'input', unrepresentable: 'any' }) as {
-            properties: { title: { type?: string } };
-        };
-        expect(sent.properties.title.type).toBe('string');
+        const sent = z.toJSONSchema(parsedRecipeSchema, { io: 'input', unrepresentable: 'any' });
+        expect(sent.properties?.title).toMatchObject({ type: 'string' });
     });
 });

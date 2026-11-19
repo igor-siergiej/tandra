@@ -4,9 +4,7 @@ import { stringArrayField } from '../zodHelpers';
 
 export const extractedRecipeSchema: z.ZodType<{ title: string; ingredients: string[]; instructions: string[] }> = z
     .object({
-        title: z
-            .preprocess((value) => (typeof value === 'string' ? value : ''), z.string())
-            .meta({ type: 'string' }),
+        title: z.preprocess((value) => (typeof value === 'string' ? value : ''), z.string()).meta({ type: 'string' }),
         ingredients: stringArrayField(),
         instructions: stringArrayField(),
     })
