@@ -17,19 +17,27 @@ export const setItemCategory = async (c: Context<HonoVars>) => {
     const listService = dependencyContainer.resolve(DependencyToken.ListService);
     const logger = dependencyContainer.resolve(DependencyToken.Logger);
 
+    let listId: string | undefined;
+
     try {
         const list = await listService.getList(title);
 
+        listId = list.id;
+
         if (!list.users?.some((member: { id: string }) => member.id === user?.id)) {
-            logger.warn('Unauthorized item category change', { authenticatedUserId: user?.id, listTitle: title });
+            logger.warn('Unauthorized item category change', { authenticatedUserId: user?.id, listId });
 
             return c.json({ error: 'Forbidden' }, 403);
         }
 
-        return c.json(await listService.setItemCategory(title, itemId, category), 200);
+        const result = await listService.setItemCategory(title, itemId, category);
+
+        logger.info('API: Item category set', { listId, itemId, category });
+
+        return c.json(result, 200);
     } catch (error: unknown) {
         const err = error as { status?: number; message?: string };
-        logger.error('API: Failed to set item category', { listTitle: title, itemId, error: err.message });
+        logger.error('API: Failed to set item category', { listId, itemId, error: err.message });
         throw new APIError(err.message ?? 'Internal Server Error', err.status ?? 500);
     }
 };

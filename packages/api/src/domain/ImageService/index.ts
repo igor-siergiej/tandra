@@ -48,7 +48,6 @@ export class ImageService {
                 const stream = await this.store.getObjectStream(storageKey);
 
                 this.logger?.info('Image retrieved from cache', {
-                    itemName: normalisedName,
                     contentType,
                     source: 'cache',
                 });
@@ -65,9 +64,7 @@ export class ImageService {
                     throw httpError('Image storage unavailable', 503);
                 }
 
-                this.logger?.warn('Image not found in store, falling back to generator', {
-                    itemName: normalisedName,
-                });
+                this.logger?.warn('Image not found in store, falling back to generator');
             }
 
             if (!userId) {
@@ -77,7 +74,6 @@ export class ImageService {
             const { buffer, contentType } = await this.generateOnce(storageKey, normalisedName, userId);
 
             this.logger?.info('Image generated using AI', {
-                itemName: normalisedName,
                 contentType,
                 source: 'fal',
             });
@@ -90,10 +86,7 @@ export class ImageService {
                 cacheControl: 'public, max-age=31536000, immutable',
             };
         } catch (error) {
-            this.logger?.error('Failed to get image', {
-                itemName: name,
-                error,
-            });
+            this.logger?.error('Failed to get image', { error });
             throw error;
         }
     }
@@ -122,7 +115,7 @@ export class ImageService {
             try {
                 await this.store.putObject(storageKey, result.buffer, { contentType: result.contentType });
             } catch (uploadErr) {
-                this.logger?.error('Failed to store generated image', { itemName: name, error: uploadErr });
+                this.logger?.error('Failed to store generated image', { error: uploadErr });
             }
 
             return result;

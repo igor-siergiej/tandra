@@ -153,7 +153,7 @@ export const createRecipe = async (c: Context<HonoVars>): Promise<Response> => {
         getLogger().info('API: Recipe created', {
             userId: authenticatedUser.id,
             username: authenticatedUser.username,
-            recipeTitle: title,
+            recipeId: recipe.id,
             ingredientCount: ingredients.length,
         });
 
@@ -162,7 +162,7 @@ export const createRecipe = async (c: Context<HonoVars>): Promise<Response> => {
         return failWithApiError(error, 'API: Failed to create recipe', {
             userId: authenticatedUser.id,
             username: authenticatedUser.username,
-            recipeTitle: title,
+            recipeId: id,
         });
     }
 };
@@ -238,7 +238,6 @@ export const suggestIngredientSubstitutes = async (c: Context<HonoVars>): Promis
 
         getLogger().info('API: Ingredient substitutes suggested', {
             userId: authenticatedUser.id,
-            ingredientName,
             substituteCount: substitutes.length,
         });
 
@@ -246,7 +245,6 @@ export const suggestIngredientSubstitutes = async (c: Context<HonoVars>): Promis
     } catch (error: unknown) {
         return failWithApiError(error, 'API: Failed to suggest ingredient substitutes', {
             userId: authenticatedUser.id,
-            ingredientName,
         });
     }
 };
@@ -296,7 +294,7 @@ export const updateRecipe = async (c: Context<HonoVars>): Promise<Response> => {
             difficulty
         );
 
-        getLogger().info('API: Recipe updated', { userId: authenticatedUser.id, recipeId, recipeTitle: title });
+        getLogger().info('API: Recipe updated', { userId: authenticatedUser.id, recipeId });
 
         return c.json(recipe, 200);
     } catch (error: unknown) {

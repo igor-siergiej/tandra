@@ -57,7 +57,7 @@ export class RecipeService {
         try {
             return await this.substituter.generateSubstitutes(ingredientName, recipeTitle);
         } catch (error) {
-            this.logger?.warn('Ingredient substitute generation failed', { ingredientName, recipeTitle, error });
+            this.logger?.warn('Ingredient substitute generation failed', { error });
             throw Object.assign(new Error('Failed to generate ingredient substitutes'), { status: 502 });
         }
     }
@@ -77,7 +77,6 @@ export class RecipeService {
         } catch (error) {
             this.logger?.warn('Recipe tag generation failed, continuing without AI tags', {
                 recipeId: recipe.id,
-                recipeTitle: recipe.title,
                 error,
             });
         }
@@ -85,7 +84,7 @@ export class RecipeService {
 
     /** Owner first, then the friends the recipe is shared with (all by default, or the chosen subset). */
     private async resolveSharedUsers(
-        title: string,
+        recipeId: string,
         owner: User,
         selectedFriendIds?: Array<string>
     ): Promise<Array<User>> {
@@ -93,7 +92,7 @@ export class RecipeService {
 
         this.logger?.info(
             selectedFriendIds === undefined ? 'Recipe auto-shared with friends' : 'Recipe shared with selected friends',
-            { recipeTitle: title, owner: owner.username, sharedWithCount: members.length }
+            { recipeId, owner: owner.username, sharedWithCount: members.length }
         );
 
         return [owner, ...members];
@@ -115,6 +114,8 @@ export class RecipeService {
         difficulty?: RecipeDifficulty,
         attribution?: string
     ): Promise<Recipe> {
+        const recipeId = id ?? this.idGenerator.generate();
+
         try {
             if (id) {
                 const existing = await this.recipeRepository.getById(id);
@@ -124,11 +125,11 @@ export class RecipeService {
                 }
             }
 
-            const users = await this.resolveSharedUsers(title, owner, selectedUsers);
+            const users = await this.resolveSharedUsers(recipeId, owner, selectedUsers);
             const mergedTags = mergeTags(tags ?? [], []);
 
             const recipe: Recipe = {
-                id: id ?? this.idGenerator.generate(),
+                id: recipeId,
                 title,
                 ingredients: ingredients.map((ing) => ({
                     ...ing,
@@ -151,7 +152,6 @@ export class RecipeService {
             void this.tagInBackground(created, instructions);
             this.logger?.info('Recipe created', {
                 recipeId: created.id,
-                recipeTitle: title,
                 owner: owner.username,
                 ingredientCount: created.ingredients.length,
             });
@@ -159,7 +159,7 @@ export class RecipeService {
             return created;
         } catch (error) {
             this.logger?.error('Failed to create recipe', {
-                recipeTitle: title,
+                recipeId,
                 owner: owner.username,
                 error,
             });
@@ -220,7 +220,6 @@ export class RecipeService {
             const updated = await this.recipeRepository.update(recipeId, recipe);
             this.logger?.info('Recipe updated', {
                 recipeId,
-                recipeTitle: title,
                 ingredientCount: updated.ingredients.length,
             });
 
@@ -228,7 +227,6 @@ export class RecipeService {
         } catch (error) {
             this.logger?.error('Failed to update recipe', {
                 recipeId,
-                recipeTitle: title,
                 error,
             });
             throw error;
@@ -248,7 +246,6 @@ export class RecipeService {
             await this.recipeRepository.deleteById(recipeId);
             this.logger?.info('Recipe deleted', {
                 recipeId,
-                recipeTitle: recipe.title,
             });
         } catch (error) {
             this.logger?.error('Failed to delete recipe', {

@@ -133,7 +133,7 @@ export class DiscoveryPublishService {
         const title = recipe.title.trim();
         const coverImageKey = await this.coverFor(recipe, libraryId);
         const authorName = showName ? user.username : undefined;
-        const slug = await this.slugFor(title);
+        const slug = await this.slugFor(title, libraryId);
 
         return {
             id: libraryId,
@@ -166,7 +166,7 @@ export class DiscoveryPublishService {
      * use their id (`wikibooks-<pageId>`) as slug, so that shape is never handed
      * out here, even for a page not ingested yet: its recipe would then fail to save.
      */
-    private async slugFor(title: string): Promise<string | undefined> {
+    private async slugFor(title: string, libraryId: string): Promise<string | undefined> {
         const base = slugify(title);
 
         const isTaken = async (candidate: string) =>
@@ -176,8 +176,9 @@ export class DiscoveryPublishService {
             return await uniqueSlug(base, isTaken);
         } catch (error) {
             this.logger?.warn('Could not allocate a unique slug for published recipe; publishing without one', {
-                title,
-                error: (error as Error).message,
+                libraryId,
+                // The error message quotes the slug, which is the recipe title.
+                errorName: (error as Error).name,
             });
 
             return undefined;
