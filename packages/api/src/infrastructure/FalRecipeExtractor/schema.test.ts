@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+import { z } from 'zod';
 
 import { extractedRecipeSchema } from './schema';
 
@@ -18,5 +19,12 @@ describe('extractedRecipeSchema', () => {
     it('drops non-string entries from the arrays', () => {
         const result = parse({ title: 'X', ingredients: ['a', 2, 'b'], instructions: [true, 'step'] });
         expect(result).toEqual({ title: 'X', ingredients: ['a', 'b'], instructions: ['step'] });
+    });
+
+    it('tells the model the title is a string', () => {
+        const sent = z.toJSONSchema(extractedRecipeSchema, { io: 'input', unrepresentable: 'any' }) as {
+            properties: { title: { type?: string } };
+        };
+        expect(sent.properties.title.type).toBe('string');
     });
 });
