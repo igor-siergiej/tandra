@@ -3,7 +3,7 @@ import { DependencyToken } from '../../dependencies/types';
 import { withAuth } from '../handlerUtils';
 
 /** `tandra-export-<username>-<YYYY-MM-DD>.json`, with anything a header or a file system would choke on replaced. */
-export const exportFilename = (username: string, exportedAt: string): string =>
+const exportFilename = (username: string, exportedAt: string): string =>
     `tandra-export-${username.replace(/[^A-Za-z0-9._-]/g, '_')}-${exportedAt.slice(0, 10)}.json`;
 
 export const exportMyData = withAuth(async (c, user) => {

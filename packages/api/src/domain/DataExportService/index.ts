@@ -14,7 +14,7 @@ export const EXPORT_OMITTED: readonly string[] = [
     'The shared item-to-aisle cache; itemCategories only holds the aisles of items on your lists.',
 ];
 
-export type Ownership = 'owned' | 'shared';
+type Ownership = 'owned' | 'shared';
 
 type Marked<T> = T & { ownership: Ownership };
 

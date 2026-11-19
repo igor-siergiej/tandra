@@ -7,14 +7,7 @@ const exportFor = vi.fn(async () => ({ meta: { exportedAt: '2030-02-03T10:00:00.
 vi.mock('../../dependencies/container', () => ({ dependencyContainer: { resolve: () => ({ exportFor }) } }));
 
 import type { HonoVars } from '../handlerUtils';
-import { exportFilename, exportMyData } from './index';
-
-describe('exportFilename', () => {
-    it('is tandra-export-<username>-<date>.json with unsafe username characters replaced', () => {
-        expect(exportFilename('igor', '2030-02-03T10:00:00.000Z')).toBe('tandra-export-igor-2030-02-03.json');
-        expect(exportFilename('a"b/c d', '2030-02-03T10:00:00.000Z')).toBe('tandra-export-a_b_c_d-2030-02-03.json');
-    });
-});
+import { exportMyData } from './index';
 
 describe('exportMyData', () => {
     const app = (user?: { id: string; username: string }) => {
@@ -45,5 +38,13 @@ describe('exportMyData', () => {
         );
         expect(response.headers.get('cache-control')).toBe('no-store');
         expect(await response.json()).toMatchObject({ lists: [] });
+    });
+
+    it('replaces characters a header or file system would choke on in the username', async () => {
+        const response = await app({ id: 'u2', username: 'a"b/c d' }).request('/api/export');
+
+        expect(response.headers.get('content-disposition')).toBe(
+            'attachment; filename="tandra-export-a_b_c_d-2030-02-03.json"'
+        );
     });
 });
