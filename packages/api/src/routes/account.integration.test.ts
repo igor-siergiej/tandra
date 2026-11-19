@@ -45,7 +45,7 @@ const mongoReachable = async (): Promise<boolean> => {
     } catch {
         return false;
     } finally {
-        await probe.close().catch(() => undefined);
+        await probe.close().catch((): void => undefined);
     }
 };
 
@@ -472,8 +472,8 @@ describe.skipIf(!mongoUp)('DELETE /api/account (real app, real Mongo)', () => {
     }, 60_000);
 
     afterAll(async () => {
-        await db?.dropDatabase().catch(() => undefined);
-        await mongo?.close().catch(() => undefined);
+        await db?.dropDatabase().catch((): void => undefined);
+        await mongo?.close().catch((): void => undefined);
         void s3?.stop(true);
         void searchStub?.stop(true);
     });
@@ -572,7 +572,6 @@ describe.skipIf(!mongoUp)('DELETE /api/account (real app, real Mongo)', () => {
 
     it('is a no-op when the same account is deleted again, even at the same time', async () => {
         const { doomed, survivor } = await seedWorld('Twice', 'Bystander');
-        const bystanderBefore = await domainRowsOf(survivor.id);
 
         const statuses = (
             await Promise.all([
@@ -588,6 +587,7 @@ describe.skipIf(!mongoUp)('DELETE /api/account (real app, real Mongo)', () => {
         expect(await countAuthRows(doomed)).toEqual({ users: 0, accounts: 0, sessions: 0 });
 
         // A later retry with the old cookie is refused cleanly and changes nothing.
+        const bystanderBefore = await domainRowsOf(survivor.id);
         const again = await call(doomed, 'DELETE', '/api/account', { username: doomed.username });
         expect(again.status).toBe(401);
         expect(await domainRowsOf(survivor.id)).toEqual(bystanderBefore);
