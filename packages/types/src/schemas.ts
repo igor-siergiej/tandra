@@ -152,6 +152,11 @@ export const pushSubscribeBody = z.object({
 
 export const pushUnsubscribeBody = z.object({ endpoint: text });
 
+// The username typed to confirm deleting the account; the server compares it with the signed-in user's own.
+export const deleteAccountBody = z.object({
+    username: z.string().min(1, 'is required and must be a non-empty string'),
+});
+
 export const createMealPlanBody = z.object({
     date: day,
     recipeId: text,

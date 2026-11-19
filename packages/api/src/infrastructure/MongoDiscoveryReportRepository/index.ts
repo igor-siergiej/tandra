@@ -29,4 +29,8 @@ export class MongoDiscoveryReportRepository implements DiscoveryReportRepository
     async deleteByRecipeId(recipeId: string): Promise<void> {
         await this.collection().deleteMany({ recipeId });
     }
+
+    async deleteByReporterId(reporterId: string): Promise<void> {
+        await this.collection().deleteMany({ reporterId });
+    }
 }

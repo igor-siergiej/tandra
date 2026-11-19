@@ -7,6 +7,7 @@ import { authClient } from '../../auth/client';
 import { oauthErrorMessage } from '../../auth/errors';
 import { Button } from '../../components/ui/button';
 import { useAuthFeatures } from '../../utils/useAiFeatures';
+import { DeleteAccountButton } from './DeleteAccountButton';
 
 /**
  * Settings → Account: who you are signed in as, and a way to link Google so a forgotten password is
@@ -74,6 +75,7 @@ export const AccountSection = () => {
                     </p>
                 )}
                 {linkFailed && <p className="text-sm text-red-600">Couldn't reach Google. Please try again.</p>}
+                <DeleteAccountButton username={user.username} />
             </div>
         </section>
     );

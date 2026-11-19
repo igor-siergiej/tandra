@@ -63,4 +63,10 @@ export class MongoListInviteRepository implements ListInviteRepository {
             .sort({ createdAt: -1 })
             .toArray() as Promise<ListInvite[]>;
     }
+
+    // fallow-ignore-next-line unused-class-member
+    async eraseUser(userId: string): Promise<void> {
+        await this.collection().deleteMany({ ownerId: userId });
+        await this.collection().updateMany({ claimedBy: userId }, { $unset: { claimedBy: '' } });
+    }
 }

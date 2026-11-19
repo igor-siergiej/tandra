@@ -7,4 +7,5 @@ export interface LabelRepository {
     insert(label: Label): Promise<Label>;
     update(labelId: string, label: Label): Promise<Label>;
     deleteById(labelId: string): Promise<void>;
+    deleteOwnedBy(userId: string): Promise<void>;
 }

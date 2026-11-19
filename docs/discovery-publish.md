@@ -61,9 +61,9 @@ private recipe (the private keys contain both). Replacing or deleting the privat
 public one (tested). `GET /api/image/discovery-image/...` needs a signed-in user and is served only while a library recipe
 still uses that key, so unpublishing or delisting takes the picture down with the recipe.
 
-**Known limit:** the object store client (`ObjectStoreConnection` in `@imapps/api-utils`) has no delete, so the bytes of a
-removed cover stay in the bucket (a few tens of KB each) until that package gains one. They are unreachable through the
-API.
+**Known limit:** unpublishing or delisting does not remove the bytes of a cover from the bucket (a few tens of KB each):
+the shared `ObjectStoreConnection` in `@imapps/api-utils` has no delete. They are unreachable through the API. Deleting
+an account does remove them (see [account-deletion.md](account-deletion.md)), through its own bucket client.
 
 When a user adds a library recipe that has a cover, the cover is copied again to the user's own `recipe-upload/` key, never
 referenced.

@@ -53,4 +53,12 @@ export class MongoMealPlanRepository implements MealPlanRepository {
     async removeMemberFromAll(memberId: string, ownerId: string): Promise<void> {
         await this.collection().updateMany({ ownerId }, { $pull: { users: { id: memberId } } });
     }
+
+    async deleteOwnedBy(userId: string): Promise<void> {
+        await this.collection().deleteMany({ ownerId: userId });
+    }
+
+    async removeMemberEverywhere(memberId: string): Promise<void> {
+        await this.collection().updateMany({ 'users.id': memberId }, { $pull: { users: { id: memberId } } });
+    }
 }

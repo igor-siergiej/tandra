@@ -599,6 +599,16 @@ export const unsubscribeFromPush = async (endpoint: string): Promise<void> => {
     });
 };
 
+/** Deletes the signed-in account and everything it owns; `username` is the confirmation the person typed. */
+export const deleteAccount = async (username: string): Promise<void> => {
+    return await makeRequest({
+        pathname: '/api/account',
+        method: MethodType.DELETE,
+        operationString: 'delete account',
+        body: JSON.stringify({ username }),
+    });
+};
+
 export const getFriendsQuery = () => ({
     queryKey: ['friends'],
     queryFn: async () => getFriends(),

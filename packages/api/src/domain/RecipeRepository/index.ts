@@ -14,4 +14,10 @@ export interface RecipeRepository {
     addTags(recipeId: string, tags: string[]): Promise<void>;
     setCoverImageKey(recipeId: string, key: string): Promise<void>;
     removeMemberFromAll(memberId: string, ownerId: string): Promise<void>;
+    /** Every recipe the user owns (a legacy recipe with no owner counts when they are its only member). */
+    findOwnedBy(userId: string): Promise<Recipe[]>;
+    /** Deletes the recipes `findOwnedBy` returns. */
+    deleteOwnedBy(userId: string): Promise<void>;
+    /** Removes the user from `users[]` on every recipe, whoever owns it. */
+    removeMemberEverywhere(memberId: string): Promise<void>;
 }

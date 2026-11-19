@@ -56,6 +56,7 @@ const setup = (initialInvites: ListInvite[] = []) => {
                     (i) => i.ownerId === ownerId && !i.revokedAt && !i.claimedAt && i.expiresAt.getTime() > Date.now()
                 )
                 .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+        eraseUser: async () => {},
     };
 
     const list = {

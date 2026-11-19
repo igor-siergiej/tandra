@@ -14,4 +14,6 @@ export interface FriendRepository {
     /** The single doc for a canonical pair, or null. */
     findPair(userIdA: string, userIdB: string): Promise<Friendship | null>;
     deletePair(userIdA: string, userIdB: string): Promise<void>;
+    /** Deletes every friendship the user is part of, in both directions, and the pairing codes they created. Idempotent. */
+    deleteAllForUser(userId: string): Promise<void>;
 }

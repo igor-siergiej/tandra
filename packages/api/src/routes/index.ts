@@ -8,6 +8,7 @@ import {
     createMealPlanBody,
     createRecipeBody,
     createTodoBody,
+    deleteAccountBody,
     friendIdBody,
     importRecipeBody,
     parseSpokenItemsBody,
@@ -32,6 +33,7 @@ import { bodyLimit } from 'hono/body-limit';
 import { aiFeaturesFromEnv, authFeaturesFromEnv } from '../config';
 import { dependencyContainer } from '../dependencies';
 import { DependencyToken } from '../dependencies/types';
+import { deleteAccount } from '../interfaces/AccountHandlers';
 import { createDiscoveryHandlers } from '../interfaces/DiscoveryHandlers';
 import { generateFriendCode, getFriends, redeemFriendCode, removeFriend } from '../interfaces/FriendHandlers';
 import { getImage } from '../interfaces/ImageHandlers';
@@ -283,6 +285,8 @@ export const createRoutes = (): Hono<Vars> => {
     router.get('/api/push/vapid-public-key', getVapidPublicKey);
     router.post('/api/push/subscribe', authenticate, validateJson(pushSubscribeBody), subscribe);
     router.delete('/api/push/subscribe', authenticate, validateJson(pushUnsubscribeBody), unsubscribe);
+
+    router.delete('/api/account', authenticate, validateJson(deleteAccountBody), deleteAccount);
 
     return router;
 };
