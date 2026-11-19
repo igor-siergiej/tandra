@@ -60,7 +60,11 @@ export class ListInviteService {
         };
 
         await this.services.invites.insert(invite);
-        this.logger?.info('List invite issued', { listTitle, ownerId: owner.id, token: invite.token.slice(0, 8) });
+        this.logger?.info('List invite issued', {
+            listId: list.id,
+            ownerId: owner.id,
+            token: invite.token.slice(0, 8),
+        });
 
         return {
             token: invite.token,
@@ -127,9 +131,9 @@ export class ListInviteService {
         if (!claimed) throw fail('This invite has already been used', 410);
 
         await this.services.friends.createFriendship({ id: invite.ownerId, username: invite.ownerUsername }, claimer);
-        await this.services.lists.addInvitedUser(invite.listTitle, claimer, invite.ownerId);
+        const list = await this.services.lists.addInvitedUser(invite.listTitle, claimer, invite.ownerId);
         this.logger?.info('List invite claimed', {
-            listTitle: invite.listTitle,
+            listId: list.id,
             ownerId: invite.ownerId,
             claimerId: claimer.id,
         });

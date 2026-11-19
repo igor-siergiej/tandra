@@ -61,7 +61,7 @@ export class ListService {
 
             if (changed) this.onListChanged?.(list.id);
         } catch (error) {
-            this.logger?.warn('Background item categorisation failed', { listRef: ref, error });
+            this.logger?.warn('Background item categorisation failed', { listId: ref, error });
         } finally {
             this.categorising.delete(ref);
         }
@@ -82,11 +82,12 @@ export class ListService {
             throw Object.assign(new Error('Unknown item category'), { status: 400 });
         }
 
-        await this.modifyList(title, (list) => {
+        const { list: saved } = await this.modifyList(title, (list) => {
             this.findItem(list, itemId);
             list.items = list.items.map((item) => (item.id === itemId ? { ...item, category } : item));
         });
-        this.logger?.info('Item category set by user', { listTitle: title, itemId, category });
+
+        this.logger?.info('Item category set by user', { listId: saved.id, itemId, category });
 
         return { message: 'Category updated successfully' };
     }
@@ -131,9 +132,21 @@ export class ListService {
         throw Object.assign(new Error('List is being edited too quickly, please try again'), { status: 503 });
     }
 
+    /**
+     * The id to log for a list the caller addressed by `ref` (which may be a legacy title, so it is never logged
+     * itself). Only used on failure paths, where the list was not already resolved.
+     */
+    private async idForLog(ref: string): Promise<string | undefined> {
+        try {
+            return (await this.repo.getByRef(ref))?.id;
+        } catch {
+            return undefined;
+        }
+    }
+
     /** Owner first, then the friends the list is shared with (all by default, or the chosen subset). */
     private async resolveSharedUsers(
-        title: string,
+        listId: string,
         owner: User,
         selectedFriendIds?: Array<string>
     ): Promise<Array<User>> {
@@ -142,7 +155,7 @@ export class ListService {
         this.logger?.info(
             selectedFriendIds === undefined ? 'List auto-shared with friends' : 'List shared with selected friends',
             {
-                listTitle: title,
+                listId,
                 owner: owner.username,
                 sharedWithCount: members.length,
             }
@@ -161,7 +174,7 @@ export class ListService {
         // Backward compatibility: default to SHOPPING if listType is missing
         if (!list.listType) {
             this.logger?.warn('List missing listType field, defaulting to SHOPPING', {
-                listTitle: title,
+                listId: list.id,
             });
             list.listType = ListTypeEnum.SHOPPING;
         }
@@ -203,6 +216,8 @@ export class ListService {
         listType: ListType = ListTypeEnum.SHOPPING,
         id?: string
     ) {
+        const listId = id ?? this.idGenerator.generate();
+
         try {
             const replay = id ? await this.repo.getByRef(id) : null;
 
@@ -215,10 +230,10 @@ export class ListService {
                 throw Object.assign(new Error('A list with that name already exists'), { status: 409 });
             }
 
-            const users = await this.resolveSharedUsers(title, owner, selectedFriendIds);
+            const users = await this.resolveSharedUsers(listId, owner, selectedFriendIds);
 
             const list: List = {
-                id: id ?? this.idGenerator.generate(),
+                id: listId,
                 title,
                 dateAdded,
                 items: [],
@@ -230,7 +245,6 @@ export class ListService {
             await this.repo.insert(list);
             this.logger?.info('List created', {
                 listId: list.id,
-                listTitle: title,
                 owner: owner.username,
                 userCount: users.length,
                 listType,
@@ -239,7 +253,7 @@ export class ListService {
             return list;
         } catch (error) {
             this.logger?.error('Failed to create list', {
-                listTitle: title,
+                listId,
                 owner: owner.username,
                 error,
             });
@@ -288,8 +302,7 @@ export class ListService {
             await this.repo.pushItem(list.id, item);
             void this.categoriseInBackground(list.id);
             this.logger?.info('Item added to list', {
-                listTitle: title,
-                itemName,
+                listId: list.id,
                 itemId: item.id,
                 quantity,
                 unit,
@@ -301,7 +314,7 @@ export class ListService {
 
             return item;
         } catch (error) {
-            this.logger?.error('Failed to add item to list', { listTitle: title, itemName, error });
+            this.logger?.error('Failed to add item to list', { listId: await this.idForLog(title), error });
             throw error;
         }
     }
@@ -316,7 +329,7 @@ export class ListService {
 
             const trimmedName = newItemName.trim();
 
-            await this.modifyList(title, (list) => {
+            const { list: saved } = await this.modifyList(title, (list) => {
                 const target = this.findItem(list, itemId);
 
                 if (trimmedName === target.name) {
@@ -337,9 +350,8 @@ export class ListService {
             });
 
             this.logger?.info('Item name updated', {
-                listTitle: title,
+                listId: saved.id,
                 itemId,
-                newItemName: trimmedName,
             });
 
             return {
@@ -348,9 +360,8 @@ export class ListService {
             };
         } catch (error) {
             this.logger?.error('Failed to update item name', {
-                listTitle: title,
+                listId: await this.idForLog(title),
                 itemId,
-                newItemName,
                 error,
             });
             throw error;
@@ -359,13 +370,13 @@ export class ListService {
 
     async setItemSelected(title: string, itemId: string, isSelected: boolean) {
         try {
-            await this.modifyList(title, (list) => {
+            const { list: saved } = await this.modifyList(title, (list) => {
                 this.findItem(list, itemId);
                 list.items = list.items.map((item) => (item.id === itemId ? { ...item, isSelected } : item));
             });
 
             this.logger?.info('Item selection updated', {
-                listTitle: title,
+                listId: saved.id,
                 itemId,
                 isSelected,
             });
@@ -373,7 +384,7 @@ export class ListService {
             return { message: 'Updated Successfully' };
         } catch (error) {
             this.logger?.error('Failed to update item selection', {
-                listTitle: title,
+                listId: await this.idForLog(title),
                 itemId,
                 isSelected,
                 error,
@@ -384,7 +395,7 @@ export class ListService {
 
     async updateItemQuantity(title: string, itemId: string, quantity?: number, unit?: string) {
         try {
-            await this.modifyList(title, (list) => {
+            const { list: saved } = await this.modifyList(title, (list) => {
                 this.findItem(list, itemId);
                 list.items = list.items.map((item) =>
                     item.id === itemId
@@ -398,7 +409,7 @@ export class ListService {
             });
 
             this.logger?.info('Item quantity updated', {
-                listTitle: title,
+                listId: saved.id,
                 itemId,
                 quantity,
                 unit,
@@ -407,7 +418,7 @@ export class ListService {
             return { message: 'Quantity updated successfully' };
         } catch (error) {
             this.logger?.error('Failed to update item quantity', {
-                listTitle: title,
+                listId: await this.idForLog(title),
                 itemId,
                 quantity,
                 unit,
@@ -427,14 +438,14 @@ export class ListService {
             });
 
             this.logger?.info('Selected items cleared from list', {
-                listTitle: title,
+                listId: list.id,
                 clearedItemCount: selectedCount,
                 remainingItemCount: list.items.length,
             });
 
             return list;
         } catch (error) {
-            this.logger?.error('Failed to clear selected items', { listTitle: title, error });
+            this.logger?.error('Failed to clear selected items', { listId: await this.idForLog(title), error });
             throw error;
         }
     }
@@ -447,14 +458,14 @@ export class ListService {
             });
 
             this.logger?.info('Item deleted from list', {
-                listTitle: title,
+                listId: list.id,
                 itemId,
                 remainingItemCount: list.items.length,
             });
 
             return list;
         } catch (error) {
-            this.logger?.error('Failed to delete item', { listTitle: title, itemId, error });
+            this.logger?.error('Failed to delete item', { listId: await this.idForLog(title), itemId, error });
             throw error;
         }
     }
@@ -480,16 +491,14 @@ export class ListService {
             });
 
             this.logger?.info('List renamed', {
-                oldTitle: title,
-                newTitle: newTitle.trim(),
+                listId: list.id,
                 itemCount: list.items.length,
             });
 
             return { message: 'List updated successfully', newTitle: newTitle.trim() };
         } catch (error) {
             this.logger?.error('Failed to update list title', {
-                oldTitle: title,
-                newTitle,
+                listId: await this.idForLog(title),
                 error,
             });
             throw error;
@@ -502,11 +511,11 @@ export class ListService {
 
             if (list) await this.repo.deleteById(list.id);
 
-            this.logger?.info('List deleted', { listTitle: title });
+            this.logger?.info('List deleted', { listId: list?.id });
 
             return { message: 'List deleted successfully' };
         } catch (error) {
-            this.logger?.error('Failed to delete list', { listTitle: title, error });
+            this.logger?.error('Failed to delete list', { listId: await this.idForLog(title), error });
             throw error;
         }
     }
@@ -520,11 +529,11 @@ export class ListService {
                 return count;
             });
 
-            this.logger?.info('List cleared', { listTitle: title, clearedItemCount: clearedCount });
+            this.logger?.info('List cleared', { listId: list.id, clearedItemCount: clearedCount });
 
             return list;
         } catch (error) {
-            this.logger?.error('Failed to clear list', { listTitle: title, error });
+            this.logger?.error('Failed to clear list', { listId: await this.idForLog(title), error });
             throw error;
         }
     }
@@ -552,7 +561,7 @@ export class ListService {
         });
 
         this.logger?.info('User joined via invite', {
-            listTitle: title,
+            listId: list.id,
             joinedUser: added.username,
             invitedBy: ownerId,
         });
@@ -585,7 +594,7 @@ export class ListService {
         });
 
         this.logger?.info('User added to list', {
-            listTitle: title,
+            listId: list.id,
             addedUser: friend.username,
             addedBy: requestingUserId,
         });
@@ -627,7 +636,7 @@ export class ListService {
         });
 
         this.logger?.info('User removed from list', {
-            listTitle: title,
+            listId: list.id,
             removedUserId: userIdToRemove,
             removedBy: requestingUserId,
         });
@@ -693,7 +702,7 @@ export class ListService {
             if (added > 0) void this.categoriseInBackground(list.id);
 
             this.logger?.info('Items bulk added to list', {
-                listTitle: title,
+                listId: list.id,
                 userId,
                 addedCount: added,
                 skippedCount: skipped,
@@ -705,7 +714,7 @@ export class ListService {
 
             return { added, skipped };
         } catch (error) {
-            this.logger?.error('Failed to add items to list', { listTitle: title, userId, error });
+            this.logger?.error('Failed to add items to list', { listId: await this.idForLog(title), userId, error });
             throw error;
         }
     }

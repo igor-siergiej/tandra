@@ -38,7 +38,6 @@ export class ItemCategoryService {
             return category;
         } catch (error) {
             this.logger?.warn('Item categorisation failed, leaving uncategorised', {
-                itemName: key,
                 error: errorMessage(error),
             });
 
