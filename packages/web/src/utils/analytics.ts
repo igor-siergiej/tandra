@@ -31,6 +31,7 @@
  */
 import { readGuestFlag } from '../guest/guestFlag';
 import { isHeatmapPreview } from '../heatmapPreview/isHeatmapPreview';
+import { hasReplayConsent, isUsageOptedOut } from './analyticsConsent';
 import { getConfig } from './config';
 
 type EventPayload = Record<string, string | number | boolean | undefined>;
@@ -57,6 +58,9 @@ const flushPending = (): void => {
     const queued = pending;
     pending = [];
 
+    // The visitor may have opted out while the tracker was loading: drop what was held.
+    if (isUsageOptedOut()) return;
+
     for (const [event, data] of queued) window.umami?.track(event, data);
 };
 
@@ -71,12 +75,9 @@ const appendScript = (src: string, websiteId: string, onLoad?: () => void): void
     document.head.appendChild(script);
 };
 
-const optedOut = (): boolean => {
-    try {
-        return Boolean(localStorage.getItem('umami.disabled'));
-    } catch {
-        return false;
-    }
+/** Resume session replay on a page load when the visitor has already agreed to recordings. */
+const resumeReplay = (): void => {
+    if (hasReplayConsent() && !isUsageOptedOut()) window.umami?.startSessionReplay?.();
 };
 
 // `/list/<id>` and legacy `/list/<title>[/<id>]`. Titles are percent-encoded in a URL, so a segment can
@@ -117,7 +118,7 @@ const injectScript = (host: string, websiteId: string): void => {
         injected = true;
         flushPending();
 
-        if (!optedOut()) appendScript(`${base}/recorder.js`, websiteId);
+        if (!isUsageOptedOut()) appendScript(`${base}/recorder.js`, websiteId, resumeReplay);
     });
 };
 
@@ -171,22 +172,25 @@ const send = (event: string, payload: EventPayload): void => {
  * wrapper is a no-op until then.
  */
 export const track = (event: string, data?: EventPayload): void => {
-    if (ensureInjected()) send(event, { ...data, isGuest: readGuestFlag() });
+    // Read on every call, so the Settings switch takes effect at once and the visitor's choice needs no redeploy.
+    if (ensureInjected() && !isUsageOptedOut()) send(event, { ...data, isGuest: readGuestFlag() });
 };
 
 // fallow-ignore-next-line unused-export
 export const identify = (id: string): void => {
-    if (!ensureInjected()) return;
+    if (!ensureInjected() || isUsageOptedOut()) return;
     window.umami?.identify(id);
 };
 
+/** Whether the tracker is set up for this build and page, so the visitor has something to consent to. */
+export const isAnalyticsConfigured = (): boolean => trackerConfig() !== null;
+
 /**
- * Start a session-replay session. Requires the opt-in consent in
- * #73. Sample rate is server-side, not here.
+ * Start a session-replay session. Callers pass the visitor's opt-in first (`setReplayConsent`);
+ * a page load resumes replay itself for a visitor who agreed earlier. Sample rate is server-side, not here.
  */
-// fallow-ignore-next-line unused-export
 export const startReplay = (): void => {
-    if (!ensureInjected()) return;
+    if (!ensureInjected() || isUsageOptedOut()) return;
     window.umami?.startSessionReplay?.();
 };
 
