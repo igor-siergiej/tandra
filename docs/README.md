@@ -21,6 +21,7 @@ Overview, configuration, scripts, testing and the deploy flow live in the root
 | [discovery-page.md](discovery-page.md) | The `/discover` page: browse, search, preview, copy |
 | [discovery-publish.md](discovery-publish.md) | Publishing user recipes to Discover, reports and moderation |
 | [webmcp.md](webmcp.md) | WebMCP browser-agent tools and the origin-trial token |
+| [heatmap-preview.md](heatmap-preview.md) | Umami heatmaps: why the dashboard frame is signed out, the placeholder-data preview mode, which routes give a valid heatmap |
 
 ## Elsewhere in the repo
 
