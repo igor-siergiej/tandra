@@ -110,6 +110,14 @@ jobs:
     name: e2e (shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     needs: lint
+    # Chromium and its system libraries come with the image, so no shard runs `playwright
+    # install` or `install-deps`. The tag MUST equal the @playwright/test version in
+    # package.json (see e2e/README.md); scripts/ci-e2e-container.test.js checks it. The
+    # host's docker socket is mounted so the steps below can start Mongo and OpenSearch
+    # next to the job container.
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.0-noble
+      options: -v /var/run/docker.sock:/var/run/docker.sock
     strategy:
       fail-fast: false
       matrix:
@@ -119,16 +127,24 @@ jobs:
       packages: read
     steps:
       # Not `services:`: those block the job until both are pulled and healthy
-      # (~55s). Started in the background here, they come up while bun, the
-      # browser and the web bundle install; "Wait for" below gates the tests.
+      # (~55s). Started in the background here, they come up while bun and the
+      # web bundle install; "Wait for" below gates the tests. The image has no
+      # docker CLI, so fetch the static client (curl/unzip are installed only if
+      # the image lacks them; setup-bun below needs unzip). The containers join the
+      # job's network and are reached by name: `localhost` is the job container.
       # The Discover specs search a small fixed library that global-setup seeds
       # into this OpenSearch.
       - name: Start Mongo and OpenSearch in the background
         run: |
-          nohup docker run -d --name mongodb -p 27017:27017 \
+          if ! command -v curl >/dev/null || ! command -v unzip >/dev/null; then
+            apt-get update -qq && apt-get install -y -qq --no-install-recommends curl unzip ca-certificates
+          fi
+          curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-27.5.1.tgz \
+            | tar -xz --strip-components=1 -C /usr/local/bin docker/docker
+          nohup docker run -d --name mongodb --network ${{ job.container.network }} \
             -e MONGO_INITDB_ROOT_USERNAME=devuser -e MONGO_INITDB_ROOT_PASSWORD=devpassword \
             mongo:7 > /tmp/mongodb.log 2>&1 &
-          nohup docker run -d --name opensearch -p 9200:9200 \
+          nohup docker run -d --name opensearch --network ${{ job.container.network }} \
             -e discovery.type=single-node -e DISABLE_SECURITY_PLUGIN=true \
             -e DISABLE_INSTALL_DEMO_CONFIG=true -e OPENSEARCH_JAVA_OPTS="-Xms512m -Xmx512m" \
             opensearchproject/opensearch:2.19.1 > /tmp/opensearch.log 2>&1 &
@@ -143,23 +159,11 @@ jobs:
       - run: bun install --frozen-lockfile
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GH_TOKEN }}
-      - id: playwright
-        run: echo "version=$(bun -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
-      # Saved on main by cd.yml's warm-playwright-cache; keep the key in sync.
-      - id: playwright-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
-      - if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: bunx playwright install --with-deps chromium
-      - if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: bunx playwright install-deps chromium
       - name: Wait for Mongo and OpenSearch
         timeout-minutes: 3
         run: |
           until docker exec mongodb mongosh --quiet --eval 'db.runCommand({ ping: 1 })' >/dev/null 2>&1; do sleep 2; done
-          until curl -sf http://localhost:9200/_cluster/health >/dev/null; do sleep 2; done
+          until curl -sf http://opensearch:9200/_cluster/health >/dev/null; do sleep 2; done
       - name: Container logs
         if: failure()
         run: |
@@ -168,8 +172,8 @@ jobs:
           docker logs opensearch || true
       - run: bun run test:e2e --shard=${{ matrix.shard }}/4 --reporter=blob
         env:
-          CONNECTION_URI: mongodb://devuser:devpassword@localhost:27017/tandra_e2e?authSource=admin
-          E2E_OPENSEARCH_URL: http://localhost:9200
+          CONNECTION_URI: mongodb://devuser:devpassword@mongodb:27017/tandra_e2e?authSource=admin
+          E2E_OPENSEARCH_URL: http://opensearch:9200
           E2E_WORKERS: 3
       - uses: actions/upload-artifact@v4
         if: always()
@@ -178,6 +182,10 @@ jobs:
           path: blob-report/
           retention-days: 1
           if-no-files-found: ignore
+      # The job's network can't be removed while these are attached to it.
+      - name: Remove Mongo and OpenSearch
+        if: always()
+        run: docker rm -f mongodb opensearch || true
 
   # Single check named `e2e` that passes only if every shard passed, so the
   # check name stays stable for .kanban-cli.json's checkNamesRequired.

@@ -29,6 +29,15 @@ See [COVERAGE.md](COVERAGE.md) for which feature is covered by which spec, and t
   `_retryAction`, `const backoffScale =` in `retryWithProgressAndBackoff`) to end in `100`, `bun patch --commit
   node_modules/playwright-core`, and delete the old patch. A stale patch is skipped silently by `bun install`: the
   suite still passes, just slower.
+- **Shards run in the Playwright image.** `e2e-shard` in `.github/workflows/pr.yml` is a container job on
+  `mcr.microsoft.com/playwright:v<version>-noble`, which has Chromium and its system libraries preinstalled, so a
+  shard runs neither `playwright install` nor `install-deps` (~20-30s each). The tag must equal the `@playwright/test`
+  version in `package.json` exactly (a mismatched image has no matching browser build); bump it in the same commit
+  as the patch regeneration above. `scripts/ci-e2e-container.test.js` fails when they drift. The Mongo and
+  OpenSearch `docker run`s still start in the background (not `services:`, which block ~55s); the job container has
+  no docker CLI, so the first step downloads the static client and the host socket is mounted. The two containers
+  join the job's network and are reached by name (`mongodb`, `opensearch`), not `localhost`. Visual baselines were
+  rendered on `ubuntu-latest`; if a shard reports pixel diffs after an image bump, review them before updating.
 
 ## Projects
 
