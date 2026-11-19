@@ -101,6 +101,6 @@ Needs the object store (`BUCKET_*`) as well as Mongo, OpenSearch and `GEMINI_API
 
 ## LLM cost
 
-Two small `google/gemini-2.5-flash-lite` calls per recipe at most (tag, plus estimate when a field is missing, about
+Two small `gemini-3.5-flash-lite` calls per recipe at most (tag, plus estimate when a field is missing, about
 two thirds of recipes), roughly 700 input and 100 output tokens each, so a full load is on the order of 6-7k calls and
 well under a few US dollars [INFERENCE from token counts, not a measured bill]. A refresh only pays for changed pages.

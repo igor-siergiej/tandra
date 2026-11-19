@@ -83,6 +83,10 @@ Bun-workspace monorepo — `packages/web`, `packages/api`, `packages/types`
   parsing. Every call uses native structured output: the request carries a
   JSON schema generated from the call's Zod schema, so there is no
   brace-slicing and no validation re-prompt (an invalid reply is a 502).
+  `FAL_KEY` no longer enables any text AI: create the `GEMINI_API_KEY`
+  secret in the deployment (Dokploy `tandra-api` environment) before
+  releasing this change, or recipe import, tagging, substitutes, item aisles
+  and voice add answer `503 ai_disabled` until it exists.
   Recipe import
   is JSON-LD first, then HTML heuristics; the LLM is only a third tier when
   `RECIPE_IMPORT_LLM_ENABLED`, or the sole parser when
