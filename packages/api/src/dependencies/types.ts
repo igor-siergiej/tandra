@@ -14,6 +14,7 @@ import type {
 import type { AccountService, ObjectEraser } from '../domain/AccountService';
 import type { AuthorizationService } from '../domain/AuthorizationService';
 import type { DailyReminderScheduler } from '../domain/DailyReminderScheduler';
+import type { DataExportService } from '../domain/DataExportService';
 import type { DiscoveryCopyService } from '../domain/DiscoveryCopyService';
 import type { DiscoveryModerationService } from '../domain/DiscoveryModeration';
 import type { DiscoveryPublication, DiscoveryPublicationRepository } from '../domain/DiscoveryPublicationRepository';
@@ -114,6 +115,7 @@ export enum DependencyToken {
     NotificationService = 'NotificationService',
     TodoReminderService = 'TodoReminderService',
     DailyReminderScheduler = 'DailyReminderScheduler',
+    DataExportService = 'DataExportService',
     FriendRepository = 'FriendRepository',
     FriendService = 'FriendService',
     ListRealtimeHub = 'ListRealtimeHub',
@@ -175,6 +177,7 @@ export type Dependencies = {
     [DependencyToken.NotificationService]: NotificationService;
     [DependencyToken.TodoReminderService]: TodoReminderService;
     [DependencyToken.DailyReminderScheduler]: DailyReminderScheduler;
+    [DependencyToken.DataExportService]: DataExportService;
     [DependencyToken.FriendRepository]: FriendRepository;
     [DependencyToken.FriendService]: FriendService;
     [DependencyToken.ListRealtimeHub]: ListRealtimeHub;

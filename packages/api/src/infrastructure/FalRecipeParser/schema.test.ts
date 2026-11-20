@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 
+import { z } from 'zod';
+
 import { parsedRecipeSchema } from './schema';
 
 const parse = (input: unknown) => parsedRecipeSchema.parse(input);
@@ -101,5 +103,10 @@ describe('parsedRecipeSchema', () => {
     it('rejects an ingredient with no usable name', () => {
         expect(() => parse({ title: 'X', ingredients: [{ quantity: 1 }], instructions: [] })).toThrow();
         expect(() => parse({ title: 'X', ingredients: [{ name: '   ' }], instructions: [] })).toThrow();
+    });
+
+    it('tells the model the title is a string', () => {
+        const sent = z.toJSONSchema(parsedRecipeSchema, { io: 'input', unrepresentable: 'any' });
+        expect(sent.properties?.title).toMatchObject({ type: 'string' });
     });
 });

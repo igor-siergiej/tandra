@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
+import { downloadMyData } from '../../api/exportData';
 import { useUser } from '../../auth';
 import { authClient } from '../../auth/client';
 import { oauthErrorMessage } from '../../auth/errors';
@@ -21,6 +22,8 @@ export const AccountSection = () => {
     const [searchParams] = useSearchParams();
     const [linking, setLinking] = useState(false);
     const [linkFailed, setLinkFailed] = useState(false);
+    const [exporting, setExporting] = useState(false);
+    const [exportFailed, setExportFailed] = useState(false);
 
     const accounts = useQuery({
         queryKey: ['auth', 'accounts', user?.id],
@@ -53,6 +56,19 @@ export const AccountSection = () => {
         }
     };
 
+    const handleExport = async () => {
+        setExporting(true);
+        setExportFailed(false);
+
+        try {
+            await downloadMyData();
+        } catch {
+            setExportFailed(true);
+        } finally {
+            setExporting(false);
+        }
+    };
+
     return (
         <section className="space-y-3">
             <h2 className="text-sm font-semibold text-foreground">Account</h2>
@@ -75,6 +91,10 @@ export const AccountSection = () => {
                     </p>
                 )}
                 {linkFailed && <p className="text-sm text-red-600">Couldn't reach Google. Please try again.</p>}
+                <Button type="button" variant="outline" className="w-full" onClick={handleExport} disabled={exporting}>
+                    Export my data
+                </Button>
+                {exportFailed && <p className="text-sm text-red-600">Couldn't export your data. Please try again.</p>}
                 <DeleteAccountButton username={user.username} />
             </div>
         </section>

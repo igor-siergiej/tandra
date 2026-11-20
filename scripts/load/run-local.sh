@@ -32,7 +32,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# env -i: the API gets only what is listed here, so a developer's FAL_KEY etc. can never reach it.
+# env -i: the API gets only what is listed here, so a developer's FAL_KEY / GEMINI_API_KEY etc. can never reach it.
 (cd "$ROOT/packages/api" && env -i PATH="$PATH" HOME="$HOME" \
     PORT="$API_PORT" \
     BETTER_AUTH_SECRET=k6-load-better-auth-secret-not-for-prod BETTER_AUTH_URL=http://localhost:4000 \

@@ -12,6 +12,7 @@
     "packages/api/src/domain/RecipeService/index.ts",
     "packages/api/src/domain/TodoService/index.ts",
     "packages/api/src/domain/MealPlanService/index.ts",
+    "packages/api/src/domain/DataExportService/index.ts",
     "packages/api/src/domain/SharedMembers/index.ts",
     "packages/api/src/domain/LabelService/index.ts",
     "packages/api/src/domain/ImageService/index.ts",

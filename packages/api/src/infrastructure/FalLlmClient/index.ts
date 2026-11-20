@@ -1,27 +1,25 @@
 import type { Logger } from '@imapps/api-utils';
-import type { ZodError, ZodType } from 'zod';
+import { type ZodType, z } from 'zod';
 
-const FAL_ANY_LLM_URL = 'https://fal.run/fal-ai/any-llm';
-const DEFAULT_MODEL = 'google/gemini-2.5-flash-lite';
-const DEFAULT_TEMPERATURE = 0;
+const GEMINI_MODELS_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
+const DEFAULT_MODEL = 'gemini-3.5-flash-lite';
 const DEFAULT_TIMEOUT_MS = 15000;
-const DEFAULT_MAX_ATTEMPTS = 2;
 
 const fail = (message: string): Error => Object.assign(new Error(message), { status: 502 });
 
 export interface CompleteStructuredOptions<T> {
     /** Identifies the call in logs, e.g. 'recipe.parse'. */
     operation: string;
-    /** Output is parsed against this. `.transform()` is honoured. */
+    /**
+     * Gemini's decoding is constrained to the JSON schema built from this, and the reply is parsed against it.
+     * `.transform()` is honoured on the reply; the request carries the schema's input shape.
+     */
     schema: ZodType<T>;
     system: string;
     prompt: string;
     /** Falls back to the client's configured model, then DEFAULT_MODEL. */
     model?: string;
-    temperature?: number;
     timeoutMs?: number;
-    /** Total attempts including the first. */
-    maxAttempts?: number;
 }
 
 export interface LlmResult<T> {
@@ -36,25 +34,27 @@ export interface LlmResult<T> {
 
 type Outcome = 'ok' | 'invalid' | 'error';
 
-type JsonExtraction = { value: unknown } | { issues: string };
+interface GeminiResponse {
+    candidates?: { content?: { parts?: { text?: string }[] } }[];
+    usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
+}
 
-const extractJsonObject = (output: string): JsonExtraction => {
-    const start = output.indexOf('{');
-    const end = output.lastIndexOf('}');
+interface GeminiReply {
+    text: string;
+    promptTokens?: number;
+    outputTokens?: number;
+}
 
-    if (start === -1 || end === -1 || end <= start) {
-        return { issues: 'no JSON object found in the reply' };
-    }
+const toJsonSchema = (schema: ZodType): Record<string, unknown> => {
+    // The input shape is what the model must produce; the schemas' catch/preprocess/transform steps are lenient
+    // about it and have no JSON-schema form of their own. `$schema` is not part of Gemini's schema dialect.
+    const { $schema: _dialect, ...jsonSchema } = z.toJSONSchema(schema, { io: 'input', unrepresentable: 'any' });
 
-    try {
-        return { value: JSON.parse(output.slice(start, end + 1)) as unknown };
-    } catch {
-        return { issues: 'the JSON object was malformed' };
-    }
+    return jsonSchema;
 };
 
-const flattenZodIssues = (error: ZodError): string =>
-    error.issues.map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`).join('; ');
+const replyText = (data: GeminiResponse): string =>
+    (data.candidates?.[0]?.content?.parts ?? []).map((part) => part.text ?? '').join('');
 
 export class FalLlmClient {
     constructor(
@@ -65,84 +65,64 @@ export class FalLlmClient {
 
     async completeStructured<T>(opts: CompleteStructuredOptions<T>): Promise<LlmResult<T>> {
         if (!this.apiKey) {
-            throw Object.assign(new Error('AI is disabled on this server (FAL_KEY is not set)'), {
+            throw Object.assign(new Error('AI is disabled on this server (GEMINI_API_KEY is not set)'), {
                 status: 503,
                 code: 'ai_disabled',
             });
         }
 
         const model = opts.model ?? this.defaults.model ?? DEFAULT_MODEL;
-        const temperature = opts.temperature ?? DEFAULT_TEMPERATURE;
-        const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-        const maxAttempts = Math.max(1, opts.maxAttempts ?? DEFAULT_MAX_ATTEMPTS);
-
         const started = Date.now();
-        let lastIssues = '';
-        let lastOutput = '';
+        const jsonSchema = toJsonSchema(opts.schema);
 
-        for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-            const prompt =
-                attempt === 1
-                    ? opts.prompt
-                    : `${opts.prompt}\n\nYour previous reply failed validation: ${lastIssues}. Return only corrected JSON, no prose.`;
+        let reply: GeminiReply;
 
-            let output: string;
-
-            try {
-                output = await this.request(model, opts.system, prompt, temperature, timeoutMs);
-            } catch (error) {
-                this.log(
-                    opts.operation,
-                    model,
-                    attempt,
-                    Date.now() - started,
-                    'error',
-                    opts.prompt.length,
-                    lastOutput.length
-                );
-                throw error;
-            }
-
-            lastOutput = output;
-
-            const json = extractJsonObject(output);
-
-            if ('issues' in json) {
-                lastIssues = json.issues;
-                continue;
-            }
-
-            const parsed = opts.schema.safeParse(json.value);
-
-            if (parsed.success) {
-                const latencyMs = Date.now() - started;
-                this.log(opts.operation, model, attempt, latencyMs, 'ok', opts.prompt.length, output.length);
-
-                return { value: parsed.data, meta: { operation: opts.operation, model, attempts: attempt, latencyMs } };
-            }
-
-            lastIssues = flattenZodIssues(parsed.error);
+        try {
+            reply = await this.request(
+                model,
+                opts.system,
+                opts.prompt,
+                jsonSchema,
+                opts.timeoutMs ?? DEFAULT_TIMEOUT_MS
+            );
+        } catch (error) {
+            this.log(opts, model, started, 'error');
+            throw error;
         }
 
-        this.log(
-            opts.operation,
-            model,
-            maxAttempts,
-            Date.now() - started,
-            'invalid',
-            opts.prompt.length,
-            lastOutput.length
-        );
-        throw fail(`LLM output failed validation after ${maxAttempts} attempts: ${lastIssues}`);
+        let json: unknown;
+
+        try {
+            json = JSON.parse(reply.text);
+        } catch {
+            this.log(opts, model, started, 'invalid', reply);
+            throw fail('LLM output was not valid JSON');
+        }
+
+        const parsed = opts.schema.safeParse(json);
+
+        if (!parsed.success) {
+            this.log(opts, model, started, 'invalid', reply);
+            throw fail(
+                `LLM output failed validation: ${parsed.error.issues
+                    .map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`)
+                    .join('; ')}`
+            );
+        }
+
+        const latencyMs = Date.now() - started;
+        this.log(opts, model, started, 'ok', reply);
+
+        return { value: parsed.data, meta: { operation: opts.operation, model, attempts: 1, latencyMs } };
     }
 
     private async request(
         model: string,
         system: string,
         prompt: string,
-        temperature: number,
+        jsonSchema: Record<string, unknown>,
         timeoutMs: number
-    ): Promise<string> {
+    ): Promise<GeminiReply> {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -150,17 +130,21 @@ export class FalLlmClient {
             let response: Response;
 
             try {
-                response = await fetch(FAL_ANY_LLM_URL, {
+                response = await fetch(`${GEMINI_MODELS_URL}/${encodeURIComponent(model)}:generateContent`, {
                     method: 'POST',
                     signal: controller.signal,
                     headers: {
                         'Content-Type': 'application/json',
-                        Authorization: `Key ${this.apiKey}`,
+                        'x-goog-api-key': this.apiKey,
                     },
-                    body: JSON.stringify({ model, system_prompt: system, prompt, temperature }),
+                    body: JSON.stringify({
+                        systemInstruction: { parts: [{ text: system }] },
+                        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                        generationConfig: { responseMimeType: 'application/json', responseJsonSchema: jsonSchema },
+                    }),
                 });
             } catch (error) {
-                throw fail(`fal.ai any-llm request failed: ${(error as Error).message}`);
+                throw fail(`Gemini request failed: ${(error as Error).message}`);
             }
 
             if (!response.ok) {
@@ -172,36 +156,50 @@ export class FalLlmClient {
                     detail = `HTTP ${response.status}`;
                 }
 
-                throw fail(`fal.ai any-llm error: ${detail}`);
+                throw fail(`Gemini error: ${detail}`);
             }
 
-            let data: { output?: string; error?: string };
+            let data: GeminiResponse;
 
             try {
-                data = (await response.json()) as { output?: string; error?: string };
+                data = (await response.json()) as GeminiResponse;
             } catch {
-                throw fail('fal.ai any-llm returned a non-JSON response body');
+                throw fail('Gemini returned a non-JSON response body');
             }
 
-            if (data.error) {
-                throw fail(`fal.ai any-llm error: ${String(data.error).slice(0, 200)}`);
+            const text = replyText(data);
+
+            if (!text) {
+                throw fail('Gemini returned no text (blocked or empty reply)');
             }
 
-            return data.output ?? '';
+            return {
+                text,
+                promptTokens: data.usageMetadata?.promptTokenCount,
+                outputTokens: data.usageMetadata?.candidatesTokenCount,
+            };
         } finally {
             clearTimeout(timer);
         }
     }
 
     private log(
-        operation: string,
+        opts: CompleteStructuredOptions<unknown>,
         model: string,
-        attempts: number,
-        latencyMs: number,
+        started: number,
         outcome: Outcome,
-        promptChars: number,
-        outputChars: number
+        reply?: GeminiReply
     ): void {
-        this.logger?.info('llm call', { operation, model, attempts, latencyMs, outcome, promptChars, outputChars });
+        this.logger?.info('llm call', {
+            operation: opts.operation,
+            model,
+            attempts: 1,
+            latencyMs: Date.now() - started,
+            outcome,
+            promptChars: opts.prompt.length,
+            outputChars: reply?.text.length ?? 0,
+            promptTokens: reply?.promptTokens,
+            outputTokens: reply?.outputTokens,
+        });
     }
 }

@@ -1,5 +1,15 @@
 [
   {
+    "version": "2.9.0",
+    "date": "2026-11-19",
+    "notes": [
+      {
+        "type": "feature",
+        "text": "You can now download everything you have in Tandra as one file from Settings → Account → Export my data."
+      }
+    ]
+  },
+  {
     "version": "2.8.0",
     "date": "2026-10-24",
     "notes": [
