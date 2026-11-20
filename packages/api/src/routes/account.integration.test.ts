@@ -570,6 +570,94 @@ describe.skipIf(!mongoUp)('DELETE /api/account (real app, real Mongo)', () => {
         expect(signIn.headers.getSetCookie().some((line) => line.startsWith('better-auth.session_token='))).toBe(false);
     }, 60_000);
 
+    it('erases linked credentials, verification rows and every device session without signing out another user', async () => {
+        const doomed = await register('AllDevices');
+        const survivor = await register('StillSignedIn');
+
+        const login = await call(null, 'POST', '/api/auth/sign-in/username', {
+            username: doomed.username,
+            password: PASSWORD,
+        });
+
+        await must(login, 'sign in on a second device');
+
+        const secondCookie = login.headers
+            .getSetCookie()
+            .map((line) => line.split(';')[0])
+            .find((pair) => pair.startsWith('better-auth.session_token='));
+
+        expect(secondCookie).toBeDefined();
+        expect(secondCookie).not.toBe(doomed.cookie);
+        const secondDevice = { cookie: secondCookie as string };
+
+        // A linked Google account and an outstanding user-bound verification must go with the password account.
+        // Use the adapter's actual userId representation (Mongo may store it as an ObjectId).
+        const credential = await db.collection('account').findOne({ userId: { $in: idForms(doomed.id) } });
+        expect(credential).not.toBeNull();
+        await db.collection('account').insertOne({
+            userId: credential!.userId,
+            providerId: 'google',
+            accountId: `google-${doomed.id}`,
+            accessToken: 'linked-google-access-token',
+            refreshToken: 'linked-google-refresh-token',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        });
+
+        for (const who of [doomed, survivor]) {
+            await db.collection('verification').insertOne({
+                identifier: `user-verification-${who.id}`,
+                value: who.id,
+                expiresAt: new Date(Date.now() + 60_000),
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            });
+        }
+
+        expect(await countAuthRows(doomed)).toEqual({ users: 1, accounts: 2, sessions: 2 });
+        expect(await count('verification', { value: doomed.id })).toBe(1);
+        expect(await count('verification', { value: survivor.id })).toBe(1);
+
+        for (const device of [doomed, secondDevice, survivor]) {
+            expect((await call(device, 'GET', '/api/recipes')).status).toBe(200);
+        }
+
+        const response = await call(doomed, 'DELETE', '/api/account', { username: doomed.username });
+        expect(response.ok, `delete answered ${response.status}`).toBe(true);
+
+        expect(await countAuthRows(doomed)).toEqual({ users: 0, accounts: 0, sessions: 0 });
+        expect(await count('verification', { value: doomed.id })).toBe(0);
+
+        for (const device of [doomed, secondDevice]) {
+            expect((await call(device, 'GET', '/api/recipes')).status).toBe(401);
+        }
+
+        expect(await countAuthRows(survivor)).toEqual({ users: 1, accounts: 1, sessions: 1 });
+        expect(await count('verification', { value: survivor.id })).toBe(1);
+        expect((await call(survivor, 'GET', '/api/recipes')).status).toBe(200);
+    }, 60_000);
+
+    it.each([
+        ['different letter case', 'CaseConfirmation', 'caseconfirmation'],
+        ['trailing whitespace', 'SpaceConfirmation', 'SpaceConfirmation '],
+    ])(
+        'rejects a typed username with %s on the server without deleting the account',
+        async (_label, name, username) => {
+            const account = await register(name);
+            const title = `Confirmation list ${name}`;
+            await addList(account, title, [], []);
+            const before = await db.collection('list').findOne({ ownerId: account.id, title });
+            expect(before).not.toBeNull();
+
+            const response = await call(account, 'DELETE', '/api/account', { username });
+
+            expect([400, 403, 409, 422]).toContain(response.status);
+            expect(await db.collection('list').findOne({ ownerId: account.id, title })).toEqual(before);
+            expect(await countAuthRows(account)).toEqual({ users: 1, accounts: 1, sessions: 1 });
+            expect((await call(account, 'GET', '/api/recipes')).status).toBe(200);
+        }
+    );
+
     it('is a no-op when the same account is deleted again, even at the same time', async () => {
         const { doomed, survivor } = await seedWorld('Twice', 'Bystander');
 
