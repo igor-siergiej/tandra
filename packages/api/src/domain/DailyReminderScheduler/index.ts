@@ -1,5 +1,6 @@
 import type { Logger } from '@imapps/api-utils';
 
+import { logErrorFields } from '../logError';
 import type { TodoReminderService } from '../TodoReminderService';
 
 const TIME_ZONE = 'Europe/London';
@@ -112,7 +113,7 @@ export class DailyReminderScheduler {
                 await this.reminder.sendDailyReminders(now);
             }
         } catch (error) {
-            this.logger?.error('Daily reminder run failed', { error: (error as Error).message });
+            this.logger?.error('Daily reminder run failed', logErrorFields(error));
         } finally {
             this.start();
         }

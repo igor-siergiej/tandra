@@ -307,6 +307,23 @@ does not grant access.
   `docs/homelab.md` in the `foundry` repo. Production env values live in
   Dokploy and are not in this repo.
 
+## Operational log privacy
+
+- API events identify lists, items and recipes by id, never by title, name, ingredients, instructions or voice text.
+  Dependency errors are reduced to a known error class and numeric error code; messages, stacks, causes and attached
+  documents can echo private content and must not be passed to the logger.
+- HTTP request logs use matched route templates, not raw paths (legacy list links and item-image paths contain names).
+- `/api/logs` accepts only scalar context keys `userId`, `listId`, `itemId`, `recipeId`, `route`, `error`, `errorName`
+  and `errorMessage`. Structured errors and other keys are dropped; only known content-independent browser error
+  messages are retained. Frontend URLs omit query/hash and replace `/list/<reference>` with `/list/:listId`.
+  Callers must keep event messages static and put identifiers, not user content, in the allowed fields.
+- The Grafana API dashboard and Loki configuration live in the separate `foundry` repository, not this checkout.
+  Remove the `meta[0].itemName` image-generation column (those images have no item id), or use aggregate counts.
+  An authorised operator must confirm the **live** Loki `retention_period: 30d` and, after deployment, add a uniquely
+  named test item and check `logcli query '{container=~"app-hack-neural-circuit-s9qq5e.*"} |~ "<test item name>"'`.
+  Use a time window covering the new addition; no matching lines is the expected result. Local tests do not establish
+  either live retention or the post-deploy result.
+
 ## Docs
 
 [`docs/README.md`](docs/README.md) indexes the feature docs (Discover,

@@ -7,6 +7,7 @@ import type { FriendService } from '../FriendService';
 import type { IdGenerator } from '../IdGenerator';
 import type { ItemCategoryService } from '../ItemCategoryService';
 import type { ListRepository } from '../ListRepository';
+import { logErrorFields } from '../logError';
 import type { NotificationService } from '../NotificationService';
 import { resolveFriendMembers } from '../SharedMembers';
 import { isMergeableIngredient, resolveMergedQuantity, resolveMergedUnit } from './ingredientMatching';
@@ -61,7 +62,7 @@ export class ListService {
 
             if (changed) this.onListChanged?.(list.id);
         } catch (error) {
-            this.logger?.warn('Background item categorisation failed', { listId: ref, error });
+            this.logger?.warn('Background item categorisation failed', { listId: ref, ...logErrorFields(error) });
         } finally {
             this.categorising.delete(ref);
         }
@@ -203,7 +204,7 @@ export class ListService {
                 ownerId: this.authorizationService.getEffectiveOwnerId(list),
             }));
         } catch (error) {
-            this.logger?.error('Failed to retrieve lists for user', { userId, error });
+            this.logger?.error('Failed to retrieve lists for user', { userId, ...logErrorFields(error) });
             throw error;
         }
     }
@@ -252,11 +253,7 @@ export class ListService {
 
             return list;
         } catch (error) {
-            this.logger?.error('Failed to create list', {
-                listId,
-                owner: owner.username,
-                error,
-            });
+            this.logger?.error('Failed to create list', { listId, owner: owner.username, ...logErrorFields(error) });
             throw error;
         }
     }
@@ -314,7 +311,10 @@ export class ListService {
 
             return item;
         } catch (error) {
-            this.logger?.error('Failed to add item to list', { listId: await this.idForLog(title), error });
+            this.logger?.error('Failed to add item to list', {
+                listId: await this.idForLog(title),
+                ...logErrorFields(error),
+            });
             throw error;
         }
     }
@@ -362,7 +362,7 @@ export class ListService {
             this.logger?.error('Failed to update item name', {
                 listId: await this.idForLog(title),
                 itemId,
-                error,
+                ...logErrorFields(error),
             });
             throw error;
         }
@@ -387,7 +387,7 @@ export class ListService {
                 listId: await this.idForLog(title),
                 itemId,
                 isSelected,
-                error,
+                ...logErrorFields(error),
             });
             throw error;
         }
@@ -422,7 +422,7 @@ export class ListService {
                 itemId,
                 quantity,
                 unit,
-                error,
+                ...logErrorFields(error),
             });
             throw error;
         }
@@ -445,7 +445,10 @@ export class ListService {
 
             return list;
         } catch (error) {
-            this.logger?.error('Failed to clear selected items', { listId: await this.idForLog(title), error });
+            this.logger?.error('Failed to clear selected items', {
+                listId: await this.idForLog(title),
+                ...logErrorFields(error),
+            });
             throw error;
         }
     }
@@ -465,7 +468,11 @@ export class ListService {
 
             return list;
         } catch (error) {
-            this.logger?.error('Failed to delete item', { listId: await this.idForLog(title), itemId, error });
+            this.logger?.error('Failed to delete item', {
+                listId: await this.idForLog(title),
+                itemId,
+                ...logErrorFields(error),
+            });
             throw error;
         }
     }
@@ -499,7 +506,7 @@ export class ListService {
         } catch (error) {
             this.logger?.error('Failed to update list title', {
                 listId: await this.idForLog(title),
-                error,
+                ...logErrorFields(error),
             });
             throw error;
         }
@@ -515,7 +522,10 @@ export class ListService {
 
             return { message: 'List deleted successfully' };
         } catch (error) {
-            this.logger?.error('Failed to delete list', { listId: await this.idForLog(title), error });
+            this.logger?.error('Failed to delete list', {
+                listId: await this.idForLog(title),
+                ...logErrorFields(error),
+            });
             throw error;
         }
     }
@@ -533,7 +543,10 @@ export class ListService {
 
             return list;
         } catch (error) {
-            this.logger?.error('Failed to clear list', { listId: await this.idForLog(title), error });
+            this.logger?.error('Failed to clear list', {
+                listId: await this.idForLog(title),
+                ...logErrorFields(error),
+            });
             throw error;
         }
     }
@@ -714,7 +727,11 @@ export class ListService {
 
             return { added, skipped };
         } catch (error) {
-            this.logger?.error('Failed to add items to list', { listId: await this.idForLog(title), userId, error });
+            this.logger?.error('Failed to add items to list', {
+                listId: await this.idForLog(title),
+                userId,
+                ...logErrorFields(error),
+            });
             throw error;
         }
     }

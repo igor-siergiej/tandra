@@ -5,6 +5,7 @@ import type { ObjectEraser } from '../AccountService';
 import { AuthorizationService } from '../AuthorizationService';
 import type { FriendService } from '../FriendService';
 import type { IdGenerator } from '../IdGenerator';
+import { logErrorFields } from '../logError';
 import type { RecipeImageService } from '../RecipeImageService';
 import type { RecipeRepository } from '../RecipeRepository';
 import { resolveFriendMembers } from '../SharedMembers';
@@ -59,7 +60,7 @@ export class RecipeService {
         try {
             return await this.substituter.generateSubstitutes(ingredientName, recipeTitle);
         } catch (error) {
-            this.logger?.warn('Ingredient substitute generation failed', { error });
+            this.logger?.warn('Ingredient substitute generation failed', logErrorFields(error));
             throw Object.assign(new Error('Failed to generate ingredient substitutes'), { status: 502 });
         }
     }
@@ -79,7 +80,7 @@ export class RecipeService {
         } catch (error) {
             this.logger?.warn('Recipe tag generation failed, continuing without AI tags', {
                 recipeId: recipe.id,
-                error,
+                ...logErrorFields(error),
             });
         }
     }
@@ -163,7 +164,7 @@ export class RecipeService {
             this.logger?.error('Failed to create recipe', {
                 recipeId,
                 owner: owner.username,
-                error,
+                ...logErrorFields(error),
             });
             throw error;
         }
@@ -227,10 +228,7 @@ export class RecipeService {
 
             return updated;
         } catch (error) {
-            this.logger?.error('Failed to update recipe', {
-                recipeId,
-                error,
-            });
+            this.logger?.error('Failed to update recipe', { recipeId, ...logErrorFields(error) });
             throw error;
         }
     }
@@ -268,10 +266,7 @@ export class RecipeService {
                 recipeId,
             });
         } catch (error) {
-            this.logger?.error('Failed to delete recipe', {
-                recipeId,
-                error,
-            });
+            this.logger?.error('Failed to delete recipe', { recipeId, ...logErrorFields(error) });
             throw error;
         }
     }
@@ -338,11 +333,7 @@ export class RecipeService {
 
             return updated;
         } catch (error) {
-            this.logger?.error('Failed to remove user from recipe', {
-                recipeId,
-                userId,
-                error,
-            });
+            this.logger?.error('Failed to remove user from recipe', { recipeId, userId, ...logErrorFields(error) });
             throw error;
         }
     }
@@ -426,10 +417,7 @@ export class RecipeService {
 
             return updated;
         } catch (error) {
-            this.logger?.error('Failed to update recipe cover image', {
-                recipeId,
-                error,
-            });
+            this.logger?.error('Failed to update recipe cover image', { recipeId, ...logErrorFields(error) });
             throw error;
         }
     }

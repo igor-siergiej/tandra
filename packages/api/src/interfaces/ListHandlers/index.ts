@@ -6,6 +6,7 @@ import { dependencyContainer } from '../../dependencies';
 import { DependencyToken } from '../../dependencies/types';
 import type { AuthorizationService } from '../../domain/AuthorizationService';
 import type { ListService } from '../../domain/ListService';
+import { logErrorFields } from '../../domain/logError';
 import type { HonoVars } from '../handlerUtils';
 
 interface HttpError {
@@ -94,7 +95,7 @@ const failWith = (
     meta: Record<string, unknown>
 ): never => {
     const err = error as { status?: number; message?: string };
-    logger.error(message, { ...meta, error: err.message });
+    logger.error(message, { ...meta, ...logErrorFields(error) });
     throw new APIError(err.message ?? 'Internal Server Error', err.status ?? 500);
 };
 

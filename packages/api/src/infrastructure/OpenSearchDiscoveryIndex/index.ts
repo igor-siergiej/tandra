@@ -10,6 +10,7 @@ import type {
 } from '@tandra/types';
 
 import type { DiscoveryIndex, NormalizedDiscoveryQuery } from '../../domain/DiscoveryService/types';
+import { logErrorFields } from '../../domain/logError';
 import { toIndexDocument, toSummary } from './document';
 import { DEFAULT_INDEX_ALIAS, indexBody } from './mapping';
 import { buildSearchBody, buildSimilarBody, TIME_RANGES } from './query';
@@ -99,7 +100,7 @@ export class OpenSearchDiscoveryIndex implements DiscoveryIndex {
             return await fn(client);
         } catch (error) {
             if (isUnreachable(error)) {
-                this.logger?.warn('Discovery search engine unreachable', { error: (error as Error).message });
+                this.logger?.warn('Discovery search engine unreachable', logErrorFields(error));
                 throw unavailable('Recipe discovery is temporarily unavailable', error);
             }
 

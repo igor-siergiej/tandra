@@ -4,6 +4,7 @@ import type { Context } from 'hono';
 
 import { dependencyContainer } from '../../dependencies/container';
 import { DependencyToken } from '../../dependencies/types';
+import { logErrorFields } from '../../domain/logError';
 import type { RecipeImportService } from '../../domain/RecipeImportService';
 import type { RecipeService } from '../../domain/RecipeService';
 import { normaliseUpload } from '../../infrastructure/imageProcessor';
@@ -29,7 +30,7 @@ const failWithApiError = (error: unknown, logMessage: string, fields: Record<str
     const e = (error ?? {}) as { message?: string; status?: number };
     const message = e.message || 'Internal Server Error';
     const status = e.status ?? 500;
-    getLogger().error(logMessage, { ...fields, error: message, status });
+    getLogger().error(logMessage, { ...fields, ...logErrorFields(error), status });
     throw new APIError(message, status);
 };
 

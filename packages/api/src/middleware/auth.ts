@@ -2,6 +2,7 @@ import type { Context, Next } from 'hono';
 
 import { dependencyContainer } from '../dependencies/container';
 import { DependencyToken } from '../dependencies/types';
+import { logErrorFields } from '../domain/logError';
 import type { Auth } from '../infrastructure/BetterAuth';
 
 type AuthUser = { id: string; username: string };
@@ -49,7 +50,7 @@ const resolveBetterAuthSession = async (c: Context<AuthVariables>): Promise<Auth
 
         return sessionToAuthUser(session, c);
     } catch (error) {
-        console.error('Better Auth getSession failed:', error);
+        console.error('Better Auth getSession failed:', logErrorFields(error));
 
         return undefined;
     }

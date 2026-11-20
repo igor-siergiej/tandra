@@ -6,6 +6,7 @@ import type { DiscoveryPublicationRepository } from '../DiscoveryPublicationRepo
 import type { DiscoveryService } from '../DiscoveryService';
 import type { IdGenerator } from '../IdGenerator';
 import type { ImageStore } from '../ImageService/types';
+import { logErrorFields } from '../logError';
 import type { RecipeService } from '../RecipeService';
 import { slugify, uniqueSlug } from '../slug';
 import { WIKIBOOKS_RECIPE_ID } from '../WikibooksIngest/mapping';
@@ -181,8 +182,7 @@ export class DiscoveryPublishService {
         } catch (error) {
             this.logger?.warn('Could not allocate a unique slug for published recipe; publishing without one', {
                 libraryId,
-                // The error message quotes the slug, which is the recipe title.
-                errorName: (error as Error).name,
+                ...logErrorFields(error),
             });
 
             return undefined;
@@ -198,7 +198,7 @@ export class DiscoveryPublishService {
         } catch (error) {
             this.logger?.warn('Published recipe cover could not be copied; publishing without one', {
                 libraryId,
-                error: (error as Error).message,
+                ...logErrorFields(error),
             });
 
             return undefined;

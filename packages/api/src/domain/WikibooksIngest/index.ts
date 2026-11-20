@@ -3,6 +3,7 @@ import type { DiscoveryEstimatedField, DiscoveryRecipe, DiscoverySource } from '
 
 import type { IdGenerator } from '../IdGenerator';
 import type { IngredientStructurer } from '../IngredientStructurer/types';
+import { logErrorFields } from '../logError';
 import type { CoverOutcome, WikibooksCoverService } from './cover';
 import {
     attributionFor,
@@ -189,8 +190,8 @@ export class WikibooksIngestService {
                 summary.failed += 1;
                 keep.add(id);
                 this.logger?.warn('Wikibooks recipe failed, will retry next run', {
-                    title: page.title,
-                    error: (error as Error).message,
+                    recipeId: id,
+                    ...logErrorFields(error),
                 });
             }
         });
@@ -262,8 +263,8 @@ export class WikibooksIngestService {
             } catch (error) {
                 summary.coversFailed += 1;
                 this.logger?.warn('Wikibooks cover pass failed for a recipe, will retry next run', {
-                    title: page.title,
-                    error: (error as Error).message,
+                    recipeId: id,
+                    ...logErrorFields(error),
                 });
             }
         }

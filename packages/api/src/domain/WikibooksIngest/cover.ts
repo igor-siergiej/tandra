@@ -2,6 +2,7 @@ import type { Logger } from '@imapps/api-utils';
 
 import { withImageExtension } from '../../infrastructure/objectKey';
 import type { ImageStore } from '../ImageService/types';
+import { logErrorFields } from '../logError';
 import { assessImage } from './imageLicence';
 import type { WikibooksImageInfo, WikibooksSource } from './types';
 
@@ -71,8 +72,7 @@ export class WikibooksCoverService {
         } catch (error) {
             this.logger?.warn('Wikibooks cover could not be stored, will retry next run', {
                 libraryId,
-                filename,
-                error: (error as Error).message,
+                ...logErrorFields(error),
             });
 
             return { fields: {}, decided: false };

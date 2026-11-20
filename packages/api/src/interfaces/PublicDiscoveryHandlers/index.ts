@@ -9,6 +9,7 @@ import type {
 import type { Context } from 'hono';
 
 import type { DiscoveryService } from '../../domain/DiscoveryService';
+import { logErrorFields } from '../../domain/logError';
 import { clientIpFrom } from '../../infrastructure/clientIp';
 import { IpRateLimiter, type RateLimitDecision } from '../../infrastructure/rateLimit';
 import type { HonoVars } from '../handlerUtils';
@@ -131,7 +132,7 @@ export const createPublicDiscoveryHandlers = ({ discovery }: PublicDiscoveryHand
                 return c.json({ error: 'rate_limited' }, 429, { 'Retry-After': String(error.retryAfterSeconds) });
             }
 
-            logger.error('Public discovery list failed', { error: (error as Error).message });
+            logger.error('Public discovery list failed', logErrorFields(error));
 
             return c.json({ error: 'internal' }, 500);
         }
@@ -154,7 +155,7 @@ export const createPublicDiscoveryHandlers = ({ discovery }: PublicDiscoveryHand
                 return c.json({ error: 'rate_limited' }, 429, { 'Retry-After': String(error.retryAfterSeconds) });
             }
 
-            logger.error('Public discovery by-slug lookup failed', { error: (error as Error).message });
+            logger.error('Public discovery by-slug lookup failed', logErrorFields(error));
 
             return c.json({ error: 'internal' }, 500);
         }

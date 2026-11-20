@@ -2,6 +2,7 @@ import type { Logger } from '@imapps/api-utils';
 import type { Item, List, Todo, User } from '@tandra/types';
 
 import type { WebPushSender } from '../../infrastructure/WebPushSender';
+import { logErrorFields } from '../logError';
 import type { PushSubscriptionRepository } from '../PushSubscriptionRepository';
 
 interface NotificationPayload {
@@ -142,7 +143,7 @@ export class NotificationService {
         } catch (error) {
             this.logger?.error('Notification fan-out failed', {
                 ...source,
-                error: (error as Error).message,
+                ...logErrorFields(error),
             });
         }
     }

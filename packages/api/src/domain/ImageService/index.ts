@@ -2,6 +2,7 @@ import type { Logger } from '@imapps/api-utils';
 
 import { imageGenerationFailuresTotal, imagesGeneratedTotal, imagesServedTotal } from '../../infrastructure/metrics';
 import { withImageExtension } from '../../infrastructure/objectKey';
+import { logErrorFields } from '../logError';
 import type { ImageGenerator, ImageStore } from './types';
 
 const DAILY_GENERATION_CAP = 50;
@@ -86,7 +87,7 @@ export class ImageService {
                 cacheControl: 'public, max-age=31536000, immutable',
             };
         } catch (error) {
-            this.logger?.error('Failed to get image', { error });
+            this.logger?.error('Failed to get image', logErrorFields(error));
             throw error;
         }
     }
@@ -115,7 +116,7 @@ export class ImageService {
             try {
                 await this.store.putObject(storageKey, result.buffer, { contentType: result.contentType });
             } catch (uploadErr) {
-                this.logger?.error('Failed to store generated image', { error: uploadErr });
+                this.logger?.error('Failed to store generated image', logErrorFields(uploadErr));
             }
 
             return result;

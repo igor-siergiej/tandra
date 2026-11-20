@@ -1,5 +1,6 @@
 import type { Logger } from '@imapps/api-utils';
 
+import { logErrorFields } from '../../domain/logError';
 import type {
     WikibooksImageInfo,
     WikibooksPage,
@@ -199,7 +200,7 @@ export class MediaWikiCookbookSource implements WikibooksSource {
                 // One lost batch must not end the run: its pages are absent from the result and so retried next run.
                 this.logger?.warn('Wikibooks content batch failed', {
                     pages: batch.length,
-                    error: (error as Error).message,
+                    ...logErrorFields(error),
                 });
             }
         }
@@ -245,7 +246,7 @@ export class MediaWikiCookbookSource implements WikibooksSource {
                 // A lost batch is simply absent from the result: those pictures are looked up again next run.
                 this.logger?.warn('Wikibooks image info batch failed', {
                     files: batch.length,
-                    error: (error as Error).message,
+                    ...logErrorFields(error),
                 });
             }
         }
