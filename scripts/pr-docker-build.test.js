@@ -6,7 +6,7 @@ const root = join(import.meta.dir, '..');
 const read = (file) => readFileSync(join(root, file), 'utf8');
 
 const workflow = Bun.YAML.parse(read('.github/workflows/pr.yml'));
-const kanban = JSON.parse(read('.kanban-cli.json'));
+const kanban = JSON.parse(read('jott-config.json'));
 const readme = read('README.md');
 
 const IMAGES = ['Dockerfile.api', 'Dockerfile.web'];
@@ -110,7 +110,7 @@ describe('PR workflow builds both Docker images', () => {
 });
 
 describe('required checks and docs list the image build check', () => {
-    it('.kanban-cli.json ci.checkNamesRequired includes every image build job', () => {
+    it('jott-config.json ci.checkNamesRequired includes every image build job', () => {
         const jobs = imageJobs();
         expect(jobs.length).toBeGreaterThan(0);
 

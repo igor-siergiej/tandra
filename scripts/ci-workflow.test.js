@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 const root = join(import.meta.dir, '..');
 const workflow = Bun.YAML.parse(readFileSync(join(root, '.github/workflows/pr.yml'), 'utf8'));
-const kanban = JSON.parse(readFileSync(join(root, '.kanban-cli.json'), 'utf8'));
+const kanban = JSON.parse(readFileSync(join(root, 'jott-config.json'), 'utf8'));
 const readme = readFileSync(join(root, 'README.md'), 'utf8');
 
 const jobs = workflow.jobs;
