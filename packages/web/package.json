@@ -1,7 +1,7 @@
 {
   "name": "@tandra/web",
   "private": true,
-  "version": "2.9.0",
+  "version": "2.10.0",
   "scripts": {
     "start": "vp dev --port 4000",
     "build": "tsc && vp build --emptyOutDir",
