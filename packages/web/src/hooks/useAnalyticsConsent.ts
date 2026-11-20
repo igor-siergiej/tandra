@@ -30,6 +30,10 @@ export const useAnalyticsConsent = (): AnalyticsConsent => {
         setUsage(enabled);
         setUsageOptedOut(!enabled);
         markConsentPromptSeen();
+
+        // Opting out ends a recording already running; opting back in resumes one the visitor agreed to earlier.
+        if (!enabled) stopReplay();
+        else if (hasReplayConsent()) startReplay();
     }, []);
 
     const setRecordingsEnabled = useCallback((enabled: boolean) => {
