@@ -65,8 +65,9 @@ export const DeleteAccountButton = ({ username }: DeleteAccountButtonProps) => {
                         <AlertDialogTitle>Delete your account?</AlertDialogTitle>
                         <AlertDialogDescription>
                             This permanently deletes your lists, recipes, todos, meal plans, photos and friends, and
-                            takes down anything you published to Discover. Lists you shared stay with the people you
-                            shared them with, minus you. This cannot be undone.
+                            takes down anything you published to Discover. Content you own is deleted for everyone you
+                            shared it with. Other people's shared content stays with them, without you. This cannot be
+                            undone.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <div className="space-y-2">

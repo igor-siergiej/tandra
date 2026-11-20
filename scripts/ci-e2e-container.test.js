@@ -93,6 +93,7 @@ describe('pr.yml: Mongo and OpenSearch still start in parallel with setup', () =
 
         // `localhost` inside a container is the container itself, unless it shares the host's network.
         const usesLocalhost = urls.some((url) => /\/\/([^@/]*@)?(localhost|127\.0\.0\.1)[:/]/.test(url));
+
         if (usesLocalhost) {
             expect(containerOptions()).toMatch(/--network[ =]host/);
         }
