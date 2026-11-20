@@ -32,6 +32,8 @@ class MemoryRepo {
         this.store.delete(id);
     }
     async removeMemberFromAll() {}
+    async deleteOwnedBy() {}
+    async removeMemberEverywhere() {}
 }
 
 const recipe = (users: User[]): Recipe =>

@@ -44,4 +44,8 @@ export class MongoLabelRepository implements LabelRepository {
     async deleteById(labelId: string): Promise<void> {
         await this.collection().deleteOne({ id: labelId });
     }
+
+    async deleteOwnedBy(userId: string): Promise<void> {
+        await this.collection().deleteMany({ ownerId: userId });
+    }
 }

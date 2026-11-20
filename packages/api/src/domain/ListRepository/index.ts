@@ -17,4 +17,8 @@ export interface ListRepository {
     /** Sets an item's category only while it has none, so a user's choice always wins over the classifier. */
     setCategoryIfUnset(listId: string, itemId: string, category: ItemCategory): Promise<boolean>;
     removeMemberFromAll(memberId: string, ownerId: string): Promise<void>;
+    /** Deletes every list the user owns (a legacy list with no owner counts when they are its only member). */
+    deleteOwnedBy(userId: string): Promise<void>;
+    /** Removes the user from `users[]` on every list, whoever owns it. */
+    removeMemberEverywhere(memberId: string): Promise<void>;
 }

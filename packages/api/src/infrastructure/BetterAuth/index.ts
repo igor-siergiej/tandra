@@ -3,6 +3,8 @@ import { type BetterAuthOptions, betterAuth } from 'better-auth';
 import { APIError, createAuthMiddleware } from 'better-auth/api';
 import { username } from 'better-auth/plugins';
 
+import type { CredentialsEraser } from '../../domain/AccountService';
+
 // Reserved TLD that never routes (RFC 2606). Password users get `<uuid>@<this>` so Better
 // Auth's `user.email` constraint is satisfied without ever accepting a real address:
 // keeping any real email out of the row is what stops an unverified password sign-up from
@@ -99,3 +101,16 @@ export const createAuth = ({ database, secret, baseURL, trustedOrigins, google, 
 
 // Inferred rather than better-auth's generic `Auth`, which drops the username plugin's endpoints (`signInUsername`).
 export type Auth = ReturnType<typeof createAuth>;
+
+/**
+ * Removes the Better Auth rows of a user: user, account and session through the internal adapter (the same calls
+ * Better Auth's own delete-user endpoint makes, which stays disabled so the typed confirmation cannot be bypassed),
+ * and any verification row that points at them. Deleting what is already gone is not an error.
+ */
+export const createCredentialsEraser = (auth: Auth): CredentialsEraser => ({
+    eraseCredentials: async (userId) => {
+        const { adapter, internalAdapter } = await auth.$context;
+        await adapter.deleteMany({ model: 'verification', where: [{ field: 'value', value: userId }] });
+        await internalAdapter.deleteUser(userId);
+    },
+});

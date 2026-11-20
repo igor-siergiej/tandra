@@ -109,6 +109,8 @@ const setup = (initial: Recipe[] = [personal()], seedLibrary: DiscoveryRecipe[] 
         deleteByLibraryId: async (id: string) => {
             for (const [key, row] of publicationRows) if (row.libraryId === id) publicationRows.delete(key);
         },
+        listAllByOwner: async (ownerId: string) =>
+            [...publicationRows.values()].filter((row) => row.ownerId === ownerId),
     };
 
     const objects = new Map<string, { buffer: Buffer; contentType: string }>();

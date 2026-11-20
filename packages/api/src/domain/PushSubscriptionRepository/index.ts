@@ -8,4 +8,5 @@ export interface PushSubscriptionRepository {
     findByUserIds(userIds: string[]): Promise<PushSubscription[]>;
     /** Bulk-remove expired/invalid subscriptions discovered during send. */
     deleteByEndpoints(endpoints: string[]): Promise<void>;
+    deleteByUserId(userId: string): Promise<void>;
 }

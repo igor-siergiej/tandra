@@ -7,7 +7,10 @@ vi.mock('../../auth/client', () => ({
     authClient: { listAccounts: vi.fn().mockResolvedValue({ data: [], error: null }), linkSocial: vi.fn() },
 }));
 
-vi.mock('../../auth', () => ({ useUser: () => ({ user: { id: 'u1', username: 'Igor' }, needsUsername: false }) }));
+vi.mock('../../auth', () => ({
+    useUser: () => ({ user: { id: 'u1', username: 'Igor' }, needsUsername: false }),
+    useAuth: () => ({ logout: vi.fn() }),
+}));
 
 vi.mock('../../utils/useAiFeatures', () => ({ useAuthFeatures: () => ({ googleSignIn: false }) }));
 

@@ -16,4 +16,6 @@ export interface DiscoveryPublicationRepository {
     listPublishedByOwner(ownerId: string): Promise<DiscoveryPublication[]>;
     upsert(publication: DiscoveryPublication): Promise<void>;
     deleteByLibraryId(libraryId: string): Promise<void>;
+    /** Every publication the user owns, including a first publish that never finished. */
+    listAllByOwner(ownerId: string): Promise<DiscoveryPublication[]>;
 }

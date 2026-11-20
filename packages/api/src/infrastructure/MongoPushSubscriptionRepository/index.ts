@@ -41,4 +41,8 @@ export class MongoPushSubscriptionRepository implements PushSubscriptionReposito
 
         await this.collection().deleteMany({ endpoint: { $in: endpoints } });
     }
+
+    async deleteByUserId(userId: string): Promise<void> {
+        await this.collection().deleteMany({ userId });
+    }
 }

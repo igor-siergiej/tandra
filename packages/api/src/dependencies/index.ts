@@ -5,6 +5,7 @@ import { MongoClient } from 'mongodb';
 
 import { config } from '../config';
 import { allowedOrigins } from '../config/cors';
+import { AccountService } from '../domain/AccountService';
 import { AuthorizationService } from '../domain/AuthorizationService';
 import { DailyReminderScheduler } from '../domain/DailyReminderScheduler';
 import { DataExportService } from '../domain/DataExportService';
@@ -30,7 +31,8 @@ import { TodoService } from '../domain/TodoService';
 import { WikibooksIngestService } from '../domain/WikibooksIngest';
 import { WikibooksCoverService } from '../domain/WikibooksIngest/cover';
 import { WsTicketStore } from '../domain/WsTicketStore';
-import { createAuth } from '../infrastructure/BetterAuth';
+import { createAuth, createCredentialsEraser } from '../infrastructure/BetterAuth';
+import { BucketEraser } from '../infrastructure/BucketEraser';
 import { BucketStore } from '../infrastructure/BucketStore';
 import { CachedIngredientSubstituter } from '../infrastructure/CachedIngredientSubstituter';
 import { FalImageGenerator } from '../infrastructure/FalImageGenerator';
@@ -543,6 +545,43 @@ export const registerDepdendencies = () => {
                     dependencyContainer.resolve(DependencyToken.ImageStore),
                     dependencyContainer.resolve(DependencyToken.Logger)
                 ),
+                dependencyContainer.resolve(DependencyToken.Logger)
+            )
+    );
+
+    // Account deletion: owns the whole cascade and ends with the Better Auth rows.
+    register(
+        DependencyToken.ObjectEraser,
+        () =>
+            new BucketEraser({
+                endpoint: config.get('bucketEndpoint'),
+                accessKey: config.get('bucketAccessKey'),
+                secretKey: config.get('bucketSecretKey'),
+                bucketName: config.get('bucketName'),
+            })
+    );
+
+    register(
+        DependencyToken.AccountService,
+        () =>
+            new AccountService(
+                {
+                    lists: dependencyContainer.resolve(DependencyToken.ListRepository),
+                    recipes: dependencyContainer.resolve(DependencyToken.RecipeRepository),
+                    todos: dependencyContainer.resolve(DependencyToken.TodoRepository),
+                    mealPlans: dependencyContainer.resolve(DependencyToken.MealPlanRepository),
+                    labels: dependencyContainer.resolve(DependencyToken.LabelRepository),
+                    pushSubscriptions: dependencyContainer.resolve(DependencyToken.PushSubscriptionRepository),
+                    friends: dependencyContainer.resolve(DependencyToken.FriendRepository),
+                    invites: dependencyContainer.resolve(DependencyToken.ListInviteRepository),
+                    publications: dependencyContainer.resolve(DependencyToken.DiscoveryPublicationRepository),
+                    reports: dependencyContainer.resolve(DependencyToken.DiscoveryReportRepository),
+                    discovery: dependencyContainer.resolve(DependencyToken.DiscoveryService),
+                    images: dependencyContainer.resolve(DependencyToken.ObjectEraser),
+                    credentials: createCredentialsEraser(dependencyContainer.resolve(DependencyToken.Auth)),
+                    disconnect: (userId) =>
+                        dependencyContainer.resolve(DependencyToken.ListRealtimeHub).kickEverywhere(userId),
+                },
                 dependencyContainer.resolve(DependencyToken.Logger)
             )
     );

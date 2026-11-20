@@ -13,4 +13,5 @@ export interface DiscoveryReportRepository {
     upsert(report: DiscoveryReport): Promise<void>;
     listAll(): Promise<DiscoveryReport[]>;
     deleteByRecipeId(recipeId: string): Promise<void>;
+    deleteByReporterId(reporterId: string): Promise<void>;
 }

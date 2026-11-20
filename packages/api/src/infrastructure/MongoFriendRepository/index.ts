@@ -57,4 +57,9 @@ export class MongoFriendRepository implements FriendRepository {
         const userIds = canonicalPair(userIdA, userIdB);
         await this.friendships().deleteOne({ userIds });
     }
+
+    async deleteAllForUser(userId: string): Promise<void> {
+        await this.friendships().deleteMany({ userIds: userId });
+        await this.codes().deleteMany({ creatorId: userId });
+    }
 }

@@ -67,6 +67,10 @@ class MockListRepository implements ListRepository {
             list.ownerId === ownerId ? { ...list, users: list.users.filter((u) => u.id !== memberId) } : list
         );
     }
+
+    async deleteOwnedBy(): Promise<void> {}
+
+    async removeMemberEverywhere(): Promise<void> {}
 }
 
 class MockIdGenerator implements IdGenerator {

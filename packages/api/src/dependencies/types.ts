@@ -11,6 +11,7 @@ import type {
     Todo,
 } from '@tandra/types';
 
+import type { AccountService, ObjectEraser } from '../domain/AccountService';
 import type { AuthorizationService } from '../domain/AuthorizationService';
 import type { DailyReminderScheduler } from '../domain/DailyReminderScheduler';
 import type { DataExportService } from '../domain/DataExportService';
@@ -132,6 +133,8 @@ export enum DependencyToken {
     WikibooksIngestService = 'WikibooksIngestService',
     ListInviteRepository = 'ListInviteRepository',
     ListInviteService = 'ListInviteService',
+    ObjectEraser = 'ObjectEraser',
+    AccountService = 'AccountService',
 }
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
@@ -192,6 +195,8 @@ export type Dependencies = {
     [DependencyToken.WikibooksIngestService]: WikibooksIngestService;
     [DependencyToken.ListInviteRepository]: ListInviteRepository;
     [DependencyToken.ListInviteService]: ListInviteService;
+    [DependencyToken.ObjectEraser]: ObjectEraser;
+    [DependencyToken.AccountService]: AccountService;
 };
 
 export enum CollectionNames {

@@ -39,4 +39,8 @@ export class MongoDiscoveryPublicationRepository implements DiscoveryPublication
     async deleteByLibraryId(libraryId: string): Promise<void> {
         await this.collection().deleteOne({ libraryId });
     }
+
+    async listAllByOwner(ownerId: string): Promise<DiscoveryPublication[]> {
+        return this.collection().find({ ownerId }, NO_OBJECT_ID).toArray() as Promise<DiscoveryPublication[]>;
+    }
 }

@@ -60,6 +60,12 @@ export class ListRealtimeHub {
         }
     }
 
+    /** Closes every connection the user has on any list, e.g. once their account is deleted. */
+    // fallow-ignore-next-line unused-class-member
+    kickEverywhere(userId: string): void {
+        for (const listTitle of [...this.rooms.keys()]) this.kick(listTitle, userId);
+    }
+
     presence(listTitle: string): PresenceUser[] {
         const unique = new Map<string, PresenceUser>();
 

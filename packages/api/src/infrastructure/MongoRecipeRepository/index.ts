@@ -4,6 +4,11 @@ import type { Recipe, User } from '@tandra/types';
 import { CollectionNames, type Collections } from '../../dependencies/types';
 import type { RecipeRepository } from '../../domain/RecipeRepository';
 
+// A legacy recipe stored before `ownerId` existed belongs to its only member.
+const ownedBy = (userId: string) => ({
+    $or: [{ ownerId: userId }, { ownerId: { $exists: false }, 'users.id': userId, users: { $size: 1 } }],
+});
+
 export class MongoRecipeRepository implements RecipeRepository {
     constructor(private readonly db: MongoDbConnection<Collections>) {}
 
@@ -84,5 +89,17 @@ export class MongoRecipeRepository implements RecipeRepository {
 
     async removeMemberFromAll(memberId: string, ownerId: string): Promise<void> {
         await this.collection().updateMany({ ownerId }, { $pull: { users: { id: memberId } } });
+    }
+
+    async findOwnedBy(userId: string): Promise<Recipe[]> {
+        return this.collection().find(ownedBy(userId)).toArray();
+    }
+
+    async deleteOwnedBy(userId: string): Promise<void> {
+        await this.collection().deleteMany(ownedBy(userId));
+    }
+
+    async removeMemberEverywhere(memberId: string): Promise<void> {
+        await this.collection().updateMany({ 'users.id': memberId }, { $pull: { users: { id: memberId } } });
     }
 }

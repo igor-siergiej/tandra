@@ -16,7 +16,10 @@ vi.mock('../../auth/client', () => ({
 
 const session = { user: { id: 'u1', username: 'Igor' } as { id: string; username: string } | null };
 
-vi.mock('../../auth', () => ({ useUser: () => ({ user: session.user, needsUsername: false }) }));
+vi.mock('../../auth', () => ({
+    useUser: () => ({ user: session.user, needsUsername: false }),
+    useAuth: () => ({ logout: vi.fn() }),
+}));
 
 const features = { googleSignIn: true };
 

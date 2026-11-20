@@ -14,4 +14,7 @@ export interface TodoRepository {
     findByMember(userId: string): Promise<Todo[]>;
     /** Remove memberId from users[] on every todo owned by ownerId. */
     removeMemberFromAll(memberId: string, ownerId: string): Promise<void>;
+    deleteOwnedBy(userId: string): Promise<void>;
+    /** Removes the user from `users[]` on every todo, whoever owns it. */
+    removeMemberEverywhere(memberId: string): Promise<void>;
 }
