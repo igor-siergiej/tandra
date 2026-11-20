@@ -40,6 +40,8 @@ what guards against a mistake. Revisit if support sees accidental deletions.
 
 ## Privacy notice (tandra-site)
 
+**Status:** the Erasure and retention rows were updated in the `tandra-site` repo, branch `privacy-account-deletion-analytics`, by the owner (answer to wait 201, 2020-11-20). They match this document: deletion is immediate from Settings -> Account, Discover publications are removed and not anonymised, owned lists, recipes and todos are deleted for everyone, and there is no grace-period retention. The draft wording below stays as the reference text.
+
 `src/pages/privacy.astro` lives in the separate `tandra-site` repository, so it is updated there. The wording the Erasure
 and retention rows need to match this behaviour:
 
