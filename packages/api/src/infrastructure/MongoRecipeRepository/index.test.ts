@@ -93,15 +93,18 @@ describe('MongoRecipeRepository', () => {
     describe('update', () => {
         it('replaces and returns the updated recipe', async () => {
             const recipe = makeRecipe('r1');
-            collection.findOneAndReplace.mockResolvedValue({});
+            collection.findOneAndReplace.mockResolvedValue(recipe);
             collection.findOne.mockResolvedValue(recipe);
             const result = await repo.update('r1', recipe);
             expect(result).toEqual(recipe);
+            expect(collection.findOneAndReplace).toHaveBeenCalledWith({ id: 'r1', users: recipe.users }, recipe, {
+                returnDocument: 'after',
+            });
         });
 
         it('throws when recipe not found after replace', async () => {
             const recipe = makeRecipe('r1');
-            collection.findOneAndReplace.mockResolvedValue({});
+            collection.findOneAndReplace.mockResolvedValue(null);
             collection.findOne.mockResolvedValue(null);
             await expect(repo.update('r1', recipe)).rejects.toThrow('Recipe not found');
         });

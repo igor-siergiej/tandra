@@ -51,15 +51,18 @@ describe('MongoMealPlanRepository', () => {
         await repo.insert(entry);
         expect(collection.insertOne).toHaveBeenCalledWith(entry);
 
-        collection.findOne.mockResolvedValue(entry);
+        collection.findOneAndReplace.mockResolvedValue(entry);
         expect(await repo.update('e1', entry)).toEqual(entry);
-        expect(collection.findOneAndReplace).toHaveBeenCalledWith({ id: 'e1' }, entry);
+        expect(collection.findOneAndReplace).toHaveBeenCalledWith({ id: 'e1', users: { $exists: false } }, entry, {
+            returnDocument: 'after',
+        });
 
         await repo.deleteById('e1');
         expect(collection.deleteOne).toHaveBeenCalledWith({ id: 'e1' });
     });
 
     it('throws when an updated entry has vanished', async () => {
+        collection.findOneAndReplace.mockResolvedValue(null);
         collection.findOne.mockResolvedValue(null);
 
         await expect(repo.update('e1', entry)).rejects.toThrow('Meal plan entry not found');

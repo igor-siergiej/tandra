@@ -17,6 +17,10 @@ class MockRepository {
         return this.store.get(id) ?? null;
     }
 
+    async getAll(): Promise<Recipe[]> {
+        return [...this.store.values()];
+    }
+
     async update(id: string, recipe: Recipe): Promise<Recipe> {
         this.store.set(id, recipe);
 
@@ -86,6 +90,7 @@ class MockIdGenerator {
 
 const repo = new MockRepository();
 const ids = new MockIdGenerator();
+const objectEraser = { listKeys: async (): Promise<string[]> => [], removeKeys: async () => {} };
 const owner: User = { id: 'user-1', username: 'alice' };
 
 const user2: User = { id: 'user-2', username: 'bob' };
@@ -127,7 +132,7 @@ beforeEach(() => {
 
 describe('RecipeService.createRecipe', () => {
     it('persists link and instructions when provided', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
 
         const recipe = await svc.createRecipe('Carbonara', [], owner.id, owner, 'https://example.com/carbonara', [
             'Boil water',
@@ -139,14 +144,14 @@ describe('RecipeService.createRecipe', () => {
     });
 
     it('creates recipe without link or instructions when omitted', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
         const recipe = await svc.createRecipe('Pasta', [], owner.id, owner);
         expect(recipe.link).toBeUndefined();
         expect(recipe.instructions).toBeUndefined();
     });
 
     it('creates recipe with only owner when no friend service configured', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
         const recipe = await svc.createRecipe('Pasta', [], owner.id, owner);
         expect(recipe.users).toHaveLength(1);
         expect(recipe.users[0].id).toBe(owner.id);
@@ -155,7 +160,7 @@ describe('RecipeService.createRecipe', () => {
     it("creates a recipe with the owner plus the owner's friends", async () => {
         friends.add(owner, user2);
         friends.add(owner, user3);
-        const svc = new RecipeService(repo as any, ids, undefined, undefined, undefined, friends as any);
+        const svc = new RecipeService(repo as any, ids, objectEraser, undefined, undefined, undefined, friends as any);
         const recipe = await svc.createRecipe('Pasta', [], owner.id, owner);
         expect(recipe.users).toHaveLength(3);
         expect(recipe.users.map((u) => u.id).sort()).toEqual([owner.id, user2.id, user3.id].sort());
@@ -164,26 +169,26 @@ describe('RecipeService.createRecipe', () => {
     it('creates a recipe with only the explicitly selected friend subset', async () => {
         friends.add(owner, user2);
         friends.add(owner, user3);
-        const svc = new RecipeService(repo as any, ids, undefined, undefined, undefined, friends as any);
+        const svc = new RecipeService(repo as any, ids, objectEraser, undefined, undefined, undefined, friends as any);
         const recipe = await svc.createRecipe('Pasta', [], owner.id, owner, undefined, undefined, [user2.id]);
         expect(recipe.users.map((u) => u.id)).toEqual([owner.id, user2.id]);
     });
 
     it('rejects sharing with a non-friend id (403)', async () => {
-        const svc = new RecipeService(repo as any, ids, undefined, undefined, undefined, friends as any);
+        const svc = new RecipeService(repo as any, ids, objectEraser, undefined, undefined, undefined, friends as any);
         await expect(
             svc.createRecipe('Pasta', [], owner.id, owner, undefined, undefined, ['not-a-friend'])
         ).rejects.toMatchObject({ status: 403 });
     });
 
     it('silently seeds the owner only when no friend service is configured, ignoring selected friend ids', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
         const recipe = await svc.createRecipe('Pasta', [], owner.id, owner, undefined, undefined, [user2.id]);
         expect(recipe.users).toEqual([owner]);
     });
 
     it('uses the caller-provided id when given', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
 
         const recipe = await svc.createRecipe(
             'Pasta',
@@ -200,7 +205,7 @@ describe('RecipeService.createRecipe', () => {
     });
 
     it('returns the existing recipe without re-insert when id+owner already exist', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
 
         const first = await svc.createRecipe(
             'Pasta',
@@ -229,7 +234,7 @@ describe('RecipeService.createRecipe', () => {
     });
 
     it('persists prepTime, cookTime, servings and difficulty when provided', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
 
         const recipe = await svc.createRecipe(
             'Pasta',
@@ -254,7 +259,7 @@ describe('RecipeService.createRecipe', () => {
     });
 
     it('omits prepTime, cookTime, servings and difficulty when not provided', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
         const recipe = await svc.createRecipe('Pasta', [], owner.id, owner);
         expect(recipe.prepTime).toBeUndefined();
         expect(recipe.cookTime).toBeUndefined();
@@ -293,7 +298,7 @@ beforeEach(() => {
 
 describe('RecipeService.createRecipe tags', () => {
     it('stores only manual tags when no tagger is configured', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
 
         const recipe = await svc.createRecipe(
             'Pasta',
@@ -320,7 +325,16 @@ describe('RecipeService.createRecipe tags', () => {
                 }),
         };
 
-        const svc = new RecipeService(repo as any, ids, undefined, undefined, undefined, undefined, slowTagger as any);
+        const svc = new RecipeService(
+            repo as any,
+            ids,
+            objectEraser,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            slowTagger as any
+        );
 
         const recipe = await svc.createRecipe(
             'Pasta',
@@ -340,7 +354,17 @@ describe('RecipeService.createRecipe tags', () => {
 
     it('adds AI tags in the background, deduping case-insensitively against manual tags', async () => {
         mockTagger.tags = ['Pasta', 'egg', 'pork'];
-        const svc = new RecipeService(repo as any, ids, undefined, undefined, undefined, undefined, mockTagger as any);
+
+        const svc = new RecipeService(
+            repo as any,
+            ids,
+            objectEraser,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            mockTagger as any
+        );
 
         const recipe = await svc.createRecipe(
             'Carbonara',
@@ -366,7 +390,17 @@ describe('RecipeService.createRecipe tags', () => {
 
     it('still creates the recipe with manual tags when the tagger throws', async () => {
         mockTagger.shouldReject = true;
-        const svc = new RecipeService(repo as any, ids, undefined, undefined, undefined, undefined, mockTagger as any);
+
+        const svc = new RecipeService(
+            repo as any,
+            ids,
+            objectEraser,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            mockTagger as any
+        );
 
         const recipe = await svc.createRecipe(
             'Pasta',
@@ -386,7 +420,16 @@ describe('RecipeService.createRecipe tags', () => {
     });
 
     it('creates a recipe with no tags when none are manual and the tagger returns none', async () => {
-        const svc = new RecipeService(repo as any, ids, undefined, undefined, undefined, undefined, mockTagger as any);
+        const svc = new RecipeService(
+            repo as any,
+            ids,
+            objectEraser,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            mockTagger as any
+        );
 
         const recipe = await svc.createRecipe('Pasta', [], owner.id, owner);
         await flushBackground();
@@ -423,7 +466,7 @@ beforeEach(() => {
 
 describe('RecipeService.suggestSubstitutes', () => {
     it('throws 503 when no substituter is configured', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
         await expect(svc.suggestSubstitutes('butter')).rejects.toMatchObject({ status: 503 });
     });
 
@@ -433,6 +476,7 @@ describe('RecipeService.suggestSubstitutes', () => {
         const svc = new RecipeService(
             repo as any,
             ids,
+            objectEraser,
             undefined,
             undefined,
             undefined,
@@ -452,6 +496,7 @@ describe('RecipeService.suggestSubstitutes', () => {
         const svc = new RecipeService(
             repo as any,
             ids,
+            objectEraser,
             undefined,
             undefined,
             undefined,
@@ -490,7 +535,7 @@ beforeEach(() => {
 
 describe('RecipeService.regenerateImage', () => {
     it('generates image and sets both cover and ai keys when no ai image exists', async () => {
-        const svc = new RecipeService(repo as any, ids, undefined, undefined, mockImageService as any);
+        const svc = new RecipeService(repo as any, ids, objectEraser, undefined, undefined, mockImageService as any);
         const created = await svc.createRecipe('Pasta', [{ id: '1', name: 'flour' }], owner.id, owner);
 
         const result = await svc.regenerateImage(created.id, owner.id);
@@ -502,7 +547,7 @@ describe('RecipeService.regenerateImage', () => {
     });
 
     it('does not generate again once an ai image exists (no API cost)', async () => {
-        const svc = new RecipeService(repo as any, ids, undefined, undefined, mockImageService as any);
+        const svc = new RecipeService(repo as any, ids, objectEraser, undefined, undefined, mockImageService as any);
         const created = await svc.createRecipe('Pasta', [], owner.id, owner);
         await svc.regenerateImage(created.id, owner.id); // first gen
         // user replaced cover with an upload
@@ -515,14 +560,14 @@ describe('RecipeService.regenerateImage', () => {
     });
 
     it('throws 503 when image service not configured', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
         const created = await svc.createRecipe('Pasta', [], owner.id, owner);
 
         await expect(svc.regenerateImage(created.id, owner.id)).rejects.toMatchObject({ status: 503 });
     });
 
     it('throws 403 when non-owner tries to regenerate', async () => {
-        const svc = new RecipeService(repo as any, ids, undefined, undefined, mockImageService as any);
+        const svc = new RecipeService(repo as any, ids, objectEraser, undefined, undefined, mockImageService as any);
         const created = await svc.createRecipe('Pasta', [], owner.id, owner);
 
         await expect(svc.regenerateImage(created.id, 'other-user')).rejects.toMatchObject({ status: 403 });
@@ -531,7 +576,7 @@ describe('RecipeService.regenerateImage', () => {
 
 describe('RecipeService.revertToAiImage', () => {
     it('points cover back at the ai image without generating', async () => {
-        const svc = new RecipeService(repo as any, ids, undefined, undefined, mockImageService as any);
+        const svc = new RecipeService(repo as any, ids, objectEraser, undefined, undefined, mockImageService as any);
         const created = await svc.createRecipe('Pasta', [], owner.id, owner);
         await svc.regenerateImage(created.id, owner.id);
         await svc.setCoverImageKey(created.id, 'recipe-upload/u/r/1', owner.id);
@@ -543,7 +588,7 @@ describe('RecipeService.revertToAiImage', () => {
     });
 
     it('backfills ai key from a legacy recipe-image cover key', async () => {
-        const svc = new RecipeService(repo as any, ids, undefined, undefined, mockImageService as any);
+        const svc = new RecipeService(repo as any, ids, objectEraser, undefined, undefined, mockImageService as any);
         const created = await svc.createRecipe('Pasta', [], owner.id, owner);
         await svc.setCoverImageKey(created.id, 'recipe-image/legacy-key', owner.id); // no aiImageKey
         await svc.setCoverImageKey(created.id, 'recipe-upload/u/r/1', owner.id);
@@ -555,7 +600,7 @@ describe('RecipeService.revertToAiImage', () => {
     });
 
     it('throws 400 when there is no ai image to revert to', async () => {
-        const svc = new RecipeService(repo as any, ids, undefined, undefined, mockImageService as any);
+        const svc = new RecipeService(repo as any, ids, objectEraser, undefined, undefined, mockImageService as any);
         const created = await svc.createRecipe('Pasta', [], owner.id, owner);
         await svc.setCoverImageKey(created.id, 'recipe-upload/u/r/1', owner.id);
 
@@ -563,7 +608,7 @@ describe('RecipeService.revertToAiImage', () => {
     });
 
     it('throws 403 when a non-owner tries to revert', async () => {
-        const svc = new RecipeService(repo as any, ids, undefined, undefined, mockImageService as any);
+        const svc = new RecipeService(repo as any, ids, objectEraser, undefined, undefined, mockImageService as any);
         const created = await svc.createRecipe('Pasta', [], owner.id, owner);
 
         await expect(svc.revertToAiImage(created.id, 'other-user')).rejects.toMatchObject({ status: 403 });
@@ -572,12 +617,12 @@ describe('RecipeService.revertToAiImage', () => {
 
 describe('RecipeService.getRecipe', () => {
     it('throws 404 when recipe not found', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
         await expect(svc.getRecipe('missing-id')).rejects.toMatchObject({ status: 404, message: 'Recipe not found' });
     });
 
     it('returns recipe when found', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
         const created = await svc.createRecipe('Pasta', [], owner.id, owner);
         const found = await svc.getRecipe(created.id);
         expect(found.id).toBe(created.id);
@@ -586,7 +631,7 @@ describe('RecipeService.getRecipe', () => {
 
 describe('RecipeService.getRecipesByUserId', () => {
     it('returns recipes for user', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
         const results = await svc.getRecipesByUserId(owner.id);
         expect(Array.isArray(results)).toBe(true);
     });
@@ -594,7 +639,7 @@ describe('RecipeService.getRecipesByUserId', () => {
 
 describe('RecipeService.updateRecipe', () => {
     it('persists link and instructions on update', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
         const created = await svc.createRecipe('Pasta', [], owner.id, owner);
 
         const updated = await svc.updateRecipe(created.id, 'Pasta v2', [], owner.id, 'https://example.com/pasta', [
@@ -607,7 +652,7 @@ describe('RecipeService.updateRecipe', () => {
     });
 
     it('clears link and instructions when passed as undefined', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
         const created = await svc.createRecipe('Pasta', [], owner.id, owner, 'https://example.com', ['Step 1']);
         const updated = await svc.updateRecipe(created.id, 'Pasta', [], owner.id, undefined, undefined);
         expect(updated.link).toBeUndefined();
@@ -615,18 +660,18 @@ describe('RecipeService.updateRecipe', () => {
     });
 
     it('throws 403 when non-owner tries to update', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
         const created = await svc.createRecipe('Pasta', [], owner.id, owner);
         await expect(svc.updateRecipe(created.id, 'Pasta', [], 'other-user')).rejects.toMatchObject({ status: 403 });
     });
 
     it('throws when recipe not found', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
         await expect(svc.updateRecipe('missing', 'Pasta', [], owner.id)).rejects.toMatchObject({ status: 404 });
     });
 
     it('passes tags through on update', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
         const created = await svc.createRecipe('Pasta', [], owner.id, owner);
 
         const updated = await svc.updateRecipe(created.id, 'Pasta', [], owner.id, undefined, undefined, [
@@ -638,7 +683,7 @@ describe('RecipeService.updateRecipe', () => {
     });
 
     it('removes a tag by omitting it from the passed-through array', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
 
         const created = await svc.createRecipe(
             'Pasta',
@@ -657,7 +702,7 @@ describe('RecipeService.updateRecipe', () => {
     });
 
     it('persists prepTime, cookTime, servings and difficulty on update', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
         const created = await svc.createRecipe('Pasta', [], owner.id, owner);
 
         const updated = await svc.updateRecipe(
@@ -681,7 +726,7 @@ describe('RecipeService.updateRecipe', () => {
     });
 
     it('clears prepTime, cookTime, servings and difficulty when passed as undefined', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
 
         const created = await svc.createRecipe(
             'Pasta',
@@ -709,27 +754,27 @@ describe('RecipeService.updateRecipe', () => {
 
 describe('RecipeService.deleteRecipe', () => {
     it('deletes recipe when owner', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
         const created = await svc.createRecipe('Pasta', [], owner.id, owner);
         await expect(svc.deleteRecipe(created.id, owner.id)).resolves.toBeUndefined();
         await expect(svc.getRecipe(created.id)).rejects.toMatchObject({ status: 404 });
     });
 
     it('throws 403 when non-owner tries to delete', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
         const created = await svc.createRecipe('Pasta', [], owner.id, owner);
         await expect(svc.deleteRecipe(created.id, 'other-user')).rejects.toMatchObject({ status: 403 });
     });
 
     it('throws when recipe not found', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
         await expect(svc.deleteRecipe('missing', owner.id)).rejects.toMatchObject({ status: 404 });
     });
 });
 
 describe('RecipeService.addUserToRecipe', () => {
     it('adds a friend to the recipe', async () => {
-        const svc = new RecipeService(repo as any, ids, undefined, undefined, undefined, friends as any);
+        const svc = new RecipeService(repo as any, ids, objectEraser, undefined, undefined, undefined, friends as any);
         const created = await svc.createRecipe('Pasta', [], owner.id, owner);
         friends.add(owner, user2);
         const updated = await svc.addUserToRecipe(created.id, user2.id, owner.id);
@@ -737,14 +782,14 @@ describe('RecipeService.addUserToRecipe', () => {
     });
 
     it('throws 403 when non-owner tries to add user', async () => {
-        const svc = new RecipeService(repo as any, ids, undefined, undefined, undefined, friends as any);
+        const svc = new RecipeService(repo as any, ids, objectEraser, undefined, undefined, undefined, friends as any);
         const created = await svc.createRecipe('Pasta', [], owner.id, owner);
         friends.add(owner, user2);
         await expect(svc.addUserToRecipe(created.id, user2.id, 'other-user')).rejects.toMatchObject({ status: 403 });
     });
 
     it('throws 403 when the target id is not a friend', async () => {
-        const svc = new RecipeService(repo as any, ids, undefined, undefined, undefined, friends as any);
+        const svc = new RecipeService(repo as any, ids, objectEraser, undefined, undefined, undefined, friends as any);
         const created = await svc.createRecipe('Pasta', [], owner.id, owner);
         await expect(svc.addUserToRecipe(created.id, 'not-a-friend', owner.id)).rejects.toMatchObject({
             status: 403,
@@ -752,7 +797,7 @@ describe('RecipeService.addUserToRecipe', () => {
     });
 
     it('throws 400 when user already in recipe', async () => {
-        const svc = new RecipeService(repo as any, ids, undefined, undefined, undefined, friends as any);
+        const svc = new RecipeService(repo as any, ids, objectEraser, undefined, undefined, undefined, friends as any);
         const created = await svc.createRecipe('Pasta', [], owner.id, owner);
         friends.add(owner, user2);
         await svc.addUserToRecipe(created.id, user2.id, owner.id);
@@ -761,14 +806,14 @@ describe('RecipeService.addUserToRecipe', () => {
 
     it('throws when recipe not found', async () => {
         friends.add(owner, user2);
-        const svc = new RecipeService(repo as any, ids, undefined, undefined, undefined, friends as any);
+        const svc = new RecipeService(repo as any, ids, objectEraser, undefined, undefined, undefined, friends as any);
         await expect(svc.addUserToRecipe('missing', user2.id, owner.id)).rejects.toMatchObject({ status: 404 });
     });
 });
 
 describe('RecipeService.removeUserFromRecipe', () => {
     it('removes user from recipe', async () => {
-        const svc = new RecipeService(repo as any, ids, undefined, undefined, undefined, friends as any);
+        const svc = new RecipeService(repo as any, ids, objectEraser, undefined, undefined, undefined, friends as any);
         const created = await svc.createRecipe('Pasta', [], owner.id, owner);
         friends.add(owner, user2);
         await svc.addUserToRecipe(created.id, user2.id, owner.id);
@@ -777,7 +822,7 @@ describe('RecipeService.removeUserFromRecipe', () => {
     });
 
     it('throws 403 when non-owner tries to remove user', async () => {
-        const svc = new RecipeService(repo as any, ids, undefined, undefined, undefined, friends as any);
+        const svc = new RecipeService(repo as any, ids, objectEraser, undefined, undefined, undefined, friends as any);
         const created = await svc.createRecipe('Pasta', [], owner.id, owner);
         friends.add(owner, user2);
         await svc.addUserToRecipe(created.id, user2.id, owner.id);
@@ -787,7 +832,7 @@ describe('RecipeService.removeUserFromRecipe', () => {
     });
 
     it('throws 400 when trying to remove owner', async () => {
-        const svc = new RecipeService(repo as any, ids, undefined, undefined, undefined, friends as any);
+        const svc = new RecipeService(repo as any, ids, objectEraser, undefined, undefined, undefined, friends as any);
         const created = await svc.createRecipe('Pasta', [], owner.id, owner);
         friends.add(owner, user2);
         await svc.addUserToRecipe(created.id, user2.id, owner.id);
@@ -795,33 +840,33 @@ describe('RecipeService.removeUserFromRecipe', () => {
     });
 
     it('throws 400 when trying to remove last user', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
         const created = await svc.createRecipe('Pasta', [], owner.id, owner);
         await expect(svc.removeUserFromRecipe(created.id, user2.id, owner.id)).rejects.toMatchObject({ status: 400 });
     });
 
     it('throws when recipe not found', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
         await expect(svc.removeUserFromRecipe('missing', user2.id, owner.id)).rejects.toMatchObject({ status: 404 });
     });
 });
 
 describe('RecipeService.setCoverImageKey', () => {
     it('sets cover image key when owner', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
         const created = await svc.createRecipe('Pasta', [], owner.id, owner);
         const updated = await svc.setCoverImageKey(created.id, 'some-key', owner.id);
         expect(updated.coverImageKey).toBe('some-key');
     });
 
     it('throws 403 when non-owner tries to set image key', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
         const created = await svc.createRecipe('Pasta', [], owner.id, owner);
         await expect(svc.setCoverImageKey(created.id, 'key', 'other-user')).rejects.toMatchObject({ status: 403 });
     });
 
     it('throws when recipe not found', async () => {
-        const svc = new RecipeService(repo as any, ids);
+        const svc = new RecipeService(repo as any, ids, objectEraser);
         await expect(svc.setCoverImageKey('missing', 'key', owner.id)).rejects.toMatchObject({ status: 404 });
     });
 });

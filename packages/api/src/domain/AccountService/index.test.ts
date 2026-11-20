@@ -12,6 +12,7 @@ const recipe = (id: string, over: Partial<Recipe> = {}): Recipe =>
 interface World {
     ownedRecipes?: Recipe[];
     stored?: string[];
+    otherRecipes?: Recipe[];
     publications?: Array<{ recipeId: string; libraryId: string; ownerId: string }>;
     libraryCovers?: Record<string, string>;
     failRemovingKeys?: boolean;
@@ -33,6 +34,7 @@ const setup = (world: World = {}) => {
         lists: { deleteOwnedBy: note('lists.deleteOwnedBy'), removeMemberEverywhere: note('lists.removeMember') },
         recipes: {
             findOwnedBy: async () => world.ownedRecipes ?? [],
+            getAll: async () => [...(world.ownedRecipes ?? []), ...(world.otherRecipes ?? [])],
             deleteOwnedBy: note('recipes.deleteOwnedBy'),
             removeMemberEverywhere: note('recipes.removeMember'),
         },
@@ -163,6 +165,8 @@ describe('AccountService.deleteAccount', () => {
                 `recipe-upload/${user.id}/old-recipe/0.webp`,
                 `recipe-upload/${user.id}/r1/1.webp`,
                 'recipe-image/r1.webp',
+                'recipe-image/r2.webp',
+                'recipe-image/r3.webp',
             ].toSorted()
         );
     });
@@ -184,5 +188,24 @@ describe('AccountService.deleteAccount', () => {
             'reports.deleteByRecipeId user-1',
             'publication.delete user-1',
         ]);
+    });
+
+    it.each([
+        ['generation persisted no reference', recipe('generated'), [], ['recipe-image/generated.webp']],
+        [
+            'legacy AI image still used by another owner',
+            recipe('r1', { aiImageKey: 'recipe-image/shared' }),
+            [recipe('copy', { ownerId: 'other', aiImageKey: 'recipe-image/shared' })],
+            ['recipe-image/r1.webp'],
+        ],
+    ] as const)('handles %s during account erasure', async (_name, owned, others, expected) => {
+        const { service, removedKeys } = setup({
+            ownedRecipes: [owned],
+            otherRecipes: [...others],
+            stored: ['recipe-image/generated.webp', 'recipe-image/shared', 'recipe-image/r1.webp'],
+        });
+
+        await service.deleteAccount(user, user.username);
+        expect(removedKeys.toSorted()).toEqual([...expected].toSorted());
     });
 });

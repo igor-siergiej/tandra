@@ -28,7 +28,7 @@ export interface CredentialsEraser {
 
 export interface AccountDependencies {
     lists: Pick<ListRepository, 'deleteOwnedBy' | 'removeMemberEverywhere'>;
-    recipes: Pick<RecipeRepository, 'findOwnedBy' | 'deleteOwnedBy' | 'removeMemberEverywhere'>;
+    recipes: Pick<RecipeRepository, 'findOwnedBy' | 'getAll' | 'deleteOwnedBy' | 'removeMemberEverywhere'>;
     todos: Pick<TodoRepository, 'deleteOwnedBy' | 'removeMemberEverywhere'>;
     mealPlans: Pick<MealPlanRepository, 'deleteOwnedBy' | 'removeMemberEverywhere'>;
     labels: Pick<LabelRepository, 'deleteOwnedBy'>;
@@ -142,9 +142,23 @@ export class AccountService {
         const own = (key: string | undefined): key is string =>
             key !== undefined && (key.startsWith(uploadPrefix) || key.startsWith(AI_IMAGE_PREFIX));
 
-        const keys = (await recipes.findOwnedBy(userId)).flatMap((recipe) =>
-            [recipe.coverImageKey, recipe.aiImageKey].filter(own)
+        const owned = await recipes.findOwnedBy(userId);
+        const ownedIds = new Set(owned.map((recipe) => recipe.id));
+
+        const keys = new Set(
+            owned.flatMap((recipe) =>
+                [`${AI_IMAGE_PREFIX}${recipe.id}.webp`, recipe.coverImageKey, recipe.aiImageKey].filter(own)
+            )
         );
+
+        // Old recipe copies could share an AI key. Their content stays theirs until the final reference goes.
+        for (const other of await recipes.getAll()) {
+            if (ownedIds.has(other.id)) continue;
+
+            if (other.aiImageKey?.startsWith(AI_IMAGE_PREFIX)) keys.delete(other.aiImageKey);
+
+            if (other.coverImageKey?.startsWith(AI_IMAGE_PREFIX)) keys.delete(other.coverImageKey);
+        }
 
         await images.removeKeys([...new Set([...keys, ...(await images.listKeys(uploadPrefix))])]);
         await recipes.deleteOwnedBy(userId);

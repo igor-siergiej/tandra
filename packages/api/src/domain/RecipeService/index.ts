@@ -1,6 +1,7 @@
 import type { Logger } from '@imapps/api-utils';
 import type { Ingredient, Recipe, RecipeDifficulty, User } from '@tandra/types';
 
+import type { ObjectEraser } from '../AccountService';
 import { AuthorizationService } from '../AuthorizationService';
 import type { FriendService } from '../FriendService';
 import type { IdGenerator } from '../IdGenerator';
@@ -39,6 +40,7 @@ export class RecipeService {
     constructor(
         private recipeRepository: RecipeRepository,
         private idGenerator: IdGenerator,
+        private readonly objectEraser: ObjectEraser,
         private logger?: Logger,
         authorizationService?: AuthorizationService,
         private recipeImageService?: RecipeImageService,
@@ -244,6 +246,24 @@ export class RecipeService {
                 Object.assign(error, { status: 403 });
                 throw error;
             }
+
+            // The deterministic key can exist even if saving the generated image reference failed.
+            // Legacy AI keys may be shared, so only the final referencing recipe removes them.
+            const candidates = new Set(
+                [`recipe-image/${recipeId}.webp`, recipe.aiImageKey, recipe.coverImageKey].filter(
+                    (key): key is string => key?.startsWith('recipe-image/') === true
+                )
+            );
+
+            for (const other of await this.recipeRepository.getAll()) {
+                if (other.id === recipeId) continue;
+
+                if (other.aiImageKey) candidates.delete(other.aiImageKey);
+
+                if (other.coverImageKey) candidates.delete(other.coverImageKey);
+            }
+
+            await this.objectEraser.removeKeys([...candidates]);
 
             await this.recipeRepository.deleteById(recipeId);
             this.logger?.info('Recipe deleted', {

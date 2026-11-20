@@ -43,14 +43,18 @@ export class MongoRecipeRepository implements RecipeRepository {
     }
 
     async update(recipeId: string, recipe: Recipe): Promise<Recipe> {
-        await this.collection().findOneAndReplace({ id: recipeId }, recipe);
-        const updated = await this.getById(recipeId);
+        // A content edit must not restore membership removed since this recipe was read.
+        const updated = await this.collection().findOneAndReplace({ id: recipeId, users: recipe.users }, recipe, {
+            returnDocument: 'after',
+        });
 
-        if (!updated) {
+        if (updated) return updated;
+
+        if (!(await this.getById(recipeId))) {
             throw new Error('Recipe not found');
         }
 
-        return updated;
+        throw Object.assign(new Error('Recipe membership changed'), { status: 409 });
     }
 
     async deleteById(recipeId: string): Promise<void> {

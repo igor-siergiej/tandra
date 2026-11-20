@@ -41,6 +41,7 @@ const setup = (initial: Recipe[] = [personal()], seedLibrary: DiscoveryRecipe[] 
 
     const recipeRepo = {
         getById: async (id: string) => recipes.get(id) ?? null,
+        getAll: async () => [...recipes.values()],
         update: async (id: string, recipe: Recipe) => {
             recipes.set(id, recipe);
 
@@ -135,10 +136,17 @@ const setup = (initial: Recipe[] = [personal()], seedLibrary: DiscoveryRecipe[] 
         },
     };
 
+    const objectEraser = {
+        listKeys: async (prefix: string) => [...objects.keys()].filter((key) => key.startsWith(prefix)),
+        removeKeys: async (keys: string[]) => {
+            keys.forEach((key) => objects.delete(key));
+        },
+    };
+
     let n = 0;
     const ids = { generate: () => `id-${++n}` };
-    const recipeService = new RecipeService(recipeRepo as never, ids);
-    const publish = new DiscoveryPublishService(discovery, publications, recipeService, images, ids);
+    const recipeService = new RecipeService(recipeRepo as never, ids, objectEraser);
+    const publish = new DiscoveryPublishService(discovery, publications, recipeService, images, ids, objectEraser);
 
     return { publish, recipes, recipeService, library, indexed, publicationRows, objects, failIndex, discovery };
 };
@@ -396,6 +404,29 @@ describe('DiscoveryPublishService.publish', () => {
 
             expect(objects.get(key)?.buffer.toString()).toBe('cover-bytes');
             expect(library.get(ref.libraryId)?.coverImageKey).toBe(key);
+        });
+
+        it('sweeps old covers from repeated publishes without touching the private uploads', async () => {
+            const { publish, library, objects, recipeService } = withCover();
+            const ref = await publish.publish(RECIPE_ID, owner, agree);
+            const firstKey = library.get(ref.libraryId)?.coverImageKey as string;
+            const replacement = 'recipe-upload/u-owner/personal-recipe-123/2.webp';
+            objects.set(replacement, { buffer: Buffer.from('new-cover'), contentType: 'image/webp' });
+            await recipeService.setCoverImageKey(RECIPE_ID, replacement, owner.id);
+
+            await publish.publish(RECIPE_ID, owner, agree);
+            const secondKey = library.get(ref.libraryId)?.coverImageKey as string;
+            expect(secondKey).not.toBe(firstKey);
+            expect(objects.has(firstKey)).toBe(true);
+            expect(objects.has(secondKey)).toBe(true);
+
+            await publish.unpublish(ref.libraryId, owner);
+
+            expect([...objects.keys()].filter((key) => key.startsWith(`discovery-image/${ref.libraryId}/`))).toEqual(
+                []
+            );
+            expect(objects.has('recipe-upload/u-owner/personal-recipe-123/1.png')).toBe(true);
+            expect(objects.has(replacement)).toBe(true);
         });
 
         it('publishes without a cover, rather than failing, when the private cover cannot be read', async () => {

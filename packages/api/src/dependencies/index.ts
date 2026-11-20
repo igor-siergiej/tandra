@@ -58,6 +58,7 @@ import { MongoListRepository } from '../infrastructure/MongoListRepository';
 import { MongoMealPlanRepository } from '../infrastructure/MongoMealPlanRepository';
 import { MongoPushSubscriptionRepository } from '../infrastructure/MongoPushSubscriptionRepository';
 import { MongoRecipeRepository } from '../infrastructure/MongoRecipeRepository';
+import { MongoRequestBarrier, type RequestBarrierState } from '../infrastructure/MongoRequestBarrier';
 import { MongoTodoRepository } from '../infrastructure/MongoTodoRepository';
 import { type OpenSearchApi, OpenSearchDiscoveryIndex } from '../infrastructure/OpenSearchDiscoveryIndex';
 import { UuidGenerator } from '../infrastructure/UuidGenerator';
@@ -117,6 +118,11 @@ export const registerDepdendencies = () => {
     // same connectionUri/databaseName (the driver connects lazily). `transaction: false` because
     // the local dev mongo is a standalone without a replica set; prod is a single node today.
     register(DependencyToken.Auth, () => buildBetterAuth());
+    register(DependencyToken.RequestBarrier, () => {
+        const db = new MongoClient(config.get('connectionUri')).db(config.get('databaseName'));
+
+        return new MongoRequestBarrier(db.collection<RequestBarrierState>('requestBarrier'));
+    });
     // Domain services using factory classes
     register(
         DependencyToken.ListRepository,
@@ -196,6 +202,7 @@ export const registerDepdendencies = () => {
             new RecipeService(
                 dependencyContainer.resolve(DependencyToken.RecipeRepository),
                 dependencyContainer.resolve(DependencyToken.IdGenerator),
+                dependencyContainer.resolve(DependencyToken.ObjectEraser),
                 dependencyContainer.resolve(DependencyToken.Logger),
                 dependencyContainer.resolve(DependencyToken.AuthorizationService),
                 dependencyContainer.resolve(DependencyToken.RecipeImageService),
@@ -496,6 +503,7 @@ export const registerDepdendencies = () => {
                 dependencyContainer.resolve(DependencyToken.RecipeService),
                 dependencyContainer.resolve(DependencyToken.ImageStore),
                 dependencyContainer.resolve(DependencyToken.IdGenerator),
+                dependencyContainer.resolve(DependencyToken.ObjectEraser),
                 dependencyContainer.resolve(DependencyToken.Logger)
             )
     );
@@ -512,6 +520,7 @@ export const registerDepdendencies = () => {
             dependencyContainer.resolve(DependencyToken.DiscoveryPublicationRepository),
             dependencyContainer.resolve(DependencyToken.IdGenerator),
             new Set(admins),
+            dependencyContainer.resolve(DependencyToken.ObjectEraser),
             dependencyContainer.resolve(DependencyToken.Logger)
         );
     });

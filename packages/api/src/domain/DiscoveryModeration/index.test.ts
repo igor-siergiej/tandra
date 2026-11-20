@@ -96,7 +96,8 @@ const setup = (admins: string[] = [admin.id]) => {
         reports,
         publications,
         { generate: () => `rep-${++n}` },
-        new Set(admins)
+        new Set(admins),
+        { listKeys: async () => [], removeKeys: async () => {} }
     );
 
     return { service, library, indexed, reportRows, rows, getRecipesCalls };

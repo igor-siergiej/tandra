@@ -7,7 +7,8 @@ export interface TodoRepository {
     /** Incomplete todos whose dueDate day is on or before `today` (YYYY-MM-DD) — recurring anchors included. */
     findDueCandidates(today: string): Promise<Todo[]>;
     insert(todo: Todo): Promise<Todo>;
-    update(todoId: string, todo: Todo): Promise<Todo>;
+    /** Replaces only while membership matches `previous` (or `todo` for content-only edits); otherwise throws 409. */
+    update(todoId: string, todo: Todo, previous?: Todo): Promise<Todo>;
     deleteById(todoId: string): Promise<void>;
     clearLabel(labelId: string, ownerId: string): Promise<void>;
     /** Todos where userId appears in users[] (shared with them). */

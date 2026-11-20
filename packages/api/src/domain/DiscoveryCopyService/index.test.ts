@@ -54,6 +54,7 @@ const setup = (existing: Recipe[] = []) => {
     const recipes = new RecipeService(
         repo as never,
         { generate: () => `gen-${++n}` },
+        { listKeys: async () => [], removeKeys: async () => {} },
         undefined,
         undefined,
         undefined,

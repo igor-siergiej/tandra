@@ -13,6 +13,7 @@ import {
     startDefaultMetrics,
 } from './infrastructure/metrics';
 import { csrfForFormPosts } from './middleware/csrf';
+import { requestBarrier } from './middleware/requestBarrier';
 import { backfillWikibooksSlugs } from './migrations/wikibooksSlugs';
 import { createRoutes } from './routes';
 
@@ -23,6 +24,9 @@ const mountBetterAuth = (app: ReturnType<typeof createApp>) => {
     // The public origin Better Auth is configured for is the app's own origin (self-hosts included), so
     // multipart uploads from it must pass the form-post origin check too.
     const publicOrigin = new URL(config.get('betterAuthUrl')).origin;
+    // Covers Better Auth as well as domain routes, before session resolution. Deletion drains in-flight
+    // uploads/generation/publication and stale sharing requests on every replica before starting its sweep.
+    app.use('/api/*', requestBarrier(dependencyContainer.resolve(DependencyToken.RequestBarrier)));
     app.use('/api/*', csrfForFormPosts([...allowedOrigins, publicOrigin]));
     app.on(['GET', 'POST'], '/api/auth/*', (c) => auth.handler(c.req.raw));
 };

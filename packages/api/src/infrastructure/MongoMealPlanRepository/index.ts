@@ -36,14 +36,20 @@ export class MongoMealPlanRepository implements MealPlanRepository {
     }
 
     async update(entryId: string, entry: MealPlanEntry): Promise<MealPlanEntry> {
-        await this.collection().findOneAndReplace({ id: entryId }, entry);
-        const updated = await this.getById(entryId);
+        // Match absence as well as array contents for entries created before sharing.
+        const users = entry.users === undefined ? { $exists: false } : entry.users;
 
-        if (!updated) {
+        const updated = await this.collection().findOneAndReplace({ id: entryId, users }, entry, {
+            returnDocument: 'after',
+        });
+
+        if (updated) return updated;
+
+        if (!(await this.getById(entryId))) {
             throw new Error('Meal plan entry not found');
         }
 
-        return updated;
+        throw Object.assign(new Error('Meal plan membership changed'), { status: 409 });
     }
 
     async deleteById(entryId: string): Promise<void> {

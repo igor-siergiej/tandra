@@ -31,6 +31,33 @@ Sign-in rows go last. If a step fails the session is still valid, so the person 
 is safe to repeat, and two requests at once leave the same end state (the second finds nothing to do). Files are removed
 before the rows that name them, so a retry can still find them. Once the session is gone a repeat gets 401.
 
+### Concurrent requests and recovery
+
+`MongoRequestBarrier` wraps API requests **before authentication**, including Better Auth's handler. Ordinary requests
+share admission. Every DELETE closes admission across replicas, drains active requests, then runs alone. In-flight
+uploads, AI generation, publishing, sharing and new-session creation therefore finish before erasure starts. Requests
+queued behind it resolve their sessions again and cannot write with a deleted user's cookie. Destructive deletes also
+serialize with each other, so two recipe removals cannot both abandon the same legacy shared image.
+
+Recipe, todo and meal-plan replacements atomically compare the membership they read. A stale owner edit gets 409 instead
+of restoring a removed member's id or username. Lists already use revision checks. Background tag/category updates only
+update surviving documents; the item-category cache is global, not tied to a user.
+
+Admission waits at most 60 seconds, then fails without running the handler. There is **no expiring lock lease**: an
+expired lease could let a paused upload resume after its owner's deletion. The availability tradeoff is deliberate:
+if an API process dies while holding admission, the barrier fails closed. Recovery: stop **all API replicas**, clear
+the `requestBarrier` collection in that deployment's Mongo database, then restart the replicas. Never clear the barrier
+while any replica can still finish an old request. `/api/health`, `/api/features` and `/api/metrics` remain available.
+
+### Images removed before ownership is discarded
+
+Unpublish and admin delist sweep the entire `discovery-image/<libraryId>/` prefix, including earlier republish covers,
+before dropping the publication row. Recipe deletion removes its deterministic AI key even when generation failed
+before recording that key on the recipe. Bucket failures retain ownership rows so physical cleanup can be retried.
+Account deletion applies the same deterministic-key cleanup. Legacy AI keys still referenced by another person's
+recipe stay with that copy and are removed when their final referencing recipe is deleted.
+
+
 ## Decision: no 30-day grace period
 
 Deletion is immediate. A grace period needs a queued state, a scheduler, a Settings banner and a way to cancel, and

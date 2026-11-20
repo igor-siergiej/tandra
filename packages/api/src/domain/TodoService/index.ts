@@ -128,7 +128,7 @@ export class TodoService {
         const merged: Todo = { ...existing, ...input };
 
         for (const field of clear ?? []) delete merged[field];
-        const updated = await this.repo.update(todoId, merged);
+        const updated = await this.repo.update(todoId, merged, existing);
 
         if (actor && input.users) {
             const previousIds = new Set((existing.users ?? []).map((u) => u.id));
