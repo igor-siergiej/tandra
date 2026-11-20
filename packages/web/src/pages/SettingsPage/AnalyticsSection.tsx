@@ -1,3 +1,4 @@
+import { AnalyticsStorageWarning } from '../../components/AnalyticsConsentPrompt/StorageWarning';
 import { Switch } from '../../components/ui/switch';
 import { useAnalyticsConsent } from '../../hooks/useAnalyticsConsent';
 
@@ -43,6 +44,7 @@ export const AnalyticsSection = () => {
                 checked={recordingsEnabled}
                 onCheckedChange={setRecordingsEnabled}
             />
+            <AnalyticsStorageWarning />
         </section>
     );
 };

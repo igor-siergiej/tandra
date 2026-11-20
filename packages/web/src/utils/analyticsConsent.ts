@@ -6,18 +6,34 @@
  * - `tandra.replayConsent`: "true" once the visitor agreed to session recordings, "false" once they withdrew.
  * - `tandra.analyticsPromptSeen`: "true" once the first-run prompt was answered or dismissed.
  *
- * Every read is live (no cache) so a choice made in Settings applies on the next call, with no reload.
+ * Reads stay live unless a write failed: that choice overrides stale storage for this visit.
  */
 
 const USAGE_OPT_OUT_KEY = 'umami.disabled';
 const REPLAY_CONSENT_KEY = 'tandra.replayConsent';
 const PROMPT_SEEN_KEY = 'tandra.analyticsPromptSeen';
 
+const unsavedChoices = new Map<string, string | null>();
+const listeners = new Set<() => void>();
+
+export const hasUnsavedAnalyticsChoices = (): boolean => unsavedChoices.size > 0;
+
+export const subscribeAnalyticsStorage = (listener: () => void): (() => void) => {
+    listeners.add(listener);
+
+    return () => {
+        listeners.delete(listener);
+    };
+};
+
 const read = (key: string): string | null => {
+    if (unsavedChoices.has(key)) return unsavedChoices.get(key) ?? null;
+
     try {
         return localStorage.getItem(key);
     } catch {
-        return null;
+        // An unreadable opt-out must not enable tracking. Replay still needs explicit consent.
+        return key === USAGE_OPT_OUT_KEY ? 'true' : null;
     }
 };
 
@@ -25,9 +41,12 @@ const write = (key: string, value: string | null): void => {
     try {
         if (value === null) localStorage.removeItem(key);
         else localStorage.setItem(key, value);
+        unsavedChoices.delete(key);
     } catch {
-        // Storage unavailable (private mode): the choice just lasts for this visit.
+        unsavedChoices.set(key, value);
     }
+
+    for (const listener of listeners) listener();
 };
 
 export const isUsageOptedOut = (): boolean => Boolean(read(USAGE_OPT_OUT_KEY));

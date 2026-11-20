@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 import { useAnalyticsConsent } from './useAnalyticsConsent';
 
-const analytics = vi.hoisted(() => ({ startReplay: vi.fn(), stopReplay: vi.fn() }));
+const analytics = vi.hoisted(() => ({ loadTracker: vi.fn(), startReplay: vi.fn(), stopReplay: vi.fn() }));
 
 vi.mock('../utils/analytics', () => analytics);
 
@@ -12,6 +12,7 @@ describe('useAnalyticsConsent: usage statistics and a running recording', () => 
         localStorage.clear();
         analytics.startReplay.mockClear();
         analytics.stopReplay.mockClear();
+        analytics.loadTracker.mockClear();
     });
 
     it('opting out of usage statistics stops a recording that is already running', () => {

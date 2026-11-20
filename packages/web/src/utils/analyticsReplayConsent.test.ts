@@ -64,6 +64,8 @@ describe('session replay for a visitor who loaded the page opted out', () => {
         localStorage.removeItem('umami.disabled');
         localStorage.setItem('tandra.replayConsent', 'true');
         analytics.startReplay();
+        // Usage opt-out defers the tracker itself; its first load now follows consent restoration.
+        document.querySelector('script[src$="/p.js"]')?.dispatchEvent(new Event('load'));
         expect(document.querySelectorAll('script[src$="/recorder.js"]')).toHaveLength(1);
         expect(startSessionReplay).not.toHaveBeenCalled();
 

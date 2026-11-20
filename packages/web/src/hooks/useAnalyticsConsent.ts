@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 
-import { startReplay, stopReplay } from '../utils/analytics';
+import { loadTracker, startReplay, stopReplay } from '../utils/analytics';
 import {
     hasReplayConsent,
     isUsageOptedOut,
@@ -33,7 +33,11 @@ export const useAnalyticsConsent = (): AnalyticsConsent => {
 
         // Opting out ends a recording already running; opting back in resumes one the visitor agreed to earlier.
         if (!enabled) stopReplay();
-        else if (hasReplayConsent()) startReplay();
+        else {
+            loadTracker();
+
+            if (hasReplayConsent()) startReplay();
+        }
     }, []);
 
     const setRecordingsEnabled = useCallback((enabled: boolean) => {

@@ -122,6 +122,29 @@ Installing dependencies needs `NODE_AUTH_TOKEN` for the `@imapps/*` registry
 `OPENSEARCH_TEST_URL` (api integration tests), `E2E_OPENSEARCH_URL`,
 `E2E_BASE_URL`, `E2E_WORKERS` and `E2E_PORT_BASE` (Playwright).
 
+### Analytics choices
+
+Settings → Privacy controls this browser's analytics: Usage statistics defaults to on;
+session recordings default to off. Signed-in users can accept or dismiss the first-run
+recordings prompt, then change either choice in Settings.
+
+| localStorage key | Meaning | Lifetime |
+| --- | --- | --- |
+| `umami.disabled` | Any non-empty value disables usage statistics; enabling removes it | Until cleared by the user |
+| `tandra.replayConsent` | `true` permits session recordings; `false` withdraws consent | Until cleared by the user |
+| `tandra.analyticsPromptSeen` | `true` remembers an answered or dismissed first-run prompt | Until cleared by the user |
+
+If a storage write fails, the choice still applies for the current visit, including after
+remounting the controls. Settings and the dismissed prompt show a warning that it could
+not be saved and must be checked after refreshing. Failed opt-outs also block the SDK's
+automatic page-view and heatmap requests. When storage cannot be read, tracking stays off.
+Enabling usage after an opted-out launch loads both the tracker and heatmap recorder;
+recordings still require their separate opt-in. Replay sampling and masking remain
+server-side Umami settings.
+
+The public notice's storage table lives in `tandra-site/src/pages/privacy.astro`, outside
+this worktree. `e2e/tests/analytics-privacy-notice.spec.ts` checks its published rows.
+
 ## Running it
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for the contributor-focused setup.

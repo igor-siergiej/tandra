@@ -5,6 +5,7 @@ import { useAnalyticsConsent } from '../../hooks/useAnalyticsConsent';
 import { isAnalyticsConfigured } from '../../utils/analytics';
 import { hasSeenConsentPrompt, isUsageOptedOut, markConsentPromptSeen } from '../../utils/analyticsConsent';
 import { Button } from '../ui/button';
+import { AnalyticsStorageWarning } from './StorageWarning';
 
 /**
  * One-time ask for session recordings, shown to a signed-in user who has not answered it yet. Only when the
@@ -19,7 +20,9 @@ export const AnalyticsConsentPrompt = () => {
         () => !hasSeenConsentPrompt() && isAnalyticsConfigured() && !isUsageOptedOut()
     );
 
-    if (isGuest || !visible) return null;
+    if (isGuest) return null;
+
+    if (!visible) return <AnalyticsStorageWarning />;
 
     const answer = (allow: boolean) => {
         if (allow) setRecordingsEnabled(true);
