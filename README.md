@@ -243,7 +243,7 @@ label picks out small, contained starting points.
   (`e2e/stack.ts`); the `e2e` job passes only if
   every shard passed, and `report` merges the shards' blob reports into one
   HTML report (artifact `playwright-report`, published to GitHub Pages and
-  linked from a sticky PR comment). `.kanban-cli.json` treats `lint`,
+  linked from a sticky PR comment). `jott-config.json` treats `lint`,
   `test`, `test-web`, `e2e`, `fallow-deadcode`, `docker-build-api`, `docker-build-web`
   as the required checks.
   Verification on [PR #313](https://github.com/igor-siergiej/tandra/pull/313):
