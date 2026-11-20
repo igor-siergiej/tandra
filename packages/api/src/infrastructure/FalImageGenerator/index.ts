@@ -64,8 +64,8 @@ export class FalImageGenerator implements ImageGenerator {
         });
 
         if (!response.ok) {
-            const error = await response.text();
-            throw Object.assign(new Error(`fal.ai API error: ${error}`), { status: 502 });
+            // The response body can echo the prompt, which carries the item name, so it stays out of the message.
+            throw Object.assign(new Error(`fal.ai API error: HTTP ${response.status}`), { status: 502 });
         }
 
         const data = (await response.json()) as unknown;
@@ -90,7 +90,7 @@ export class FalImageGenerator implements ImageGenerator {
                 originalBuffer = Buffer.from(await imageResponse.arrayBuffer());
             }
         } else {
-            throw Object.assign(new Error(`Invalid image generation response: ${JSON.stringify(data)}`), {
+            throw Object.assign(new Error('Invalid image generation response: no image in the response'), {
                 status: 502,
             });
         }

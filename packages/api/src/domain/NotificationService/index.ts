@@ -58,11 +58,15 @@ export class NotificationService {
     /** Immediate (undebounced) push to a todo's shared members when it's created already shared. */
     async notifyTodoShared(todo: Todo, actor: User): Promise<void> {
         const recipientIds = (todo.users ?? []).map((u) => u.id).filter((id) => id !== actor.id);
-        await this.fanOut(recipientIds, todo.title, {
-            title: 'Shared todo',
-            body: `${actor.username} shared a todo: ${todo.title}`,
-            data: { url: '/calendar' },
-        });
+        await this.fanOut(
+            recipientIds,
+            { todoId: todo.id },
+            {
+                title: 'Shared todo',
+                body: `${actor.username} shared a todo: ${todo.title}`,
+                data: { url: '/calendar' },
+            }
+        );
     }
 
     private buffer(list: List, actor: User, names: string[]): void {
@@ -100,14 +104,22 @@ export class NotificationService {
         this.buffers.delete(key);
 
         const recipientIds = entry.list.users.map((u) => u.id).filter((id) => id !== entry.actor.id);
-        await this.fanOut(recipientIds, entry.list.title, {
-            title: entry.list.title,
-            body: formatAddedBody(entry.actor.username, entry.names),
-            data: { url: `/list/${entry.list.id}` },
-        });
+        await this.fanOut(
+            recipientIds,
+            { listId: entry.list.id },
+            {
+                title: entry.list.title,
+                body: formatAddedBody(entry.actor.username, entry.names),
+                data: { url: `/list/${entry.list.id}` },
+            }
+        );
     }
 
-    private async fanOut(recipientIds: string[], subject: string, payload: NotificationPayload): Promise<void> {
+    private async fanOut(
+        recipientIds: string[],
+        source: { listId?: string; todoId?: string },
+        payload: NotificationPayload
+    ): Promise<void> {
         try {
             if (recipientIds.length === 0 || !this.sender.isConfigured()) {
                 return;
@@ -129,7 +141,7 @@ export class NotificationService {
             }
         } catch (error) {
             this.logger?.error('Notification fan-out failed', {
-                subject,
+                ...source,
                 error: (error as Error).message,
             });
         }

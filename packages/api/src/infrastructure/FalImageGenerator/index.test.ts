@@ -98,6 +98,34 @@ describe('FalImageGenerator', () => {
         });
     });
 
+    describe('When fal echoes the prompt in its response', () => {
+        // The prompt carries the item name; the privacy notice promises logs hold no list-item text.
+        it('should keep the prompt out of the error message for an API error', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                ok: false,
+                status: 422,
+                text: vi.fn().mockResolvedValue('invalid prompt: Dragonfruit Item Name'),
+            }) as unknown as typeof fetch;
+
+            const error = await generator.generateImage('Dragonfruit Item Name').catch((e: Error) => e);
+
+            expect((error as Error).message).not.toContain('Dragonfruit');
+            expect(error).toMatchObject({ status: 502 });
+        });
+
+        it('should keep the prompt out of the error message for an unusable response', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                ok: true,
+                json: vi.fn().mockResolvedValue({ prompt: 'Dragonfruit Item Name', images: [] }),
+            }) as unknown as typeof fetch;
+
+            const error = await generator.generateImage('Dragonfruit Item Name').catch((e: Error) => e);
+
+            expect((error as Error).message).not.toContain('Dragonfruit');
+            expect(error).toMatchObject({ status: 502 });
+        });
+    });
+
     describe('When response contains a data URI', () => {
         it('should decode base64 and process the image', async () => {
             const imageBuffer = Buffer.from('fake-image-bytes');
