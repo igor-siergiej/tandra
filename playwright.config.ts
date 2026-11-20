@@ -125,6 +125,7 @@ export default defineConfig({
                       // AI off, as in CI, whatever a developer's .env holds: specs mock /api/features and the AI routes,
                       // and a real key would send background calls (tagging, images) to fal.ai during the run.
                       FAL_KEY: '',
+                      GEMINI_API_KEY: '',
                       RECIPE_IMPORT_LLM_API_KEY: '',
                   },
               },

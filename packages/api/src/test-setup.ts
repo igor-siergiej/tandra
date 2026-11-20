@@ -14,6 +14,8 @@ process.env.BUCKET_ENDPOINT = 'localhost:9000';
 
 process.env.FAL_KEY = 'test-key';
 
+process.env.GEMINI_API_KEY = 'test-gemini-key';
+
 // Required for `config.get('betterAuthSecret')` and `'betterAuthUrl')` to resolve during the DI
 // singleton factories at boot. Tests that exercise Better Auth construct their own `createAuth`
 // with their own secret/baseURL; the api itself never resolves DependencyToken.Auth without these.
