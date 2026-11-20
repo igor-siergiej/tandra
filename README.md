@@ -228,6 +228,12 @@ label picks out small, contained starting points.
 
 ## CI/CD
 
+The factory sandbox allows `tandra.uk` so build and verification jobs can read
+the published [privacy notice](https://tandra.uk/privacy/) and verify storage
+disclosures maintained in the separate `tandra-site` repository. The allowance
+comes from the trusted base branch's `jott-config.json`; changing a card's copy
+does not grant access.
+
 - **`pr.yml`** on every PR: `lint` (`vp check` + `tsc:e2e`), then in parallel
   `test` (`tsc --noEmit`, api tests with coverage against a real OpenSearch
   service, 90 % gate), `test-web` (web tests and script tests; no service

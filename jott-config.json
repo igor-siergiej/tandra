@@ -28,5 +28,5 @@
   "targetEnvironment": "production",
   "retryPolicy": { "implement": 3, "e2e_local": 3, "ci": 3, "deploy": 2, "e2e_live": 1 },
   "github": { "defaultBranch": "main", "mergeMethod": "squash" },
-  "factory": { "sandbox": { "mongo": true } }
+  "factory": { "sandbox": { "mongo": true, "allowHosts": ["tandra.uk"] } }
 }
