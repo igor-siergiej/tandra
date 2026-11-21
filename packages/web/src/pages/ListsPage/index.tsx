@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, ListPlus } from 'lucide-react';
 import { useEffect } from 'react';
 
+import { AnalyticsConsentPrompt } from '../../components/AnalyticsConsentPrompt';
 import ListsList from '../../components/ListsList';
 import { ListsSkeleton } from '../../components/LoadingSkeleton';
 import ToolBar from '../../components/ToolBar';
@@ -45,6 +46,7 @@ const ListsPage = () => {
 
     const pageContent = (
         <div className="flex flex-col space-y-6">
+            <AnalyticsConsentPrompt />
             {data && data.length > 0 ? (
                 <ListsList lists={data} refetch={refetch} currentUserId={user.id} />
             ) : (

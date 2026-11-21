@@ -19,6 +19,8 @@ Mocks for AI, speech and push live in `e2e/mocks` (see `e2e/README.md`).
 | Settings → Account: Export my data (JSON download of owned and shared data) | `data-export.spec.ts` | |
 | What's new panel | `whats-new.spec.ts` | not captured (content changes every release) |
 | Analytics: real Umami tracker loads from the runtime config, sends the page view and `item_added` | `analytics.spec.ts` | |
+| Analytics consent: Usage statistics and session recording toggles in Settings, first-run prompt | `analytics-consent.spec.ts` | |
+| Privacy notice: published analytics storage keys, purposes and lifetimes (`@smoke`, reads `https://tandra.uk/privacy/`) | `analytics-privacy-notice.spec.ts` | |
 
 ## Lists and items
 

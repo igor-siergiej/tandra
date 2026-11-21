@@ -21,8 +21,9 @@
  * Once the tracker has loaded, `<host>/recorder.js` follows. It records click
  * positions and scroll depth for Umami's heatmaps (and replay, if the website
  * settings ever turn it on). It sends nothing until the tracker has a session,
- * and is not loaded at all for visitors who opted out via Umami's own
- * `localStorage['umami.disabled']` flag.
+ * and is not loaded for visitors who opted out via Umami's own
+ * `localStorage['umami.disabled']` flag. Enabling usage loads both scripts,
+ * so automatic page views and heatmaps resume even without replay consent.
  *
  * Both scripts POST to `<host>`, and every list page path in what they send is
  * rewritten to `/list/:list` (see `redactListPaths`). The recorder has no hook
@@ -31,6 +32,7 @@
  */
 import { readGuestFlag } from '../guest/guestFlag';
 import { isHeatmapPreview } from '../heatmapPreview/isHeatmapPreview';
+import { hasReplayConsent, isUsageOptedOut } from './analyticsConsent';
 import { getConfig } from './config';
 
 type EventPayload = Record<string, string | number | boolean | undefined>;
@@ -57,26 +59,26 @@ const flushPending = (): void => {
     const queued = pending;
     pending = [];
 
+    // The visitor may have opted out while the tracker was loading: drop what was held.
+    if (isUsageOptedOut()) return;
+
     for (const [event, data] of queued) window.umami?.track(event, data);
 };
 
-const appendScript = (src: string, websiteId: string, onLoad?: () => void): void => {
+const appendScript = (src: string, websiteId: string, onLoad?: (script: HTMLScriptElement) => void): void => {
     const script = document.createElement('script');
     script.async = true;
     script.defer = true;
     script.dataset.websiteId = websiteId;
     script.src = src;
 
-    if (onLoad) script.addEventListener('load', onLoad);
+    if (onLoad) script.addEventListener('load', () => onLoad(script));
     document.head.appendChild(script);
 };
 
-const optedOut = (): boolean => {
-    try {
-        return Boolean(localStorage.getItem('umami.disabled'));
-    } catch {
-        return false;
-    }
+/** Resume session replay on a page load when the visitor has already agreed to recordings. */
+const resumeReplay = (): void => {
+    if (hasReplayConsent() && !isUsageOptedOut()) window.umami?.startSessionReplay?.();
 };
 
 // `/list/<id>` and legacy `/list/<title>[/<id>]`. Titles are percent-encoded in a URL, so a segment can
@@ -99,8 +101,26 @@ const redactAnalyticsRequests = (base: string): void => {
 
         if (!endpoints[String(input)] || typeof body !== 'string') return realFetch(input, init);
 
+        // The SDK reads localStorage itself; enforce a visit-only opt-out too when persistence failed.
+        if (isUsageOptedOut()) return Promise.resolve(new Response('{}'));
+
         return realFetch(input, { ...init, body: redactListPaths(body) });
     };
+};
+
+let recorderSource: { src: string; websiteId: string } | null = null;
+let recorderRequested = false;
+let recorderLoaded = false;
+
+/** Append the recorder once; it resumes replay itself for a visitor who agreed earlier. */
+const loadRecorder = (): void => {
+    if (recorderRequested || !recorderSource) return;
+
+    recorderRequested = true;
+    appendScript(recorderSource.src, recorderSource.websiteId, () => {
+        recorderLoaded = true;
+        resumeReplay();
+    });
 };
 
 const injectScript = (host: string, websiteId: string): void => {
@@ -110,14 +130,28 @@ const injectScript = (host: string, websiteId: string): void => {
 
     injectStarted = true;
     const base = host.replace(/\/$/, '');
-    redactAnalyticsRequests(base);
+
+    if (!recorderSource) {
+        redactAnalyticsRequests(base);
+        recorderSource = { src: `${base}/recorder.js`, websiteId };
+    }
+
     // Never pre-define window.umami: the tracker skips installing its API when
     // the global already exists, which would silently drop every event.
-    appendScript(`${base}/p.js`, websiteId, () => {
-        injected = true;
+    appendScript(`${base}/p.js`, websiteId, (script) => {
+        // Loading while opted out exposes the API but skips Umami's automatic tracking hooks.
+        // Leave initialization retryable, rather than mistaking a downloaded script for a working tracker.
+        injected = !isUsageOptedOut();
+        injectStarted = false;
+
+        if (!injected) {
+            script.remove();
+            delete window.umami;
+        }
+
         flushPending();
 
-        if (!optedOut()) appendScript(`${base}/recorder.js`, websiteId);
+        if (!isUsageOptedOut()) loadRecorder();
     });
 };
 
@@ -143,6 +177,10 @@ const trackerConfig = (): { host: string; websiteId: string } | null => {
 };
 
 const ensureInjected = (): boolean => {
+    // Umami skips installing its history hooks if it initializes while opted out.
+    // Defer the script entirely so enabling usage later performs a normal first initialization.
+    if (isUsageOptedOut()) return false;
+
     if (injected) return true;
     const c = trackerConfig();
 
@@ -158,7 +196,7 @@ const ensureInjected = (): boolean => {
  * sends nothing of its own.
  */
 export const loadTracker = (): void => {
-    ensureInjected();
+    if (ensureInjected() && injected) loadRecorder();
 };
 
 const send = (event: string, payload: EventPayload): void => {
@@ -171,27 +209,33 @@ const send = (event: string, payload: EventPayload): void => {
  * wrapper is a no-op until then.
  */
 export const track = (event: string, data?: EventPayload): void => {
-    if (ensureInjected()) send(event, { ...data, isGuest: readGuestFlag() });
+    // Read on every call, so the Settings switch takes effect at once and the visitor's choice needs no redeploy.
+    if (ensureInjected() && !isUsageOptedOut()) send(event, { ...data, isGuest: readGuestFlag() });
 };
 
 // fallow-ignore-next-line unused-export
 export const identify = (id: string): void => {
-    if (!ensureInjected()) return;
+    if (!ensureInjected() || isUsageOptedOut()) return;
     window.umami?.identify(id);
 };
 
+/** Whether the tracker is set up for this build and page, so the visitor has something to consent to. */
+export const isAnalyticsConfigured = (): boolean => trackerConfig() !== null;
+
 /**
- * Start a session-replay session. Requires the opt-in consent in
- * #73. Sample rate is server-side, not here.
+ * Start a session-replay session. Callers pass the visitor's opt-in first (`setReplayConsent`);
+ * a page load resumes replay itself for a visitor who agreed earlier. Sample rate is server-side, not here.
  */
-// fallow-ignore-next-line unused-export
 export const startReplay = (): void => {
-    if (!ensureInjected()) return;
-    window.umami?.startSessionReplay?.();
+    if (!hasReplayConsent() || !ensureInjected()) return;
+
+    // A visitor who loaded the page opted out never got the recorder: load it now, it starts replay on load.
+    if (injected && !recorderRequested) loadRecorder();
+    else if (recorderLoaded) window.umami?.startSessionReplay?.();
 };
 
 // fallow-ignore-next-line unused-export
 export const stopReplay = (): void => {
-    if (!ensureInjected()) return;
+    // Stopping must still work after opt-out; never initialize a tracker just to stop it.
     window.umami?.stopSessionReplay?.();
 };

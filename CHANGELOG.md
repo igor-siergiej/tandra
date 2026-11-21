@@ -1,3 +1,17 @@
+# [2.11.0](https://github.com/igor-siergiej/tandra/compare/v2.10.0...v2.11.0) (2026-11-21)
+
+
+### Features
+
+* **web:** Settings analytics controls and first-run recordings prompt ([#324](https://github.com/igor-siergiej/tandra/issues/324)) ([b801e0d](https://github.com/igor-siergiej/tandra/commit/b801e0d573b53dcae4f930165a94c35102351dc6))
+
+# [2.10.0](https://github.com/igor-siergiej/tandra/compare/v2.9.0...v2.10.0) (2026-11-20)
+
+
+### Features
+
+* **api:** call Gemini directly with native structured output ([#322](https://github.com/igor-siergiej/tandra/issues/322)) ([9a0cc8a](https://github.com/igor-siergiej/tandra/commit/9a0cc8a1508de4e0f322e7198fd730ba9df32f57)), closes [#76](https://github.com/igor-siergiej/tandra/issues/76)
+
 # [2.9.0](https://github.com/igor-siergiej/tandra/compare/v2.8.0...v2.9.0) (2026-11-19)
 
 
