@@ -56,7 +56,7 @@ test.describe('Restoring usage statistics', () => {
         const before = hits.length;
         await usage.click();
         await expect(usage).not.toBeChecked();
-        await expect(page.getByRole('alert')).toContainText('Usage statistics stays off');
+        await expect(page.getByRole('alert').filter({ hasText: 'Usage statistics stays off' })).toBeVisible();
         expect(await page.evaluate(() => localStorage.getItem('umami.disabled'))).toBe('true');
         await page.evaluate(() => window.history.pushState({}, '', '/calendar'));
         await page.waitForTimeout(400);
