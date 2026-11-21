@@ -47,7 +47,6 @@ export class ListRealtimeHub {
      * Close every connection a user has on a list, e.g. after they were removed from it.
      * Called from the route layer through the DI-resolved hub, which fallow cannot trace.
      */
-    // fallow-ignore-next-line unused-class-member
     kick(listTitle: string, userId: string): void {
         const room = this.rooms.get(listTitle);
 

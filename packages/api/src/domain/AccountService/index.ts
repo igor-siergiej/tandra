@@ -26,7 +26,7 @@ export interface CredentialsEraser {
     eraseCredentials(userId: string): Promise<void>;
 }
 
-export interface AccountDependencies {
+interface AccountDependencies {
     lists: Pick<ListRepository, 'deleteOwnedBy' | 'removeMemberEverywhere'>;
     recipes: Pick<RecipeRepository, 'findOwnedBy' | 'findByImageKeys' | 'deleteOwnedBy' | 'removeMemberEverywhere'>;
     todos: Pick<TodoRepository, 'deleteOwnedBy' | 'removeMemberEverywhere'>;

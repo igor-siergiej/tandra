@@ -2,7 +2,7 @@ import { Client } from 'minio';
 
 import type { ObjectEraser } from '../../domain/AccountService';
 
-export interface BucketEraserSettings {
+interface BucketEraserSettings {
     /** `host` or `host:port`, as in BUCKET_ENDPOINT. */
     endpoint: string;
     accessKey: string;

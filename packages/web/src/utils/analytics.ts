@@ -234,7 +234,6 @@ export const startReplay = (): void => {
     else if (recorderLoaded) window.umami?.startSessionReplay?.();
 };
 
-// fallow-ignore-next-line unused-export
 export const stopReplay = (): void => {
     // Stopping must still work after opt-out; never initialize a tracker just to stop it.
     window.umami?.stopSessionReplay?.();
