@@ -71,6 +71,7 @@ const setup = (): Fixture => {
             removeUser: fail,
         } as never,
         { generate: () => 'generated-119' },
+        { listKeys: async (): Promise<string[]> => [], removeKeys: async () => {} },
         logger as unknown as Logger,
         undefined,
         undefined,
