@@ -35,7 +35,7 @@ describe('analytics choices when browser storage fails', () => {
             key: 'umami.disabled',
             initial: 'true',
             value: false,
-            expected: false,
+            expected: true,
             choice: 'usage',
         },
         {
@@ -63,7 +63,7 @@ describe('analytics choices when browser storage fails', () => {
             choice: 'prompt',
         },
     ])(
-        'keeps $name effective for this visit, including subsequent initialization',
+        'keeps $name consistent with the SDK when saving fails, including subsequent initialization',
         async ({ key, initial, value, expected, choice }) => {
             if (initial !== null) localStorage.setItem(key, initial);
             const consent = await import('./analyticsConsent');
@@ -110,7 +110,7 @@ describe('analytics choices when browser storage fails', () => {
             failure.mockRestore();
             choose();
             expect(localStorage.getItem(key)).toBe(choice === 'usage' ? (value ? 'true' : null) : String(value));
-            expect(read()).toBe(expected);
+            expect(read()).toBe(choice === 'usage' ? value : expected);
         }
     );
 

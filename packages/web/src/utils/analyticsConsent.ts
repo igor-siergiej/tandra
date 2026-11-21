@@ -6,7 +6,8 @@
  * - `tandra.replayConsent`: "true" once the visitor agreed to session recordings, "false" once they withdrew.
  * - `tandra.analyticsPromptSeen`: "true" once the first-run prompt was answered or dismissed.
  *
- * Reads stay live unless a write failed: that choice overrides stale storage for this visit.
+ * Reads stay live unless a write failed. Failed opt-outs apply for this visit; failed opt-ins stay off
+ * until the SDK's persisted opt-out can be cleared.
  */
 
 const USAGE_OPT_OUT_KEY = 'umami.disabled';
@@ -43,7 +44,8 @@ const write = (key: string, value: string | null): void => {
         else localStorage.setItem(key, value);
         unsavedChoices.delete(key);
     } catch {
-        unsavedChoices.set(key, value);
+        // Umami reads storage directly. Never report enabled while its persisted guard may still be set.
+        unsavedChoices.set(key, key === USAGE_OPT_OUT_KEY && value === null ? 'true' : value);
     }
 
     for (const listener of listeners) listener();

@@ -9,8 +9,8 @@ export const AnalyticsStorageWarning = () => {
 
     return (
         <p role="alert" className="text-xs text-muted-foreground">
-            We could not save your privacy choices in this browser. Unsaved choices apply only for this visit. Check
-            Settings again after refreshing.
+            We could not save your privacy choices in this browser. Usage statistics stays off if it cannot be enabled.
+            Other unsaved choices apply only for this visit. Check Settings again after refreshing.
         </p>
     );
 };

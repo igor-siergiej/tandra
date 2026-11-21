@@ -134,13 +134,17 @@ recordings prompt, then change either choice in Settings.
 | `tandra.replayConsent` | `true` permits session recordings; `false` withdraws consent | Until cleared by the user |
 | `tandra.analyticsPromptSeen` | `true` remembers an answered or dismissed first-run prompt | Until cleared by the user |
 
-If a storage write fails, the choice still applies for the current visit, including after
-remounting the controls. Settings and the dismissed prompt show a warning that it could
-not be saved and must be checked after refreshing. Failed opt-outs also block the SDK's
-automatic page-view and heatmap requests. When storage cannot be read, tracking stays off.
-Enabling usage after an opted-out launch loads both the tracker and heatmap recorder;
-recordings still require their separate opt-in. Replay sampling and masking remain
-server-side Umami settings.
+If a storage write fails, opt-outs and replay choices still apply for the current visit,
+including after remounting the controls. A failed usage opt-in stays OFF until the stored
+`umami.disabled` flag can be cleared: Umami reads that flag directly, so a visit-only ON
+override would not restore tracking. Retry the switch after browser storage recovers.
+Settings and the dismissed prompt warn when a choice could not be saved and must be
+checked after refreshing. Failed opt-outs also block automatic page-view and heatmap
+requests. When storage cannot be read, tracking stays off.
+Enabling usage after an opted-out launch loads both the tracker and heatmap recorder.
+If opt-out happened during the tracker download, the next opt-in retries initialization
+so page views and navigation tracking resume. Recordings still require their separate
+opt-in. Replay sampling and masking remain server-side Umami settings.
 
 The public notice's storage table lives in `tandra-site/src/pages/privacy.astro`, outside
 this worktree. `e2e/tests/analytics-privacy-notice.spec.ts` checks its published rows.

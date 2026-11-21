@@ -36,7 +36,7 @@ describe('privacy choices that cannot be saved', () => {
 
     it.each([
         { name: 'usage opt-out', label: 'Usage statistics', key: 'umami.disabled', initial: null, checked: false },
-        { name: 'usage opt-in', label: 'Usage statistics', key: 'umami.disabled', initial: 'true', checked: true },
+        { name: 'usage opt-in', label: 'Usage statistics', key: 'umami.disabled', initial: 'true', checked: false },
         {
             name: 'replay opt-in',
             label: 'Help improve Tandra with session recordings',
@@ -66,7 +66,7 @@ describe('privacy choices that cannot be saved', () => {
             checked: null,
         },
     ])(
-        'warns that $name only lasts for this visit and retains it on remount',
+        'warns when saving $name fails and retains the effective choice on remount',
         async ({ label, key, initial, checked }) => {
             if (initial !== null) localStorage.setItem(key, initial);
             const user = userEvent.setup();
@@ -84,6 +84,12 @@ describe('privacy choices that cannot be saved', () => {
             );
 
             expect(screen.getByRole('alert')).toHaveTextContent(/could not save.*only.*visit/i);
+
+            if (key === 'umami.disabled' && initial === 'true') {
+                expect(screen.getByLabelText(label)).toHaveAttribute('aria-checked', 'false');
+                expect(screen.getByRole('alert')).toHaveTextContent(/usage statistics stays off/i);
+            }
+
             first.unmount();
             render(component);
             expect(screen.getByRole('alert')).toHaveTextContent(/could not save.*only.*visit/i);

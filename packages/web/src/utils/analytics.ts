@@ -65,14 +65,14 @@ const flushPending = (): void => {
     for (const [event, data] of queued) window.umami?.track(event, data);
 };
 
-const appendScript = (src: string, websiteId: string, onLoad?: () => void): void => {
+const appendScript = (src: string, websiteId: string, onLoad?: (script: HTMLScriptElement) => void): void => {
     const script = document.createElement('script');
     script.async = true;
     script.defer = true;
     script.dataset.websiteId = websiteId;
     script.src = src;
 
-    if (onLoad) script.addEventListener('load', onLoad);
+    if (onLoad) script.addEventListener('load', () => onLoad(script));
     document.head.appendChild(script);
 };
 
@@ -130,12 +130,25 @@ const injectScript = (host: string, websiteId: string): void => {
 
     injectStarted = true;
     const base = host.replace(/\/$/, '');
-    redactAnalyticsRequests(base);
-    recorderSource = { src: `${base}/recorder.js`, websiteId };
+
+    if (!recorderSource) {
+        redactAnalyticsRequests(base);
+        recorderSource = { src: `${base}/recorder.js`, websiteId };
+    }
+
     // Never pre-define window.umami: the tracker skips installing its API when
     // the global already exists, which would silently drop every event.
-    appendScript(`${base}/p.js`, websiteId, () => {
-        injected = true;
+    appendScript(`${base}/p.js`, websiteId, (script) => {
+        // Loading while opted out exposes the API but skips Umami's automatic tracking hooks.
+        // Leave initialization retryable, rather than mistaking a downloaded script for a working tracker.
+        injected = !isUsageOptedOut();
+        injectStarted = false;
+
+        if (!injected) {
+            script.remove();
+            delete window.umami;
+        }
+
         flushPending();
 
         if (!isUsageOptedOut()) loadRecorder();
