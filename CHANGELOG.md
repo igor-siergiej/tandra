@@ -1,3 +1,10 @@
+# [2.11.0](https://github.com/igor-siergiej/tandra/compare/v2.10.0...v2.11.0) (2026-11-21)
+
+
+### Features
+
+* **web:** Settings analytics controls and first-run recordings prompt ([#324](https://github.com/igor-siergiej/tandra/issues/324)) ([b801e0d](https://github.com/igor-siergiej/tandra/commit/b801e0d573b53dcae4f930165a94c35102351dc6))
+
 # [2.10.0](https://github.com/igor-siergiej/tandra/compare/v2.9.0...v2.10.0) (2026-11-20)
 
 

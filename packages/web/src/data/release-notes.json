@@ -1,5 +1,35 @@
 [
   {
+    "version": "2.11.0",
+    "date": "2026-11-21",
+    "notes": [
+      {
+        "type": "feature",
+        "text": "Settings now lets you switch usage statistics off and choose whether to share session recordings, and you are asked once."
+      },
+      {
+        "type": "feature",
+        "text": "Turning on session recordings in Settings now takes effect straight away, even if usage statistics were off when the page opened."
+      },
+      {
+        "type": "feature",
+        "text": "Switching usage statistics off in Settings now also stops a session recording that is already running."
+      },
+      {
+        "type": "feature",
+        "text": "Privacy choices now stay effective if this browser cannot save them, with a clear warning, and enabling usage statistics restores tracking without a refresh."
+      },
+      {
+        "type": "feature",
+        "text": "Privacy switches now show when usage statistics could not be enabled and reliably resume tracking after a successful opt-in."
+      },
+      {
+        "type": "feature",
+        "text": "Privacy choices in Settings now report clearly when they cannot be saved."
+      }
+    ]
+  },
+  {
     "version": "2.10.0",
     "date": "2026-11-20",
     "notes": [
