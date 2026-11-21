@@ -171,7 +171,11 @@ describe.skipIf(!mongoUp)('Mongo membership deletion versus stale replacement', 
 
     it('keeps intentional owner sharing updates, including a previously unshared todo', async () => {
         const repository = new MongoTodoRepository(connection);
-        const service = new TodoService(repository, { generate: () => 'unused' });
+
+        const service = new TodoService(repository, { generate: () => 'unused' }, undefined, {
+            listFriends: async () => [remaining],
+        } as never);
+
         await repository.insert({ id: 'sharing', ownerId: owner.id, title: 'Share me', done: false, dateAdded });
 
         expect((await service.updateTodo('sharing', owner.id, { users: [remaining] })).users).toEqual([remaining]);

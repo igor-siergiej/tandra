@@ -12,6 +12,7 @@ import {
     metricsRegister,
     startDefaultMetrics,
 } from './infrastructure/metrics';
+import { drainServer } from './infrastructure/shutdown';
 import { csrfForFormPosts } from './middleware/csrf';
 import { requestBarrier } from './middleware/requestBarrier';
 import { backfillWikibooksSlugs } from './migrations/wikibooksSlugs';
@@ -108,11 +109,26 @@ export const onStartup = async () => {
 
         app.route('/', createRoutes());
 
-        Bun.serve({
+        const server = Bun.serve({
             port,
             fetch: app.fetch,
             websocket,
         });
+
+        const barrier = dependencyContainer.resolve(DependencyToken.RequestBarrier);
+        let shuttingDown: Promise<void> | undefined;
+
+        const shutdown = () => {
+            shuttingDown ??= drainServer(server, barrier)
+                .then(() => process.exit(0))
+                .catch((error: unknown) => {
+                    logger.error('Encountered an error draining API requests on shutdown', error);
+                    process.exit(1);
+                });
+        };
+
+        process.on('SIGTERM', shutdown);
+        process.on('SIGINT', shutdown);
 
         logger.info(`Tandra API server running on port ${port}`);
 

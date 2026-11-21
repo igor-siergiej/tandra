@@ -1,5 +1,7 @@
 import { type Collection, MongoServerError, ObjectId } from 'mongodb';
 
+import { createRequestToken, isDeadRequestToken } from './processOwnership';
+
 export interface RequestBarrierState {
     _id: ObjectId;
     writer: string | null;
@@ -14,11 +16,15 @@ const unavailable = () => Object.assign(new Error('Account cleanup is busy; plea
 /**
  * Cross-replica read/write barrier. Requests normally share admission; destructive deletes close admission,
  * drain existing requests, then run alone. Authentication must happen INSIDE admission, not before it.
- * No expiring leases: a paused writer must never outlive its protection. A crashed holder fails closed;
- * recovery requires stopping all API replicas before clearing the requestBarrier collection.
+ * No expiring leases: a paused writer must never outlive its protection. Only provably dead processes in
+ * this Linux boot/PID namespace can be reclaimed; unknown remote and legacy holders remain failclosed.
  */
 export class MongoRequestBarrier {
     private initialized?: Promise<unknown>;
+    private accepting = true;
+    private active = 0;
+    private draining?: Promise<void>;
+    private resolveDrained?: () => void;
 
     constructor(private readonly collection: Collection<RequestBarrierState>) {}
 
@@ -33,44 +39,104 @@ export class MongoRequestBarrier {
             }));
     }
 
+    drain(): Promise<void> {
+        this.accepting = false;
+
+        return (this.draining ??=
+            this.active === 0
+                ? Promise.resolve()
+                : new Promise<void>((resolve) => {
+                      this.resolveDrained = resolve;
+                  }));
+    }
+
+    private async reclaimDeadHolders(): Promise<void> {
+        const state = await this.collection.findOne({ _id: KEY });
+
+        if (!state) return;
+
+        if (state.writer && (await isDeadRequestToken(state.writer))) {
+            // Compare the exact token: a replacement writer must never lose its fence.
+            await this.collection.updateOne({ _id: KEY, writer: state.writer }, { $set: { writer: null } });
+        }
+
+        const deadReaders: string[] = [];
+
+        for (const token of state.readers) {
+            if (await isDeadRequestToken(token)) deadReaders.push(token);
+        }
+
+        if (deadReaders.length) {
+            await this.collection.updateOne({ _id: KEY }, { $pull: { readers: { $in: deadReaders } } });
+        }
+    }
+
     async acquire(exclusive: boolean): Promise<() => Promise<void>> {
-        await this.initialize();
-        const token = crypto.randomUUID();
+        if (!this.accepting) throw unavailable();
+        this.active += 1;
+        let token: string | undefined;
+        let held = false;
+        let released: Promise<void> | undefined;
         const deadline = Date.now() + ADMISSION_TIMEOUT_MS;
 
+        const release = (): Promise<void> =>
+            (released ??= (async () => {
+                try {
+                    if (!held || !token) return;
+
+                    if (exclusive) {
+                        await this.collection.updateOne({ _id: KEY, writer: token }, { $set: { writer: null } });
+                    } else {
+                        await this.collection.updateOne({ _id: KEY }, { $pull: { readers: token } });
+                    }
+                } finally {
+                    this.active -= 1;
+
+                    if (this.active === 0) this.resolveDrained?.();
+                }
+            })());
+
         const pause = async () => {
-            if (Date.now() >= deadline) throw unavailable();
+            if (!this.accepting || Date.now() >= deadline) throw unavailable();
             await Bun.sleep(POLL_MS);
         };
 
-        while (true) {
-            const result = await this.collection.updateOne(
-                { _id: KEY, writer: null },
-                exclusive ? { $set: { writer: token } } : { $addToSet: { readers: token } }
-            );
+        try {
+            await this.initialize();
+            token = await createRequestToken();
 
-            if (result.matchedCount === 1) break;
-            await pause();
-        }
+            while (true) {
+                if (!this.accepting) throw unavailable();
 
-        const release = async () => {
+                const result = await this.collection.updateOne(
+                    { _id: KEY, writer: null },
+                    exclusive ? { $set: { writer: token } } : { $addToSet: { readers: token } }
+                );
+
+                if (result.matchedCount === 1) {
+                    held = true;
+                    break;
+                }
+
+                await this.reclaimDeadHolders();
+                await pause();
+            }
+
             if (exclusive) {
-                await this.collection.updateOne({ _id: KEY, writer: token }, { $set: { writer: null } });
-            } else {
-                await this.collection.updateOne({ _id: KEY }, { $pull: { readers: token } });
+                // Admission is already closed globally; reclaim only dead readers while draining live ones.
+                while (!(await this.collection.findOne({ _id: KEY, readers: { $size: 0 } }))) {
+                    await this.reclaimDeadHolders();
+                    await pause();
+                }
             }
-        };
 
-        if (exclusive) {
-            try {
-                // writer is already set, so no newly arriving request can join the readers we are draining.
-                while (!(await this.collection.findOne({ _id: KEY, readers: { $size: 0 } }))) await pause();
-            } catch (error) {
-                await release();
-                throw error;
-            }
+            // Shutdown may have started while a Mongo operation was in flight.
+            if (!this.accepting) throw unavailable();
+
+            return release;
+        } catch (error) {
+            await release();
+            throw error;
         }
-
-        return release;
     }
 }

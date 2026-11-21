@@ -571,20 +571,14 @@ export class ListService {
                 throw Object.assign(new Error('Only the list owner can manage users'), { status: 403 });
             }
 
-            // Validate friendship by id
-            if (!this.friendService || !(await this.friendService.areFriends(requestingUserId, friendId))) {
-                throw Object.assign(new Error('Can only share with friends'), { status: 403 });
-            }
+            const [newMember] = await resolveFriendMembers(this.friendService, requestingUserId, [friendId]);
 
             // Check if user is already in the list
             if (current.users.some((u) => u.id === friendId)) {
                 throw Object.assign(new Error('User is already in this list'), { status: 400 });
             }
 
-            const [newMember] = (await this.friendService.listFriends(requestingUserId)).filter(
-                (f) => f.id === friendId
-            );
-
+            if (!newMember) throw Object.assign(new Error('Can only share with friends'), { status: 403 });
             current.users.push(newMember);
 
             return newMember;

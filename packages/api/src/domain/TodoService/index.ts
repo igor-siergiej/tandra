@@ -124,7 +124,20 @@ export class TodoService {
         const { clear, ...input } = normalizeDays(rawInput);
 
         // Membership (sharing) is owner-only; a member editing content must not re-scope who it's shared with.
-        if (existing.ownerId !== actorId) delete input.users;
+        if (existing.ownerId !== actorId) {
+            delete input.users;
+        } else if (input.users !== undefined) {
+            if (!this.friendService && input.users.length > 0) {
+                throw Object.assign(new Error('Can only share with friends'), { status: 403 });
+            }
+
+            input.users = await resolveFriendMembers(
+                this.friendService,
+                existing.ownerId,
+                input.users.map((user) => user.id)
+            );
+        }
+
         const merged: Todo = { ...existing, ...input };
 
         for (const field of clear ?? []) delete merged[field];

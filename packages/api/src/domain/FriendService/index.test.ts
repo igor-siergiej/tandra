@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'bun:test';
 
-import type { Friendship, PairingCode } from '@tandra/types';
+import type { Friendship, PairingCode, User } from '@tandra/types';
 
 import { FriendService } from './index';
 
 class MockRepo {
     codes = new Map<string, PairingCode>();
     friendships: Friendship[] = [];
+    users: User[] = [
+        { id: 'u1', username: 'alice' },
+        { id: 'u2', username: 'bob' },
+    ];
     async insertCode(c: PairingCode) {
         this.codes.set(c.code, c);
     }
@@ -21,8 +25,10 @@ class MockRepo {
     async insertFriendship(f: Friendship) {
         this.friendships.push(f);
     }
-    async findByUserId(userId: string) {
-        return this.friendships.filter((f) => f.userIds.includes(userId));
+    async findFriends(userId: string) {
+        const ids = this.friendships.filter((f) => f.userIds.includes(userId)).flatMap((f) => f.userIds);
+
+        return this.users.filter((user) => user.id !== userId && ids.includes(user.id));
     }
     async findPair(a: string, b: string) {
         const key = [a, b].sort();
@@ -146,6 +152,15 @@ describe('FriendService.listFriends / unfriend / areFriends / friendIdsOf', () =
         seedFriendship(repo);
         expect(await svcWith(repo).listFriends('u1')).toEqual([{ id: 'u2', username: 'bob' }]);
         expect(await svcWith(repo).listFriends('u2')).toEqual([{ id: 'u1', username: 'alice' }]);
+    });
+
+    it('does not use cached usernames or return an account that no longer exists', async () => {
+        const repo = new MockRepo();
+        seedFriendship(repo);
+        repo.users = [{ id: 'u2', username: 'canonical-name' }];
+        expect(await svcWith(repo).listFriends('u1')).toEqual([{ id: 'u2', username: 'canonical-name' }]);
+        repo.users = [];
+        expect(await svcWith(repo).listFriends('u1')).toEqual([]);
     });
 
     it('areFriends / friendIdsOf reflect the graph', async () => {

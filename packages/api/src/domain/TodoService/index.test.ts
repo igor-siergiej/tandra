@@ -98,6 +98,27 @@ describe('TodoService', () => {
         expect(updated.title).toBe('A2');
     });
 
+    it('validates replacement members against current friends and uses their canonical usernames', async () => {
+        friends.add('u1', 'u2');
+        const todo = await svc.createTodo('u1', { title: 'A', userIds: [] });
+        const updated = await svc.updateTodo(todo.id, 'u1', { users: [{ id: 'u2', username: 'spoofed-name' }] });
+        expect(updated.users).toEqual([{ id: 'u2', username: 'user-u2' }]);
+    });
+
+    it('does not let a stale owner update restore an erased or unfriended member', async () => {
+        friends.add('u1', 'u2');
+        const todo = await svc.createTodo('u1', { title: 'A' });
+        friends.edges.clear();
+        await repo.update(todo.id, { ...todo, users: [] });
+        await expect(
+            svc.updateTodo(todo.id, 'u1', {
+                title: 'Stale edit',
+                users: [{ id: 'u2', username: 'user-u2' }],
+            })
+        ).rejects.toMatchObject({ status: 403 });
+        expect(await repo.getById(todo.id)).toMatchObject({ title: 'A', users: [] });
+    });
+
     it('removes the fields named in clear and keeps the rest', async () => {
         const t = await svc.createTodo('u1', { title: 'A', dueDate: '2026-06-29', time: '09:30', labelId: 'L1' });
         const updated = await svc.updateTodo(t.id, 'u1', { title: 'B', clear: ['time', 'labelId'] });

@@ -291,17 +291,14 @@ export class RecipeService {
             throw Object.assign(new Error('Only recipe owner can add users'), { status: 403 });
         }
 
-        // Validate friendship by id
-        if (!this.friendService || !(await this.friendService.areFriends(requestingUserId, friendId))) {
-            throw Object.assign(new Error('Can only share with friends'), { status: 403 });
-        }
+        const [friend] = await resolveFriendMembers(this.friendService, requestingUserId, [friendId]);
 
         // Check if user is already in the recipe
         if (recipe.users.some((u) => u.id === friendId)) {
             throw Object.assign(new Error('User is already in this recipe'), { status: 400 });
         }
 
-        const [friend] = (await this.friendService.listFriends(requestingUserId)).filter((f) => f.id === friendId);
+        if (!friend) throw Object.assign(new Error('Can only share with friends'), { status: 403 });
 
         const updated = await this.recipeRepository.addUser(recipeId, friend);
         this.logger?.info('User added to recipe', {

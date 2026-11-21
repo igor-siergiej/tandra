@@ -44,10 +44,23 @@ of restoring a removed member's id or username. Lists already use revision check
 update surviving documents; the item-category cache is global, not tied to a user.
 
 Admission waits at most 60 seconds, then fails without running the handler. There is **no expiring lock lease**: an
-expired lease could let a paused upload resume after its owner's deletion. The availability tradeoff is deliberate:
-if an API process dies while holding admission, the barrier fails closed. Recovery: stop **all API replicas**, clear
-the `requestBarrier` collection in that deployment's Mongo database, then restart the replicas. Never clear the barrier
-while any replica can still finish an old request. `/api/health`, `/api/features` and `/api/metrics` remain available.
+expired lease could let a paused upload resume after its owner's deletion.
+
+Holder tokens record the owning process (Linux boot id, PID namespace, PID and process start time). A waiter reclaims a
+token only when it can prove the holder is dead: same boot and PID namespace, and the PID is gone, reused (different
+start time) or a zombie. A stopped (SIGSTOP) or paused process is alive, so its fence is never taken. Tokens from other
+hosts or namespaces, legacy tokens and anything unidentifiable stay fail-closed. On SIGTERM/SIGINT the API closes
+admission (new requests get 503), stops listening, waits for admitted requests to release their tokens, closes the
+remaining sockets and exits, so routine container replacement leaves nothing behind. After a hard kill on another host
+or in a different namespace the barrier still fails closed. Recovery: stop **all API replicas**, clear the
+`requestBarrier` collection in that deployment's Mongo database, then restart them. Never clear the barrier while any
+replica can still finish an old request. `/api/health`, `/api/features` and `/api/metrics` remain available.
+
+### Sharing never trusts the client's member list
+
+Every path that sets who something is shared with (create, replace, add one member) resolves the requested ids against
+the owner's current friendships and the canonical `user` records, and stores the canonical username. A deleted or
+unfriended id, or a stale cached member object from a queued/offline edit, is a 403 rather than being written back.
 
 ### Images removed before ownership is discarded
 

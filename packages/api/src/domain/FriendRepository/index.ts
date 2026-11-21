@@ -1,4 +1,4 @@
-import type { Friendship, PairingCode } from '@tandra/types';
+import type { Friendship, PairingCode, User } from '@tandra/types';
 
 export interface FriendRepository {
     ensureIndexes(): Promise<void>;
@@ -9,8 +9,8 @@ export interface FriendRepository {
 
     // friendships
     insertFriendship(friendship: Friendship): Promise<void>;
-    /** All friendships that include userId. */
-    findByUserId(userId: string): Promise<Friendship[]>;
+    /** Current friends resolved from canonical account records, excluding deleted accounts. */
+    findFriends(userId: string): Promise<User[]>;
     /** The single doc for a canonical pair, or null. */
     findPair(userIdA: string, userIdB: string): Promise<Friendship | null>;
     deletePair(userIdA: string, userIdB: string): Promise<void>;
