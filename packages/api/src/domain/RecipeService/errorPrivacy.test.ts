@@ -28,9 +28,12 @@ it('logs a failed recipe by id without recipe text echoed by the persistence err
         },
     };
 
+    const objectEraser = { listKeys: async (): Promise<string[]> => [], removeKeys: async () => {} };
+
     const service = new RecipeService(
         repository as unknown as RecipeRepository,
         { generate: () => 'ingredient-119' },
+        objectEraser,
         logger as unknown as Logger
     );
 

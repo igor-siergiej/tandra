@@ -16,6 +16,8 @@ const owner: User = { id: 'user-1', username: 'alice' };
 const friend: User = { id: 'user-2', username: 'bob' };
 const ingredients: Ingredient[] = [{ id: 'ing-1', name: INGREDIENT, quantity: 1, unit: 'kg' }];
 
+const objectEraser = { listKeys: async (): Promise<string[]> => [], removeKeys: async () => {} };
+
 const calls: Array<{ level: string; args: unknown[] }> = [];
 
 const logger = {
@@ -57,6 +59,9 @@ class MemoryRecipes {
     async deleteById(id: string) {
         this.store.delete(id);
     }
+    async findByImageKeys(): Promise<Recipe[]> {
+        return [];
+    }
     async addTags() {}
 }
 
@@ -75,6 +80,7 @@ describe('RecipeService logging', () => {
         service = new RecipeService(
             recipes as never,
             { generate: () => 'generated-id' },
+            objectEraser,
             logger,
             undefined,
             undefined,

@@ -20,6 +20,8 @@ const recipe: Recipe = {
     dateAdded: new Date(0),
 };
 
+const objectEraser = { listKeys: async (): Promise<string[]> => [], removeKeys: async () => {} };
+
 describe('DiscoveryPublishService logging', () => {
     it('should log no recipe title when a unique slug cannot be allocated', async () => {
         const calls: Array<unknown[]> = [];
@@ -41,6 +43,7 @@ describe('DiscoveryPublishService logging', () => {
             { getRecipe: async () => recipe },
             {} as never,
             { generate: () => 'generated-id' },
+            objectEraser,
             logger
         );
 

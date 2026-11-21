@@ -81,6 +81,8 @@ class MemoryListRepository implements ListRepository {
         return false;
     }
     async removeMemberFromAll(): Promise<void> {}
+    async deleteOwnedBy(): Promise<void> {}
+    async removeMemberEverywhere(): Promise<void> {}
 }
 
 class SequentialIds implements IdGenerator {

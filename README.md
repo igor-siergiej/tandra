@@ -323,6 +323,9 @@ does not grant access.
   named test item and check `logcli query '{container=~"app-hack-neural-circuit-s9qq5e.*"} |~ "<test item name>"'`.
   Use a time window covering the new addition; no matching lines is the expected result. Local tests do not establish
   either live retention or the post-deploy result.
+  The owner waived these three out-of-repo criteria for the card that introduced this scrub (the foundry
+  `tandra-api.json` panel edit, the live Loki retention check and the post-deploy `logcli` check) and does them
+  separately.
 
 ## Docs
 
