@@ -168,6 +168,15 @@ export const createRecipe = async (c: Context<HonoVars>): Promise<Response> => {
     }
 };
 
+/** Host only: a recipe URL path usually spells out the dish title, which must not reach the logs. */
+const hostOf = (value: string | undefined): string | undefined => {
+    try {
+        return new URL(value ?? '').hostname;
+    } catch {
+        return undefined;
+    }
+};
+
 // fallow-ignore-next-line complexity
 export const importRecipe = async (c: Context<HonoVars>): Promise<Response> => {
     const { url } = await c.req.json<{ url?: string }>();
@@ -180,7 +189,7 @@ export const importRecipe = async (c: Context<HonoVars>): Promise<Response> => {
 
         getLogger().info('API: Recipe imported from URL', {
             userId: authenticatedUser.id,
-            link: draft.link,
+            host: hostOf(draft.link),
             ingredientCount: draft.ingredients.length,
             instructionCount: draft.instructions.length,
         });
@@ -189,7 +198,7 @@ export const importRecipe = async (c: Context<HonoVars>): Promise<Response> => {
     } catch (error: unknown) {
         return failWithApiError(error, 'API: Failed to import recipe from URL', {
             userId: authenticatedUser.id,
-            url,
+            host: hostOf(url),
         });
     }
 };
@@ -210,7 +219,7 @@ export const importRecipeImage = async (c: Context<HonoVars>): Promise<Response>
 
         getLogger().info('API: Recipe import image proxied', {
             userId: authenticatedUser.id,
-            url,
+            host: hostOf(url),
             contentType,
             bytes: buffer.length,
         });
@@ -222,7 +231,7 @@ export const importRecipeImage = async (c: Context<HonoVars>): Promise<Response>
     } catch (error: unknown) {
         return failWithApiError(error, 'API: Failed to proxy recipe import image', {
             userId: authenticatedUser.id,
-            url,
+            host: hostOf(url),
         });
     }
 };
