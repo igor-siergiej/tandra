@@ -42,6 +42,10 @@ const setup = (initial: Recipe[] = [personal()], seedLibrary: DiscoveryRecipe[] 
     const recipeRepo = {
         getById: async (id: string) => recipes.get(id) ?? null,
         getAll: async () => [...recipes.values()],
+        findByImageKeys: async (keys: string[]) =>
+            [...recipes.values()].filter(
+                (recipe) => keys.includes(recipe.aiImageKey ?? '') || keys.includes(recipe.coverImageKey ?? '')
+            ),
         update: async (id: string, recipe: Recipe) => {
             recipes.set(id, recipe);
 

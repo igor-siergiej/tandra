@@ -28,7 +28,7 @@ export interface CredentialsEraser {
 
 export interface AccountDependencies {
     lists: Pick<ListRepository, 'deleteOwnedBy' | 'removeMemberEverywhere'>;
-    recipes: Pick<RecipeRepository, 'findOwnedBy' | 'getAll' | 'deleteOwnedBy' | 'removeMemberEverywhere'>;
+    recipes: Pick<RecipeRepository, 'findOwnedBy' | 'findByImageKeys' | 'deleteOwnedBy' | 'removeMemberEverywhere'>;
     todos: Pick<TodoRepository, 'deleteOwnedBy' | 'removeMemberEverywhere'>;
     mealPlans: Pick<MealPlanRepository, 'deleteOwnedBy' | 'removeMemberEverywhere'>;
     labels: Pick<LabelRepository, 'deleteOwnedBy'>;
@@ -152,12 +152,12 @@ export class AccountService {
         );
 
         // Old recipe copies could share an AI key. Their content stays theirs until the final reference goes.
-        for (const other of await recipes.getAll()) {
+        for (const other of await recipes.findByImageKeys([...keys].filter((key) => key.startsWith(AI_IMAGE_PREFIX)))) {
             if (ownedIds.has(other.id)) continue;
 
-            if (other.aiImageKey?.startsWith(AI_IMAGE_PREFIX)) keys.delete(other.aiImageKey);
+            if (other.aiImageKey) keys.delete(other.aiImageKey);
 
-            if (other.coverImageKey?.startsWith(AI_IMAGE_PREFIX)) keys.delete(other.coverImageKey);
+            if (other.coverImageKey) keys.delete(other.coverImageKey);
         }
 
         await images.removeKeys([...new Set([...keys, ...(await images.listKeys(uploadPrefix))])]);

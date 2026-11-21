@@ -97,7 +97,10 @@ const setup = (removal: Removal) => {
 
     const recipeRepo = {
         getById: async (id: string) => recipes.get(id) ?? null,
-        getAll: async () => [...recipes.values()],
+        findByImageKeys: async (keys: string[]) =>
+            [...recipes.values()].filter(
+                (recipe) => keys.includes(recipe.aiImageKey ?? '') || keys.includes(recipe.coverImageKey ?? '')
+            ),
         deleteById: async (id: string) => {
             recipes.delete(id);
         },

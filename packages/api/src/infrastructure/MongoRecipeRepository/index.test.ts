@@ -70,6 +70,27 @@ describe('MongoRecipeRepository', () => {
         });
     });
 
+    describe('findByImageKeys', () => {
+        it('looks recipes up by their AI or cover image key', async () => {
+            const recipes = [makeRecipe('r1')];
+            collection.find.mockReturnValue({ toArray: vi.fn().mockResolvedValue(recipes) });
+            const result = await repo.findByImageKeys(['recipe-image/a.webp']);
+            expect(result).toEqual(recipes);
+            expect(collection.find).toHaveBeenCalledWith({
+                $or: [
+                    { aiImageKey: { $in: ['recipe-image/a.webp'] } },
+                    { coverImageKey: { $in: ['recipe-image/a.webp'] } },
+                ],
+            });
+        });
+
+        it('does not query at all when there are no keys', async () => {
+            collection.find.mockClear();
+            expect(await repo.findByImageKeys([])).toEqual([]);
+            expect(collection.find).not.toHaveBeenCalled();
+        });
+    });
+
     describe('findByUserId', () => {
         it('returns recipes for user', async () => {
             const recipes = [makeRecipe('r1'), makeRecipe('r2')];

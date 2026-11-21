@@ -32,6 +32,14 @@ export class MongoRecipeRepository implements RecipeRepository {
         return this.collection().find({}).toArray();
     }
 
+    async findByImageKeys(keys: string[]): Promise<Recipe[]> {
+        if (keys.length === 0) return [];
+
+        return this.collection()
+            .find({ $or: [{ aiImageKey: { $in: keys } }, { coverImageKey: { $in: keys } }] })
+            .toArray();
+    }
+
     async findByUserId(userId: string): Promise<Recipe[]> {
         return this.collection().find({ 'users.id': userId }).toArray();
     }

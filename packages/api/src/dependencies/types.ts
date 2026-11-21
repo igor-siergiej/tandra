@@ -58,7 +58,6 @@ import type { FalItemTextParser } from '../infrastructure/FalItemTextParser';
 import type { FalLlmClient } from '../infrastructure/FalLlmClient';
 import type { FalRecipeTagger } from '../infrastructure/FalRecipeTagger';
 import type { ItemCategoryDoc } from '../infrastructure/MongoItemCategoryRepository';
-import type { MongoRequestBarrier } from '../infrastructure/MongoRequestBarrier';
 import type { WebPushSender } from '../infrastructure/WebPushSender';
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
@@ -136,7 +135,6 @@ export enum DependencyToken {
     ListInviteService = 'ListInviteService',
     ObjectEraser = 'ObjectEraser',
     AccountService = 'AccountService',
-    RequestBarrier = 'RequestBarrier',
 }
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
@@ -199,7 +197,6 @@ export type Dependencies = {
     [DependencyToken.ListInviteService]: ListInviteService;
     [DependencyToken.ObjectEraser]: ObjectEraser;
     [DependencyToken.AccountService]: AccountService;
-    [DependencyToken.RequestBarrier]: MongoRequestBarrier;
 };
 
 export enum CollectionNames {

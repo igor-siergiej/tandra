@@ -5,6 +5,8 @@ export interface RecipeRepository {
     getById(recipeId: string): Promise<Recipe | null>;
     getAll(): Promise<Recipe[]>;
     findByUserId(userId: string): Promise<Recipe[]>;
+    /** Recipes whose AI or cover image key is one of `keys`; the lookup is by key, never a scan of every recipe in memory. */
+    findByImageKeys(keys: string[]): Promise<Recipe[]>;
     insert(recipe: Recipe): Promise<Recipe>;
     update(recipeId: string, recipe: Recipe): Promise<Recipe>;
     deleteById(recipeId: string): Promise<void>;

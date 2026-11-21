@@ -255,7 +255,7 @@ export class RecipeService {
                 )
             );
 
-            for (const other of await this.recipeRepository.getAll()) {
+            for (const other of await this.recipeRepository.findByImageKeys([...candidates])) {
                 if (other.id === recipeId) continue;
 
                 if (other.aiImageKey) candidates.delete(other.aiImageKey);

@@ -12,9 +12,7 @@ import {
     metricsRegister,
     startDefaultMetrics,
 } from './infrastructure/metrics';
-import { drainServer } from './infrastructure/shutdown';
 import { csrfForFormPosts } from './middleware/csrf';
-import { requestBarrier } from './middleware/requestBarrier';
 import { backfillWikibooksSlugs } from './migrations/wikibooksSlugs';
 import { createRoutes } from './routes';
 
@@ -25,9 +23,6 @@ const mountBetterAuth = (app: ReturnType<typeof createApp>) => {
     // The public origin Better Auth is configured for is the app's own origin (self-hosts included), so
     // multipart uploads from it must pass the form-post origin check too.
     const publicOrigin = new URL(config.get('betterAuthUrl')).origin;
-    // Covers Better Auth as well as domain routes, before session resolution. Deletion drains in-flight
-    // uploads/generation/publication and stale sharing requests on every replica before starting its sweep.
-    app.use('/api/*', requestBarrier(dependencyContainer.resolve(DependencyToken.RequestBarrier)));
     app.use('/api/*', csrfForFormPosts([...allowedOrigins, publicOrigin]));
     app.on(['GET', 'POST'], '/api/auth/*', (c) => auth.handler(c.req.raw));
 };
@@ -109,26 +104,11 @@ export const onStartup = async () => {
 
         app.route('/', createRoutes());
 
-        const server = Bun.serve({
+        Bun.serve({
             port,
             fetch: app.fetch,
             websocket,
         });
-
-        const barrier = dependencyContainer.resolve(DependencyToken.RequestBarrier);
-        let shuttingDown: Promise<void> | undefined;
-
-        const shutdown = () => {
-            shuttingDown ??= drainServer(server, barrier)
-                .then(() => process.exit(0))
-                .catch((error: unknown) => {
-                    logger.error('Encountered an error draining API requests on shutdown', error);
-                    process.exit(1);
-                });
-        };
-
-        process.on('SIGTERM', shutdown);
-        process.on('SIGINT', shutdown);
 
         logger.info(`Tandra API server running on port ${port}`);
 

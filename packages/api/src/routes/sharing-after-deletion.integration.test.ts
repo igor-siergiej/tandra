@@ -41,7 +41,6 @@ import { MongoListRepository } from '../infrastructure/MongoListRepository';
 import { MongoMealPlanRepository } from '../infrastructure/MongoMealPlanRepository';
 import { MongoPushSubscriptionRepository } from '../infrastructure/MongoPushSubscriptionRepository';
 import { MongoRecipeRepository } from '../infrastructure/MongoRecipeRepository';
-import { MongoRequestBarrier, type RequestBarrierState } from '../infrastructure/MongoRequestBarrier';
 import { MongoTodoRepository } from '../infrastructure/MongoTodoRepository';
 import { deleteAccount } from '../interfaces/AccountHandlers';
 import { type HonoVars } from '../interfaces/handlerUtils';
@@ -50,7 +49,6 @@ import { createMealPlanEntry, updateMealPlanEntry } from '../interfaces/MealPlan
 import { addUserToRecipe, createRecipe, updateRecipe } from '../interfaces/RecipeHandlers';
 import { createTodo, updateTodo } from '../interfaces/TodoHandlers';
 import { authenticate } from '../middleware/auth';
-import { requestBarrier } from '../middleware/requestBarrier';
 import { validateJson } from '../middleware/validate';
 
 const rootEnv = join(import.meta.dir, '../../../../.env');
@@ -333,10 +331,6 @@ describe.skipIf(!mongoUp)('sharing after account deletion (HTTP)', () => {
 
         app = new Hono<HonoVars>();
         app.onError(errorHandler);
-        app.use(
-            '/api/*',
-            requestBarrier(new MongoRequestBarrier(db.collection<RequestBarrierState>('requestBarrier')))
-        );
         app.on(['GET', 'POST'], '/api/auth/*', (c) => auth.handler(c.req.raw));
         app.use('/api/*', authenticate);
         app.delete('/api/account', validateJson(deleteAccountBody), deleteAccount);

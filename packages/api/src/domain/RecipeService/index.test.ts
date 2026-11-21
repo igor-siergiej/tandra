@@ -21,6 +21,12 @@ class MockRepository {
         return [...this.store.values()];
     }
 
+    async findByImageKeys(keys: string[]): Promise<Recipe[]> {
+        return [...this.store.values()].filter(
+            (recipe) => keys.includes(recipe.aiImageKey ?? '') || keys.includes(recipe.coverImageKey ?? '')
+        );
+    }
+
     async update(id: string, recipe: Recipe): Promise<Recipe> {
         this.store.set(id, recipe);
 

@@ -34,7 +34,10 @@ const setup = (world: World = {}) => {
         lists: { deleteOwnedBy: note('lists.deleteOwnedBy'), removeMemberEverywhere: note('lists.removeMember') },
         recipes: {
             findOwnedBy: async () => world.ownedRecipes ?? [],
-            getAll: async () => [...(world.ownedRecipes ?? []), ...(world.otherRecipes ?? [])],
+            findByImageKeys: async (keys: string[]) =>
+                [...(world.ownedRecipes ?? []), ...(world.otherRecipes ?? [])].filter(
+                    (recipe) => keys.includes(recipe.aiImageKey ?? '') || keys.includes(recipe.coverImageKey ?? '')
+                ),
             deleteOwnedBy: note('recipes.deleteOwnedBy'),
             removeMemberEverywhere: note('recipes.removeMember'),
         },

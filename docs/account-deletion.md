@@ -31,30 +31,22 @@ Sign-in rows go last. If a step fails the session is still valid, so the person 
 is safe to repeat, and two requests at once leave the same end state (the second finds nothing to do). Files are removed
 before the rows that name them, so a retry can still find them. Once the session is gone a repeat gets 401.
 
-### Concurrent requests and recovery
+### Concurrent requests
 
-`MongoRequestBarrier` wraps API requests **before authentication**, including Better Auth's handler. Ordinary requests
-share admission. Every DELETE closes admission across replicas, drains active requests, then runs alone. In-flight
-uploads, AI generation, publishing, sharing and new-session creation therefore finish before erasure starts. Requests
-queued behind it resolve their sessions again and cannot write with a deleted user's cookie. Destructive deletes also
-serialize with each other, so two recipe removals cannot both abandon the same legacy shared image.
+There is no global request lock: a fence over every request would add a write per request and could fail closed for
+every user after a hard kill. Deletion relies on idempotent steps and per-document checks instead.
 
-Recipe, todo and meal-plan replacements atomically compare the membership they read. A stale owner edit gets 409 instead
-of restoring a removed member's id or username. Lists already use revision checks. Background tag/category updates only
-update surviving documents; the item-category cache is global, not tied to a user.
+- Every step is safe to repeat, and two deletions at once leave the same end state.
+- Recipe, todo and meal-plan replacements atomically compare the membership they read. A stale owner edit gets 409
+  instead of restoring a removed member's id or username. Lists already use revision checks.
+- Sharing (below) is resolved against the canonical `user` records, so a request that is still in flight cannot add a
+  deleted account to someone's list.
+- Background tag/category updates only update surviving documents; the item-category cache is global.
+- Sessions die with the final credentials step, so once it has run nothing can write as the user.
 
-Admission waits at most 60 seconds, then fails without running the handler. There is **no expiring lock lease**: an
-expired lease could let a paused upload resume after its owner's deletion.
-
-Holder tokens record the owning process (Linux boot id, PID namespace, PID and process start time). A waiter reclaims a
-token only when it can prove the holder is dead: same boot and PID namespace, and the PID is gone, reused (different
-start time) or a zombie. A stopped (SIGSTOP) or paused process is alive, so its fence is never taken. Tokens from other
-hosts or namespaces, legacy tokens and anything unidentifiable stay fail-closed. On SIGTERM/SIGINT the API closes
-admission (new requests get 503), stops listening, waits for admitted requests to release their tokens, closes the
-remaining sockets and exits, so routine container replacement leaves nothing behind. After a hard kill on another host
-or in a different namespace the barrier still fails closed. Recovery: stop **all API replicas**, clear the
-`requestBarrier` collection in that deployment's Mongo database, then restart them. Never clear the barrier while any
-replica can still finish an old request. `/api/health`, `/api/features` and `/api/metrics` remain available.
+Residual window: a request the user's device had already started when erasure began can still create a row owned by
+the deleted id (for example an upload that finishes after the sweep). Nobody can sign in as that id any more, so the row
+is unreachable, but it is not swept automatically.
 
 ### Sharing never trusts the client's member list
 
