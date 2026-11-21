@@ -1,3 +1,10 @@
+# [2.12.0](https://github.com/igor-siergiej/tandra/compare/v2.11.0...v2.12.0) (2026-11-21)
+
+
+### Features
+
+* **account:** delete my account with a full data cascade ([#323](https://github.com/igor-siergiej/tandra/issues/323)) ([7d583d0](https://github.com/igor-siergiej/tandra/commit/7d583d09d87861a2f7accc8d0f4d0fd292e60d1c))
+
 # [2.11.0](https://github.com/igor-siergiej/tandra/compare/v2.10.0...v2.11.0) (2026-11-21)
 
 

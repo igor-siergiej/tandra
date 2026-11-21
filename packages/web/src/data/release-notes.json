@@ -1,5 +1,31 @@
 [
   {
+    "version": "2.12.0",
+    "date": "2026-11-21",
+    "notes": [
+      {
+        "type": "feature",
+        "text": "You can now delete your account from Settings, which permanently removes your lists, recipes, photos and friends and takes down anything you published to Discover."
+      },
+      {
+        "type": "feature",
+        "text": "Account deletion now clearly warns that content you own is deleted for everyone it was shared with, while other people's shared content stays with them."
+      },
+      {
+        "type": "feature",
+        "text": "Deleting your account now also prevents overlapping activity from leaving data behind and removes old published recipe photos reliably."
+      },
+      {
+        "type": "feature",
+        "text": "Deleting an account can no longer be undone by a stale sharing update from a friend's device."
+      },
+      {
+        "type": "feature",
+        "text": "Deleting your account no longer risks slowing the app down for everyone else while it runs."
+      }
+    ]
+  },
+  {
     "version": "2.11.0",
     "date": "2026-11-21",
     "notes": [
