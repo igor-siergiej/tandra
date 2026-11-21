@@ -72,7 +72,7 @@ export const getImage = async (c: Context<HonoVars>) => {
         }
 
         // A published recipe's cover. Served only while a library recipe still uses it (auth is applied by the route):
-        // unpublishing or delisting the recipe takes the picture down with it, even though the object itself stays.
+        // unpublishing or delisting also removes the stored cover copies before dropping their ownership row.
         if (name.startsWith('discovery-image/')) {
             if (!(await getDiscoveryService().hasCoverImageKey(name))) {
                 return c.json({ error: 'Image not found' }, 404);

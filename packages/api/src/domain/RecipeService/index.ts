@@ -1,6 +1,7 @@
 import type { Logger } from '@imapps/api-utils';
 import type { Ingredient, Recipe, RecipeDifficulty, User } from '@tandra/types';
 
+import type { ObjectEraser } from '../AccountService';
 import { AuthorizationService } from '../AuthorizationService';
 import type { FriendService } from '../FriendService';
 import type { IdGenerator } from '../IdGenerator';
@@ -39,6 +40,7 @@ export class RecipeService {
     constructor(
         private recipeRepository: RecipeRepository,
         private idGenerator: IdGenerator,
+        private readonly objectEraser: ObjectEraser,
         private logger?: Logger,
         authorizationService?: AuthorizationService,
         private recipeImageService?: RecipeImageService,
@@ -245,6 +247,24 @@ export class RecipeService {
                 throw error;
             }
 
+            // The deterministic key can exist even if saving the generated image reference failed.
+            // Legacy AI keys may be shared, so only the final referencing recipe removes them.
+            const candidates = new Set(
+                [`recipe-image/${recipeId}.webp`, recipe.aiImageKey, recipe.coverImageKey].filter(
+                    (key): key is string => key?.startsWith('recipe-image/') === true
+                )
+            );
+
+            for (const other of await this.recipeRepository.findByImageKeys([...candidates])) {
+                if (other.id === recipeId) continue;
+
+                if (other.aiImageKey) candidates.delete(other.aiImageKey);
+
+                if (other.coverImageKey) candidates.delete(other.coverImageKey);
+            }
+
+            await this.objectEraser.removeKeys([...candidates]);
+
             await this.recipeRepository.deleteById(recipeId);
             this.logger?.info('Recipe deleted', {
                 recipeId,
@@ -271,17 +291,14 @@ export class RecipeService {
             throw Object.assign(new Error('Only recipe owner can add users'), { status: 403 });
         }
 
-        // Validate friendship by id
-        if (!this.friendService || !(await this.friendService.areFriends(requestingUserId, friendId))) {
-            throw Object.assign(new Error('Can only share with friends'), { status: 403 });
-        }
+        const [friend] = await resolveFriendMembers(this.friendService, requestingUserId, [friendId]);
 
         // Check if user is already in the recipe
         if (recipe.users.some((u) => u.id === friendId)) {
             throw Object.assign(new Error('User is already in this recipe'), { status: 400 });
         }
 
-        const [friend] = (await this.friendService.listFriends(requestingUserId)).filter((f) => f.id === friendId);
+        if (!friend) throw Object.assign(new Error('Can only share with friends'), { status: 403 });
 
         const updated = await this.recipeRepository.addUser(recipeId, friend);
         this.logger?.info('User added to recipe', {

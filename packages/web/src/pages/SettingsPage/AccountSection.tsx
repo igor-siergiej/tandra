@@ -8,6 +8,7 @@ import { authClient } from '../../auth/client';
 import { oauthErrorMessage } from '../../auth/errors';
 import { Button } from '../../components/ui/button';
 import { useAuthFeatures } from '../../utils/useAiFeatures';
+import { DeleteAccountButton } from './DeleteAccountButton';
 
 /**
  * Settings → Account: who you are signed in as, and a way to link Google so a forgotten password is
@@ -94,6 +95,7 @@ export const AccountSection = () => {
                     Export my data
                 </Button>
                 {exportFailed && <p className="text-sm text-red-600">Couldn't export your data. Please try again.</p>}
+                <DeleteAccountButton username={user.username} />
             </div>
         </section>
     );

@@ -42,15 +42,21 @@ export class MongoTodoRepository implements TodoRepository {
         return todo;
     }
 
-    async update(todoId: string, todo: Todo): Promise<Todo> {
-        await this.collection().findOneAndReplace({ id: todoId }, todo);
-        const updated = await this.getById(todoId);
+    async update(todoId: string, todo: Todo, previous: Todo = todo): Promise<Todo> {
+        // Sharing edits compare the membership that was read, not the proposed replacement.
+        const users = previous.users === undefined ? { $exists: false } : previous.users;
 
-        if (!updated) {
+        const updated = await this.collection().findOneAndReplace({ id: todoId, users }, todo, {
+            returnDocument: 'after',
+        });
+
+        if (updated) return updated;
+
+        if (!(await this.getById(todoId))) {
             throw new Error('Todo not found');
         }
 
-        return updated;
+        throw Object.assign(new Error('Todo membership changed'), { status: 409 });
     }
 
     async deleteById(todoId: string): Promise<void> {
@@ -67,5 +73,13 @@ export class MongoTodoRepository implements TodoRepository {
 
     async removeMemberFromAll(memberId: string, ownerId: string): Promise<void> {
         await this.collection().updateMany({ ownerId }, { $pull: { users: { id: memberId } } });
+    }
+
+    async deleteOwnedBy(userId: string): Promise<void> {
+        await this.collection().deleteMany({ ownerId: userId });
+    }
+
+    async removeMemberEverywhere(memberId: string): Promise<void> {
+        await this.collection().updateMany({ 'users.id': memberId }, { $pull: { users: { id: memberId } } });
     }
 }

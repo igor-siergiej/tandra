@@ -34,10 +34,19 @@ class FakeCollection {
     async insertOne(doc: Todo) {
         this.docs.push(doc);
     }
-    async findOneAndReplace(q: { id: string }, doc: Todo) {
-        const i = this.docs.findIndex((d) => d.id === q.id);
+    async findOneAndReplace(q: { id: string; users: Todo['users'] | { $exists: false } }, doc: Todo) {
+        const i = this.docs.findIndex(
+            (d) =>
+                d.id === q.id &&
+                (q.users && '$exists' in q.users
+                    ? d.users === undefined
+                    : JSON.stringify(d.users) === JSON.stringify(q.users))
+        );
 
-        if (i >= 0) this.docs[i] = doc;
+        if (i < 0) return null;
+        this.docs[i] = doc;
+
+        return doc;
     }
     async deleteOne(q: { id: string }) {
         this.docs = this.docs.filter((d) => d.id !== q.id);

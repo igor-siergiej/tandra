@@ -70,6 +70,7 @@ const setup = (admins: string[] = [admin.id]) => {
             for (let i = reportRows.length - 1; i >= 0; i -= 1)
                 if (reportRows[i]?.recipeId === id) reportRows.splice(i, 1);
         },
+        deleteByReporterId: async () => {},
     };
 
     const rows = new Map<string, DiscoveryPublication>([
@@ -85,6 +86,7 @@ const setup = (admins: string[] = [admin.id]) => {
         deleteByLibraryId: async (id: string) => {
             for (const [key, row] of rows) if (row.libraryId === id) rows.delete(key);
         },
+        listAllByOwner: async (): Promise<DiscoveryPublication[]> => [],
     };
 
     let n = 0;
@@ -94,7 +96,8 @@ const setup = (admins: string[] = [admin.id]) => {
         reports,
         publications,
         { generate: () => `rep-${++n}` },
-        new Set(admins)
+        new Set(admins),
+        { listKeys: async () => [], removeKeys: async () => {} }
     );
 
     return { service, library, indexed, reportRows, rows, getRecipesCalls };

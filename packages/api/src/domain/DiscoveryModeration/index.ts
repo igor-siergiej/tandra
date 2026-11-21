@@ -1,6 +1,7 @@
 import type { Logger } from '@imapps/api-utils';
 import type { DiscoveryReportSummary, User } from '@tandra/types';
 
+import type { ObjectEraser } from '../AccountService';
 import type { DiscoveryPublicationRepository } from '../DiscoveryPublicationRepository';
 import type { DiscoveryReportRepository } from '../DiscoveryReportRepository';
 import type { DiscoveryService } from '../DiscoveryService';
@@ -21,6 +22,7 @@ export class DiscoveryModerationService {
         private readonly publications: DiscoveryPublicationRepository,
         private readonly idGenerator: IdGenerator,
         private readonly adminUserIds: ReadonlySet<string>,
+        private readonly objectEraser: ObjectEraser,
         private readonly logger?: Logger
     ) {}
 
@@ -86,15 +88,21 @@ export class DiscoveryModerationService {
      */
     async delist(libraryId: string, admin: User): Promise<void> {
         this.assertAdmin(admin);
-        const recipe = await this.discovery.getRecipe(libraryId);
+        const recipe = (await this.discovery.getRecipes([libraryId]))[0];
+        const publication = await this.publications.getByLibraryId(libraryId);
 
-        if (recipe.source !== 'user') {
+        // Mongo may already be gone after an index failure; the ownership row authorizes the retry.
+        if (!recipe && !publication) throw fail('Library recipe not found', 404);
+
+        if (recipe && recipe.source !== 'user') {
             throw fail('Only user-published recipes can be delisted; Wikibooks recipes are managed by the ingest', 400);
         }
 
+        // Cleanup first so a bucket failure keeps both the recipe and its ownership available for retry.
+        await this.objectEraser.removeKeys(await this.objectEraser.listKeys(`discovery-image/${libraryId}/`));
         await this.discovery.remove(libraryId);
-        await this.publications.deleteByLibraryId(libraryId);
         await this.reports.deleteByRecipeId(libraryId);
+        await this.publications.deleteByLibraryId(libraryId);
         this.logger?.warn('Library recipe delisted by an admin', { libraryId, adminId: admin.id });
     }
 

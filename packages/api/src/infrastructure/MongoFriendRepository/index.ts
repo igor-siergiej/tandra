@@ -1,5 +1,5 @@
 import type { MongoDbConnection } from '@imapps/api-utils';
-import type { Friendship, PairingCode } from '@tandra/types';
+import type { Friendship, PairingCode, User } from '@tandra/types';
 
 import { CollectionNames, type Collections } from '../../dependencies/types';
 import type { FriendRepository } from '../../domain/FriendRepository';
@@ -43,8 +43,48 @@ export class MongoFriendRepository implements FriendRepository {
         await this.friendships().insertOne(friendship);
     }
 
-    async findByUserId(userId: string): Promise<Friendship[]> {
-        return this.friendships().find({ userIds: userId }).toArray();
+    async findFriends(userId: string): Promise<User[]> {
+        // Friendship.users is a historical snapshot, not an authority for names or account existence.
+        return this.friendships()
+            .aggregate<User>([
+                { $match: { userIds: userId } },
+                { $unwind: '$userIds' },
+                { $match: { userIds: { $ne: userId } } },
+                {
+                    $lookup: {
+                        from: 'user',
+                        let: {
+                            friendId: '$userIds',
+                            objectId: { $convert: { input: '$userIds', to: 'objectId', onError: null, onNull: null } },
+                        },
+                        pipeline: [
+                            {
+                                $match: {
+                                    $expr: {
+                                        $or: [
+                                            { $eq: ['$_id', '$$friendId'] },
+                                            { $eq: ['$_id', '$$objectId'] },
+                                            { $eq: ['$id', '$$friendId'] },
+                                        ],
+                                    },
+                                },
+                            },
+                            {
+                                $project: {
+                                    _id: 0,
+                                    id: '$$friendId',
+                                    username: { $ifNull: ['$displayUsername', '$username'] },
+                                },
+                            },
+                        ],
+                        as: 'friend',
+                    },
+                },
+                { $unwind: '$friend' },
+                { $replaceWith: '$friend' },
+                { $match: { username: { $type: 'string', $ne: '' } } },
+            ])
+            .toArray();
     }
 
     async findPair(userIdA: string, userIdB: string): Promise<Friendship | null> {
@@ -56,5 +96,10 @@ export class MongoFriendRepository implements FriendRepository {
     async deletePair(userIdA: string, userIdB: string): Promise<void> {
         const userIds = canonicalPair(userIdA, userIdB);
         await this.friendships().deleteOne({ userIds });
+    }
+
+    async deleteAllForUser(userId: string): Promise<void> {
+        await this.friendships().deleteMany({ userIds: userId });
+        await this.codes().deleteMany({ creatorId: userId });
     }
 }

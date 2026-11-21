@@ -10,4 +10,7 @@ export interface MealPlanRepository {
     deleteById(entryId: string): Promise<void>;
     /** Remove memberId from users[] on every entry owned by ownerId. */
     removeMemberFromAll(memberId: string, ownerId: string): Promise<void>;
+    deleteOwnedBy(userId: string): Promise<void>;
+    /** Removes the user from `users[]` on every entry, whoever owns it. */
+    removeMemberEverywhere(memberId: string): Promise<void>;
 }

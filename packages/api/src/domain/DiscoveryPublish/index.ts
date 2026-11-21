@@ -1,6 +1,7 @@
 import type { Logger } from '@imapps/api-utils';
 import type { DiscoveryRecipe, Ingredient, PublishedRecipeRef, Recipe, User } from '@tandra/types';
 
+import type { ObjectEraser } from '../AccountService';
 import type { DiscoveryPublicationRepository } from '../DiscoveryPublicationRepository';
 import type { DiscoveryService } from '../DiscoveryService';
 import type { IdGenerator } from '../IdGenerator';
@@ -39,6 +40,7 @@ export class DiscoveryPublishService {
         private readonly recipes: Pick<RecipeService, 'getRecipe'>,
         private readonly images: ImageStore,
         private readonly idGenerator: IdGenerator,
+        private readonly objectEraser: ObjectEraser,
         private readonly logger?: Logger
     ) {}
 
@@ -82,7 +84,9 @@ export class DiscoveryPublishService {
         const publication = await this.publications.getByLibraryId(libraryId);
 
         if (!publication || publication.ownerId !== user.id) throw fail('Published recipe not found', 404);
-        // Library first, row last: if the index is down the row survives and the same call can simply be repeated.
+        // Sweep the whole ownership prefix, including covers superseded by republishing.
+        // Keep the row until both physical cleanup and library/index removal succeed.
+        await this.objectEraser.removeKeys(await this.objectEraser.listKeys(`${COVER_PREFIX}/${libraryId}/`));
         await this.discovery.remove(libraryId);
         await this.publications.deleteByLibraryId(libraryId);
         this.logger?.info('Recipe unpublished from the discovery library', { libraryId, userId: user.id });

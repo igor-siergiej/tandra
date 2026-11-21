@@ -14,6 +14,9 @@ See [COVERAGE.md](COVERAGE.md) for which feature is covered by which spec, and t
   `test.describe.configure({ mode: 'serial' })`. `E2E_PORT_BASE` (default 4000) moves every port, so a second
   checkout can run its suite at the same time. Specs use `API_BASE` (`e2e/auth.ts`) and relative `goto` URLs, never a
   hardcoded port.
+- **An in-memory object store on :9000.** CI runs no RustFS, so Playwright starts `e2e/s3-stub.ts` (put/get/head/list/
+  delete) for the api's `BUCKET_ENDPOINT`; account erasure lists and removes files and needs something to answer. A
+  RustFS already listening on :9000 is reused locally.
 - **A prebuilt web bundle, not the Vite dev server.** Slot 0 runs `bun run build:e2e` (`vite build --mode development`
   into `packages/web/build-e2e`) and every slot serves it with `vite preview`, proxying `/api` to its own api
   (`E2E_API_PROXY_TARGET`) with the same nginx-mirror middleware as the dev server. Every test opens a fresh browser

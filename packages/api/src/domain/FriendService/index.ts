@@ -76,9 +76,7 @@ export class FriendService {
     }
 
     async listFriends(userId: string): Promise<User[]> {
-        const friendships = await this.repo.findByUserId(userId);
-
-        return friendships.map((f) => (f.users[0].id === userId ? f.users[1] : f.users[0]));
+        return this.repo.findFriends(userId);
     }
 
     async areFriends(userIdA: string, userIdB: string): Promise<boolean> {

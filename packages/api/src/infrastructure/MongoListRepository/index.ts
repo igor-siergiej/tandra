@@ -70,4 +70,17 @@ export class MongoListRepository implements ListRepository {
     async removeMemberFromAll(memberId: string, ownerId: string): Promise<void> {
         await this.collection().updateMany({ ownerId }, { $pull: { users: { id: memberId } }, $inc: { revision: 1 } });
     }
+
+    async deleteOwnedBy(userId: string): Promise<void> {
+        await this.collection().deleteMany({
+            $or: [{ ownerId: userId }, { ownerId: { $exists: false }, 'users.id': userId, users: { $size: 1 } }],
+        });
+    }
+
+    async removeMemberEverywhere(memberId: string): Promise<void> {
+        await this.collection().updateMany(
+            { 'users.id': memberId },
+            { $pull: { users: { id: memberId } }, $inc: { revision: 1 } }
+        );
+    }
 }

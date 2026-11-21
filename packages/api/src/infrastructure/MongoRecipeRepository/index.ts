@@ -4,6 +4,11 @@ import type { Recipe, User } from '@tandra/types';
 import { CollectionNames, type Collections } from '../../dependencies/types';
 import type { RecipeRepository } from '../../domain/RecipeRepository';
 
+// A legacy recipe stored before `ownerId` existed belongs to its only member.
+const ownedBy = (userId: string) => ({
+    $or: [{ ownerId: userId }, { ownerId: { $exists: false }, 'users.id': userId, users: { $size: 1 } }],
+});
+
 export class MongoRecipeRepository implements RecipeRepository {
     constructor(private readonly db: MongoDbConnection<Collections>) {}
 
@@ -27,6 +32,14 @@ export class MongoRecipeRepository implements RecipeRepository {
         return this.collection().find({}).toArray();
     }
 
+    async findByImageKeys(keys: string[]): Promise<Recipe[]> {
+        if (keys.length === 0) return [];
+
+        return this.collection()
+            .find({ $or: [{ aiImageKey: { $in: keys } }, { coverImageKey: { $in: keys } }] })
+            .toArray();
+    }
+
     async findByUserId(userId: string): Promise<Recipe[]> {
         return this.collection().find({ 'users.id': userId }).toArray();
     }
@@ -38,14 +51,18 @@ export class MongoRecipeRepository implements RecipeRepository {
     }
 
     async update(recipeId: string, recipe: Recipe): Promise<Recipe> {
-        await this.collection().findOneAndReplace({ id: recipeId }, recipe);
-        const updated = await this.getById(recipeId);
+        // A content edit must not restore membership removed since this recipe was read.
+        const updated = await this.collection().findOneAndReplace({ id: recipeId, users: recipe.users }, recipe, {
+            returnDocument: 'after',
+        });
 
-        if (!updated) {
+        if (updated) return updated;
+
+        if (!(await this.getById(recipeId))) {
             throw new Error('Recipe not found');
         }
 
-        return updated;
+        throw Object.assign(new Error('Recipe membership changed'), { status: 409 });
     }
 
     async deleteById(recipeId: string): Promise<void> {
@@ -84,5 +101,17 @@ export class MongoRecipeRepository implements RecipeRepository {
 
     async removeMemberFromAll(memberId: string, ownerId: string): Promise<void> {
         await this.collection().updateMany({ ownerId }, { $pull: { users: { id: memberId } } });
+    }
+
+    async findOwnedBy(userId: string): Promise<Recipe[]> {
+        return this.collection().find(ownedBy(userId)).toArray();
+    }
+
+    async deleteOwnedBy(userId: string): Promise<void> {
+        await this.collection().deleteMany(ownedBy(userId));
+    }
+
+    async removeMemberEverywhere(memberId: string): Promise<void> {
+        await this.collection().updateMany({ 'users.id': memberId }, { $pull: { users: { id: memberId } } });
     }
 }
