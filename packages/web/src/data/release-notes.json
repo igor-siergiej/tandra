@@ -1,5 +1,33 @@
 [
   {
+    "version": "2.10.0",
+    "date": "2026-11-20",
+    "notes": [
+      {
+        "type": "feature",
+        "text": "Recipe import, tagging, substitutes and voice add now use Google's current Gemini model with strict structured output, so they are faster and fail less often on odd replies."
+      },
+      {
+        "type": "feature",
+        "text": "Recipe import now asks the AI for a text title explicitly, so imported recipes get a title more reliably."
+      },
+      {
+        "type": "feature",
+        "text": "The AI text features (recipe import, tagging, substitutes, item aisles, voice add) now use Gemini directly; GEMINI_API_KEY must be set on the tandra-api app."
+      }
+    ]
+  },
+  {
+    "version": "2.9.0",
+    "date": "2026-11-19",
+    "notes": [
+      {
+        "type": "feature",
+        "text": "You can now download everything you have in Tandra as one file from Settings → Account → Export my data."
+      }
+    ]
+  },
+  {
     "version": "2.8.0",
     "date": "2026-10-24",
     "notes": [

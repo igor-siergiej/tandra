@@ -32,6 +32,7 @@ import { bodyLimit } from 'hono/body-limit';
 import { aiFeaturesFromEnv, authFeaturesFromEnv } from '../config';
 import { dependencyContainer } from '../dependencies';
 import { DependencyToken } from '../dependencies/types';
+import { exportMyData } from '../interfaces/DataExportHandlers';
 import { createDiscoveryHandlers } from '../interfaces/DiscoveryHandlers';
 import { generateFriendCode, getFriends, redeemFriendCode, removeFriend } from '../interfaces/FriendHandlers';
 import { getImage } from '../interfaces/ImageHandlers';
@@ -279,6 +280,8 @@ export const createRoutes = (): Hono<Vars> => {
     router.post('/api/friends/redeem', authenticate, validateJson(redeemFriendCodeBody), redeemFriendCode);
     router.get('/api/friends', authenticate, getFriends);
     router.delete('/api/friends/:friendId', authenticate, removeFriend);
+
+    router.get('/api/export', authenticate, exportMyData);
 
     router.get('/api/push/vapid-public-key', getVapidPublicKey);
     router.post('/api/push/subscribe', authenticate, validateJson(pushSubscribeBody), subscribe);

@@ -9,7 +9,7 @@ bun run discover:ingest -- --limit 25   # trial run: at most 25 new or changed p
 bun run discover:validate               # counts + required-field check over the stored library
 ```
 
-Needs `CONNECTION_URI`/`DATABASE_NAME`, `OPENSEARCH_URL` and `FAL_KEY` (tags and estimates). Exit code 0 = clean,
+Needs `CONNECTION_URI`/`DATABASE_NAME`, `OPENSEARCH_URL` and `GEMINI_API_KEY` (tags and estimates). Exit code 0 = clean,
 2 = some pages failed (re-run) or a removal was refused, 1 = bad configuration or validation failure.
 
 ## Licence
@@ -90,7 +90,7 @@ file and a page with no picture all count as looked at, so they are not fetched 
 without rebuilding them: no LLM calls, no other field changes, `updatedAt` untouched (browse order does not shuffle). The
 run summary reports `covers`, `coversRefused` and `coversFailed`; exit code 2 means a rerun is needed.
 
-Needs the object store (`BUCKET_*`) as well as Mongo, OpenSearch and `FAL_KEY`.
+Needs the object store (`BUCKET_*`) as well as Mongo, OpenSearch and `GEMINI_API_KEY`.
 
 ## What is not ingested
 
@@ -101,6 +101,6 @@ Needs the object store (`BUCKET_*`) as well as Mongo, OpenSearch and `FAL_KEY`.
 
 ## LLM cost
 
-Two small `google/gemini-2.5-flash-lite` calls per recipe at most (tag, plus estimate when a field is missing, about
+Two small `gemini-3.5-flash-lite` calls per recipe at most (tag, plus estimate when a field is missing, about
 two thirds of recipes), roughly 700 input and 100 output tokens each, so a full load is on the order of 6-7k calls and
 well under a few US dollars [INFERENCE from token counts, not a measured bill]. A refresh only pays for changed pages.

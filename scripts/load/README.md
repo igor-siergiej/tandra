@@ -12,7 +12,7 @@ STEPS=100,200,300 STEP_DURATION=20s bun run load:local
 
 | Piece | What it is |
 |---|---|
-| API | `packages/api` on `:4101`, started with `env -i` (no `FAL_KEY`, no OpenSearch, nothing from `.env` except the Mongo URI) |
+| API | `packages/api` on `:4101`, started with `env -i` (no `FAL_KEY` or `GEMINI_API_KEY`, no OpenSearch, nothing from `.env` except the Mongo URI) |
 | Auth | the throwaway API's own Better Auth (`BETTER_AUTH_SECRET`/`BETTER_AUTH_URL` set); k6 `setup()` signs each fixture user up via `POST /api/auth/sign-up/email` and sends the returned session cookie on every call |
 | Database | throwaway `tandra_k6` on the local dev Mongo; dropped on exit. The runner refuses non-localhost Mongo URIs |
 | k6 | `grafana/k6` in Docker with `--network host`; no local k6 install |
@@ -33,7 +33,7 @@ Auth is the API's built-in Better Auth: each sign-up uses a distinct `X-Forwarde
 
 ## Zero AI spend
 
-The script never calls `/api/recipes/import`, `/image/generate` or `/api/recipes/substitutes`, and the API in `run-local.sh` has no `FAL_KEY`. Independently, `teardown()` diffs the server's own counters (`tandra_api_http_requests_total` for those routes, `tandra_images_generated_total`) against a baseline taken in `setup()`. The `ai_calls_detected` and `ai_check_unavailable` thresholds fail the run if either moved or the check could not be made.
+The script never calls `/api/recipes/import`, `/image/generate` or `/api/recipes/substitutes`, and the API in `run-local.sh` has no AI keys. Independently, `teardown()` diffs the server's own counters (`tandra_api_http_requests_total` for those routes, `tandra_images_generated_total`) against a baseline taken in `setup()`. The `ai_calls_detected` and `ai_check_unavailable` thresholds fail the run if either moved or the check could not be made.
 
 ## Targets
 

@@ -12,7 +12,7 @@ Tandra is a collaborative shopping-list, recipe and calendar app (PWA) with a Re
 ## Architecture
 - **Frontend**: React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + PWA (vite-plugin-pwa)
 - **Backend**: Bun + Hono + TypeScript + MongoDB (entry `packages/api/src/index.ts`, served with `Bun.serve`; no build step, the Docker image copies `src`)
-- **Additional Services**: RustFS (S3-compatible object storage), OpenSearch (recipe Discover search, optional), fal.ai (FLUX.1 [schnell] images and `any-llm` for recipe import, tagging, substitutes, item aisles and voice parsing, via `FAL_KEY`)
+- **Additional Services**: RustFS (S3-compatible object storage), OpenSearch (recipe Discover search, optional), fal.ai (FLUX.1 [schnell] images, via `FAL_KEY`), Gemini API (`gemini-3.5-flash-lite` with native structured output for recipe import, tagging, substitutes, item aisles and voice parsing, via `GEMINI_API_KEY`)
 
 ## Requirements
 - **Bun**: v1.x
@@ -60,14 +60,14 @@ Run these from the root directory:
 The project requires:
 - MongoDB (localhost:27017)
 - S3-compatible object store (RustFS) on localhost:9000 (`BUCKET_*` in `.env`)
-- fal.ai API key (set `FAL_KEY`)
+- fal.ai API key (set `FAL_KEY`, images) and Gemini API key (set `GEMINI_API_KEY`, text AI)
 
 Environment variables are in `.env` file (development values).
 
 ## API Structure (`packages/api/`)
 Clean architecture with:
 - `domain/` - Business logic and repository interfaces (ListService, RecipeService, TodoService, MealPlanService, FriendService, ImageService, DiscoveryService, NotificationService, AuthorizationService, ItemCategoryService, SharedMembers, ...)
-- `infrastructure/` - External integrations: `Mongo*Repository` classes, `BetterAuth` (auth config mounted at `/api/auth/*`), `BucketStore` (S3-compatible object store via `@imapps/api-utils` `ObjectStoreConnection`), `Fal*` clients (FalLlmClient plus the image/tag/substitute/category/parser wrappers), `OpenSearchDiscoveryIndex`, `WebPushSender`, `HttpPageFetcher`/`HttpImageFetcher` (SSRF-guarded via `safeFetch`), `imageProcessor`
+- `infrastructure/` - External integrations: `Mongo*Repository` classes, `BetterAuth` (auth config mounted at `/api/auth/*`), `BucketStore` (S3-compatible object store via `@imapps/api-utils` `ObjectStoreConnection`), `Fal*` clients (FalLlmClient, which now talks to Gemini, plus the image/tag/substitute/category/parser wrappers), `OpenSearchDiscoveryIndex`, `WebPushSender`, `HttpPageFetcher`/`HttpImageFetcher` (SSRF-guarded via `safeFetch`), `imageProcessor`
 - `interfaces/` - Hono handlers (ListHandlers, RecipeHandlers, TodoHandlers, MealPlanHandlers, ImageHandlers, DiscoveryHandlers, ...)
 - `routes/` - API route definitions (every mutating route with a JSON body is wired to a Zod schema from `@tandra/types/schemas`; `routes/validation.test.ts` enforces it)
 - `middleware/` - Hono middleware (auth, validateJson, aiRateLimit, notifyListChanged)

@@ -1,3 +1,17 @@
+# [2.10.0](https://github.com/igor-siergiej/tandra/compare/v2.9.0...v2.10.0) (2026-11-20)
+
+
+### Features
+
+* **api:** call Gemini directly with native structured output ([#322](https://github.com/igor-siergiej/tandra/issues/322)) ([9a0cc8a](https://github.com/igor-siergiej/tandra/commit/9a0cc8a1508de4e0f322e7198fd730ba9df32f57)), closes [#76](https://github.com/igor-siergiej/tandra/issues/76)
+
+# [2.9.0](https://github.com/igor-siergiej/tandra/compare/v2.8.0...v2.9.0) (2026-11-19)
+
+
+### Features
+
+* **export:** Settings → Account "Export my data" downloads everything as one JSON file ([#321](https://github.com/igor-siergiej/tandra/issues/321)) ([5108722](https://github.com/igor-siergiej/tandra/commit/51087224cc72a9df1ae74732d3aa2d56508b56ea))
+
 # [2.8.0](https://github.com/igor-siergiej/tandra/compare/v2.7.0...v2.8.0) (2026-10-24)
 
 

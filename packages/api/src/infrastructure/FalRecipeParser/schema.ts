@@ -31,7 +31,9 @@ const ingredientSchema = z
 
 export const parsedRecipeSchema: z.ZodType<ParsedRecipe> = z
     .object({
-        title: z.preprocess((value) => (typeof value === 'string' ? value.trim() : ''), z.string()),
+        title: z
+            .preprocess((value) => (typeof value === 'string' ? value.trim() : ''), z.string())
+            .meta({ type: 'string' }),
         ingredients: z.array(ingredientSchema).min(1),
         instructions: stringArrayField(),
     })

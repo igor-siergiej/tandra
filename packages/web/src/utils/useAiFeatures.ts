@@ -74,7 +74,7 @@ const useServerFeatures = (): ServerFeatures => {
 };
 
 /**
- * Reports which AI features the API has wired. When FAL_KEY is empty the
+ * Reports which AI features the API has wired. When the AI keys are empty the
  * server returns all-false; the hook then drives hiding of the import-by-link
  * button, the recipe/image generator and the ingredient-substitutes popover,
  * with a short "Not available on this server" note.

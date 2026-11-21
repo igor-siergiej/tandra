@@ -7,6 +7,7 @@ import { config } from '../config';
 import { allowedOrigins } from '../config/cors';
 import { AuthorizationService } from '../domain/AuthorizationService';
 import { DailyReminderScheduler } from '../domain/DailyReminderScheduler';
+import { DataExportService } from '../domain/DataExportService';
 import { DiscoveryCopyService } from '../domain/DiscoveryCopyService';
 import { DiscoveryModerationService } from '../domain/DiscoveryModeration';
 import { DiscoveryPublishService } from '../domain/DiscoveryPublish';
@@ -276,6 +277,23 @@ export const registerDepdendencies = () => {
             )
     );
 
+    // Settings → Account → Export my data: reads through the same services the app's own endpoints use.
+    register(
+        DependencyToken.DataExportService,
+        () =>
+            new DataExportService(
+                {
+                    lists: dependencyContainer.resolve(DependencyToken.ListService),
+                    recipes: dependencyContainer.resolve(DependencyToken.RecipeService),
+                    mealPlans: dependencyContainer.resolve(DependencyToken.MealPlanService),
+                    todos: dependencyContainer.resolve(DependencyToken.TodoService),
+                    labels: dependencyContainer.resolve(DependencyToken.LabelService),
+                    friends: dependencyContainer.resolve(DependencyToken.FriendService),
+                },
+                dependencyContainer.resolve(DependencyToken.AuthorizationService)
+            )
+    );
+
     // Label services
     register(
         DependencyToken.LabelRepository,
@@ -346,9 +364,9 @@ export const registerDepdendencies = () => {
     register(DependencyToken.ImageFetcher, () => new HttpImageFetcher());
 
     register(DependencyToken.FalLlmClient, () => {
-        // Reuses FAL_KEY unless a dedicated import key is set.
+        // Uses GEMINI_API_KEY unless a dedicated import key is set.
         return new FalLlmClient(
-            config.get('recipeImportLlmApiKey') || config.get('falKey') || '',
+            config.get('recipeImportLlmApiKey') || config.get('geminiApiKey') || '',
             dependencyContainer.resolve(DependencyToken.Logger),
             { model: config.get('recipeImportLlmModel') || undefined }
         );

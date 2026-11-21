@@ -76,15 +76,33 @@ Bun-workspace monorepo — `packages/web`, `packages/api`, `packages/types`
   daily scheduler in the api sends todo reminders.
 - **sharing** — friend codes, per-list/per-recipe members, and list invite
   links (`/api/lists/invites/*`).
-- **AI** — everything goes through fal.ai with `FAL_KEY`: images via
-  `fal-ai/flux/schnell` (`FalImageGenerator`), text via `fal-ai/any-llm`
-  (`FalLlmClient`, default model `google/gemini-2.5-flash-lite`) for recipe
-  tagging, substitutes, item aisles and spoken-item parsing. Recipe import
+- **AI** — images go through fal.ai with `FAL_KEY` (`fal-ai/flux/schnell`,
+  `FalImageGenerator`). Text goes to the Gemini API with `GEMINI_API_KEY`
+  (`FalLlmClient`, `generateContent`, default model `gemini-3.5-flash-lite`)
+  for recipe import, tagging, substitutes, item aisles and spoken-item
+  parsing. Every call uses native structured output: the request carries a
+  JSON schema generated from the call's Zod schema, so there is no
+  brace-slicing and no validation re-prompt (an invalid reply is a 502).
+  `FAL_KEY` no longer enables any text AI: create the `GEMINI_API_KEY`
+  secret in the deployment (Dokploy `tandra-api` environment) before
+  releasing this change, or recipe import, tagging, substitutes, item aisles
+  and voice add answer `503 ai_disabled` until it exists.
+  Recipe import
   is JSON-LD first, then HTML heuristics; the LLM is only a third tier when
   `RECIPE_IMPORT_LLM_ENABLED`, or the sole parser when
   `RECIPE_IMPORT_LLM_FIRST`. Outbound fetches of recipe pages and images go
   through the SSRF guard in `infrastructure/safeFetch.ts`. AI routes are
   rate-limited (`middleware/aiRateLimit.ts`).
+
+  **Criterion 3 waiver (tandra #76).** The owner waived the live before/after
+  run on ~10 real recipe URLs (journal waits 192 and 194, 2026-11-19: "skip the
+  live comparison and ship on the tests and code review" and "Amend criterion 3
+  to drop the live comparison and accept the card as verified"). The build
+  sandbox has no `GEMINI_API_KEY` and no outbound network, so the run could not
+  be done. After deploy the owner can run
+  `bun run import:compare <urls.txt> --price-in N --price-out N` on commit
+  `07b40eef` (before, needs `FAL_KEY`) and on the branch head (after, needs
+  `GEMINI_API_KEY`) and diff the JSON outputs.
 - **Discover** — shared recipe library fed from the Wikibooks Cookbook and
   user-published recipes; public read-only `/api/public/discover/*` (CORS
   allow-list `PUBLIC_DISCOVER_ORIGINS`) feeds the marketing site. See
@@ -105,8 +123,9 @@ required value).
 | `BUCKET_ENDPOINT`, `BUCKET_NAME`, `BUCKET_ACCESS_KEY`, `BUCKET_SECRET_KEY` | yes | S3-compatible object store (RustFS) |
 | `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` | yes | Better Auth at `/api/auth/*`: cookie-signing secret and the public origin the browser sees |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | no | Google sign-in (both or neither) |
-| `FAL_KEY`, `FAL_MODEL`, `FAL_RECIPE_MODEL` | no | fal.ai key and model overrides |
-| `RECIPE_IMPORT_LLM_ENABLED`, `RECIPE_IMPORT_LLM_FIRST`, `RECIPE_IMPORT_LLM_API_KEY`, `RECIPE_IMPORT_LLM_MODEL` | no | recipe-import LLM tier; the key falls back to `FAL_KEY` |
+| `FAL_KEY`, `FAL_MODEL`, `FAL_RECIPE_MODEL` | no | fal.ai key and model overrides (image generation only) |
+| `GEMINI_API_KEY` | no | Gemini API key for every text AI feature |
+| `RECIPE_IMPORT_LLM_ENABLED`, `RECIPE_IMPORT_LLM_FIRST`, `RECIPE_IMPORT_LLM_API_KEY`, `RECIPE_IMPORT_LLM_MODEL` | no | recipe-import LLM tier; the key falls back to `GEMINI_API_KEY`; the model defaults to `gemini-3.5-flash-lite` |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | no | Web Push |
 | `OPENSEARCH_URL` | no | Discover search index; unset = Discover off |
 | `OPENSEARCH_INDEX` | no | alias the Discover index lives under (default `discovery-recipes`), so several APIs can share one engine |
@@ -236,6 +255,12 @@ label picks out small, contained starting points.
 
 ## CI/CD
 
+The factory sandbox allows `tandra.uk` so build and verification jobs can read
+the published [privacy notice](https://tandra.uk/privacy/) and verify storage
+disclosures maintained in the separate `tandra-site` repository. The allowance
+comes from the trusted base branch's `jott-config.json`; changing a card's copy
+does not grant access.
+
 - **`pr.yml`** on every PR: `lint` (`vp check` + `tsc:e2e`), then in parallel
   `test` (`tsc --noEmit`, api tests with coverage against a real OpenSearch
   service, 90 % gate), `test-web` (web tests and script tests; no service
@@ -251,7 +276,7 @@ label picks out small, contained starting points.
   (`e2e/stack.ts`); the `e2e` job passes only if
   every shard passed, and `report` merges the shards' blob reports into one
   HTML report (artifact `playwright-report`, published to GitHub Pages and
-  linked from a sticky PR comment). `.kanban-cli.json` treats `lint`,
+  linked from a sticky PR comment). `jott-config.json` treats `lint`,
   `test`, `test-web`, `e2e`, `fallow-deadcode`, `docker-build-api`, `docker-build-web`
   as the required checks.
   Verification on [PR #313](https://github.com/igor-siergiej/tandra/pull/313):
@@ -324,18 +349,20 @@ the API. Mongo and RustFS persist into named volumes (`mongo-data`, `rustfs-data
 A one-shot `rustfs-init` container (the `rc` CLI) creates the configured bucket
 on first run.
 
-`FAL_KEY` is optional. Without it, the API wires disabled AI
-implementations and every AI endpoint (recipe import, image generation,
-ingredient substitutes, voice add) responds with
+`GEMINI_API_KEY` and `FAL_KEY` are optional. Without them, the API wires disabled AI
+implementations and the matching AI endpoints (recipe import, ingredient
+substitutes, voice add with `GEMINI_API_KEY`; image generation with `FAL_KEY`) respond with
 `503 { error: 'ai_disabled' }`. The web reads `GET /api/features` on boot
 and hides those entry points with a short "Not available on this server"
 note. The rest of the app — lists, recipes, calendar, sharing, PWA/offline,
 item/recipe creation with a default placeholder picture — works exactly as
 it does in production.
 
-`RECIPE_IMPORT_LLM_API_KEY` is also optional and falls back to `FAL_KEY`
-when unset. If you set only the LLM key, recipe import and substitutes
-work but image generation stays off.
+`RECIPE_IMPORT_LLM_API_KEY` is also optional and, when set, is used instead of
+`GEMINI_API_KEY`. It must be a Google Gemini key: it used to be allowed to hold
+a fal key, and a leftover fal key there now makes every text AI call fail with
+a 502, so replace or unset it when upgrading. If you set only a Gemini key,
+recipe import and substitutes work but image generation stays off.
 
 Backups: `docker compose exec -T mongo mongodump --archive` (or
 `mongodump` to a mounted dir) for MongoDB, and an `rc mirror` (the

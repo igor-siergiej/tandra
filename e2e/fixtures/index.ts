@@ -69,7 +69,7 @@ export const test = base.extend<Fixtures & Options>({
 
         await signInAs(page);
 
-        // The CI api runs without FAL_KEY, so /api/features reports every AI flag
+        // The CI api runs without FAL_KEY / GEMINI_API_KEY, so /api/features reports every AI flag
         // as off. The web disables the corresponding controls in that case, which
         // would make AI-touching e2e specs unable to exercise the mocked
         // endpoints. Stub the endpoint to all-true so the controls stay enabled

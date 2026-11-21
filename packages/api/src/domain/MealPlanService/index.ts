@@ -111,6 +111,11 @@ export class MealPlanService {
         return this.repo.findForUserBetween(userId, start, end);
     }
 
+    /** Every entry the user owns or is shared on, whatever its day; the data export reads the whole plan. */
+    async listAllForUser(userId: string): Promise<MealPlanEntry[]> {
+        return this.repo.findForUserBetween(userId, '0000-01-01', '9999-12-31');
+    }
+
     async update(entryId: string, actorId: string, input: UpdateMealPlanInput): Promise<MealPlanEntry> {
         const existing = await this.getOwnedOrMember(entryId, actorId);
 

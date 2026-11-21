@@ -3,7 +3,7 @@ import { describe, expect, it } from 'bun:test';
 import { aiFeaturesFromEnv, authFeaturesFromEnv } from './index';
 
 describe('aiFeaturesFromEnv', () => {
-    it('reports every feature as off when FAL_KEY and the LLM key are both empty', () => {
+    it('reports every feature as off when no AI key is set', () => {
         expect(aiFeaturesFromEnv({} as NodeJS.ProcessEnv)).toEqual({
             imageGeneration: false,
             recipeImport: false,
@@ -14,11 +14,12 @@ describe('aiFeaturesFromEnv', () => {
         });
     });
 
-    it('flips image generation on when FAL_KEY is set', () => {
+    it('flips only image generation on when FAL_KEY is set: text AI runs on Gemini', () => {
         const features = aiFeaturesFromEnv({ FAL_KEY: 'demo-key' } as NodeJS.ProcessEnv);
         expect(features.imageGeneration).toBe(true);
-        expect(features.recipeImport).toBe(true);
-        expect(features.ingredientSubstitutes).toBe(true);
+        expect(features.recipeImport).toBe(false);
+        expect(features.ingredientSubstitutes).toBe(false);
+        expect(features.recipeTagger).toBe(false);
     });
 
     it('flips the LLM features on when only RECIPE_IMPORT_LLM_API_KEY is set', () => {

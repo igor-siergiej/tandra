@@ -1,6 +1,6 @@
 {
   "name": "tandra",
-  "version": "2.8.0",
+  "version": "2.10.0",
   "private": true,
   "repository": "https://github.com/igor-siergiej/tandra",
   "author": "Igor Siergiej <igorsiergiej@gmail.com>",
@@ -11,6 +11,7 @@
     "discover:ingest": "dotenv -e .env -- bun run --filter @tandra/api ingest",
     "discover:validate": "dotenv -e .env -- bun run --filter @tandra/api validate-library",
     "auth:reset-password": "dotenv -e .env -- bun packages/api/scripts/auth/reset-password.ts",
+    "import:compare": "RECIPE_IMPORT_LLM_FIRST=true dotenv -e .env -- bun packages/api/scripts/compare-recipe-import.ts",
     "start": "bun run start:web & bun run start:api",
     "dev:local": "scripts/dev-local.sh",
     "lint": "vp check",
