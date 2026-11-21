@@ -67,6 +67,7 @@ export class AccountService {
     ) {}
 
     /** Deletes `user`'s account once they have typed their own username; any other text is a 403 and nothing is touched. */
+    // fallow-ignore-next-line unused-class-member
     async deleteAccount(user: User, typedUsername: string): Promise<void> {
         if (typedUsername !== user.username) {
             throw fail('The username you typed does not match your account', 403);
