@@ -51,6 +51,7 @@
   "packages/api/src/interfaces/RecipeHandlers/index.ts::TS2769": 1,
   "packages/api/src/middleware/auth.test.ts::TS2339": 4,
   "packages/api/src/middleware/validate.test.ts::TS7011": 1,
+  "packages/api/src/test-setup.test.ts::TS2314": 1,
   "packages/web/src/components/IngredientItem/index.test.tsx::TS7018": 1,
   "packages/web/src/components/ItemCheckBox/ItemCheckBoxCard/index.test.tsx::TS2353": 1,
   "packages/web/src/components/ItemCheckBox/ItemCheckBoxCard/index.test.tsx::TS7018": 1,
