@@ -449,7 +449,11 @@ describe.skipIf(!mongoUp)('DELETE /api/account (real app, real Mongo)', () => {
             BUCKET_SECRET_KEY: 'test-secret',
             BUCKET_ENDPOINT: `127.0.0.1:${s3.port}`,
             OPENSEARCH_URL: `http://127.0.0.1:${searchStub.port}`,
-            FAL_KEY: 'test-key',
+            // AI off, whatever the preload or a developer's .env holds: a real key would send background calls
+            // (tagging, images) to fal.ai and Gemini while the test creates and publishes recipes.
+            FAL_KEY: '',
+            GEMINI_API_KEY: '',
+            RECIPE_IMPORT_LLM_API_KEY: '',
         });
         // Boots the whole API in this process (it listens on PORT as soon as it has connected to Mongo and S3).
         // Dynamic on purpose: importing the entry point starts the server, which needs the env set just above.
