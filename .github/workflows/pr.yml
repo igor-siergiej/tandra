@@ -147,7 +147,7 @@ jobs:
           if-no-files-found: ignore
 
   # Single check named `e2e` that passes only if every shard passed, so the
-  # check name stays stable for .kanban-cli.json's checkNamesRequired.
+  # check name stays stable for jott-config.json's checkNamesRequired.
   e2e:
     runs-on: ubuntu-latest
     needs: e2e-shard
