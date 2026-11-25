@@ -427,7 +427,7 @@ export const addUserToList = async (c: Context<HonoVars>) => {
             username: authenticatedUser.username,
             listId,
             addedUser: friendId,
-            error: errorMessage,
+            ...logErrorFields(error),
             status,
         });
 
@@ -466,7 +466,7 @@ export const removeUserFromList = async (c: Context<HonoVars>) => {
             username: authenticatedUser.username,
             listId,
             removedUserId: userId,
-            error: errorMessage,
+            ...logErrorFields(error),
             status,
         });
 

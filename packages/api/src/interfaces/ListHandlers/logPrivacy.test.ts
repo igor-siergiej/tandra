@@ -193,6 +193,21 @@ describe('ListHandlers logging', () => {
         });
     });
 
+    describe('When a dependency error message echoes user content', () => {
+        it.each(handlers)('should keep the message out of the log when $name', async ({ run }) => {
+            for (const fn of Object.values(mockListService)) {
+                if (fn !== mockListService.getList)
+                    fn.mockRejectedValue(Object.assign(new Error(`duplicate key: ${LIST_TITLE} ${ITEM_NAME}`), {}));
+            }
+
+            await run().catch((): void => undefined);
+
+            for (const sentinel of SENTINELS) {
+                expect(loggedText()).not.toContain(sentinel);
+            }
+        });
+    });
+
     describe('When the caller is not a member of the list', () => {
         it('should log no list title when refusing access', async () => {
             mockListService.getList.mockResolvedValue({ ...list, users: [{ id: 'someone-else', username: 'x' }] });
