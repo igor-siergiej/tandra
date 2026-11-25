@@ -1,6 +1,7 @@
 import type { Logger } from '@imapps/api-utils';
 
 import type { DiscoveryRecipeRepository } from '../domain/DiscoveryRecipeRepository';
+import { logErrorFields } from '../domain/logError';
 
 /**
  * Gives every Wikibooks recipe stored before ingest set slugs its id as slug, so the public discover API can list and
@@ -21,7 +22,7 @@ export const backfillWikibooksSlugs = async (
         }
     } catch (error) {
         logger.warn('Wikibooks slug backfill failed; those recipes stay off the public API until the next start', {
-            error: String(error),
+            ...logErrorFields(error),
         });
     }
 };

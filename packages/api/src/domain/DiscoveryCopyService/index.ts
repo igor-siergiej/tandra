@@ -6,6 +6,7 @@ import type { Recipe, User } from '@tandra/types';
 import { copyImage } from '../DiscoveryPublish/copyImage';
 import type { DiscoveryService } from '../DiscoveryService';
 import type { ImageStore } from '../ImageService/types';
+import { logErrorFields } from '../logError';
 import type { RecipeService } from '../RecipeService';
 
 /**
@@ -73,7 +74,7 @@ export class DiscoveryCopyService {
         } catch (error) {
             this.logger?.warn('Library cover could not be copied to the new recipe', {
                 recipeId,
-                error: (error as Error).message,
+                ...logErrorFields(error),
             });
 
             return undefined;

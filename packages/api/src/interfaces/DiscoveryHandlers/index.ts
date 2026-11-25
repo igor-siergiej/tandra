@@ -7,6 +7,7 @@ import type { DiscoveryCopyService } from '../../domain/DiscoveryCopyService';
 import type { DiscoveryModerationService } from '../../domain/DiscoveryModeration';
 import type { DiscoveryPublishService } from '../../domain/DiscoveryPublish';
 import type { DiscoveryService } from '../../domain/DiscoveryService';
+import { logErrorFields } from '../../domain/logError';
 import { type HonoVars, withAuth } from '../handlerUtils';
 
 const DIFFICULTIES: readonly RecipeDifficulty[] = ['easy', 'medium', 'hard'];
@@ -68,7 +69,7 @@ const parseSearchQuery = (c: Context<HonoVars>): DiscoverySearchQuery => ({
 const failWith = (logger: Logger, message: string, error: unknown): never => {
     const e = (error ?? {}) as { message?: string; status?: number };
     const status = e.status ?? 500;
-    logger.error(message, { error: e.message, status });
+    logger.error(message, { ...logErrorFields(error), status });
     throw new APIError(status === 500 ? 'Internal Server Error' : (e.message ?? 'Internal Server Error'), status);
 };
 

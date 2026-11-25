@@ -2,6 +2,8 @@ import type { Logger } from '@imapps/api-utils';
 import type { PushSubscription } from '@tandra/types';
 import webpush from 'web-push';
 
+import { logErrorFields } from '../../domain/logError';
+
 export type SendResult = 'ok' | 'gone' | 'error';
 
 export class WebPushSender {
@@ -45,7 +47,7 @@ export class WebPushSender {
             this.logger?.error('Failed to send web push', {
                 endpoint: sub.endpoint,
                 statusCode,
-                error: (error as Error).message,
+                ...logErrorFields(error),
             });
 
             return 'error';

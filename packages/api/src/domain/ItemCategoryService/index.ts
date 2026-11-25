@@ -2,14 +2,13 @@ import type { Logger } from '@imapps/api-utils';
 import type { ItemCategory } from '@tandra/types';
 
 import type { ItemCategoryRepository } from '../ItemCategoryRepository';
+import { logErrorFields } from '../logError';
 
 export interface ItemClassifier {
     classify(name: string): Promise<ItemCategory>;
 }
 
 const normaliseItemName = (name: string): string => name.trim().toLowerCase().replace(/\s+/g, ' ');
-
-const errorMessage = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
 /** Classifies a shopping item name into an aisle, remembering the answer so each name is classified once ever. */
 export class ItemCategoryService {
@@ -37,10 +36,7 @@ export class ItemCategoryService {
 
             return category;
         } catch (error) {
-            this.logger?.warn('Item categorisation failed, leaving uncategorised', {
-                itemName: key,
-                error: errorMessage(error),
-            });
+            this.logger?.warn('Item categorisation failed, leaving uncategorised', logErrorFields(error));
 
             return null;
         }

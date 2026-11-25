@@ -6,6 +6,7 @@ import type { DiscoveryPublicationRepository } from '../DiscoveryPublicationRepo
 import type { DiscoveryService } from '../DiscoveryService';
 import type { IdGenerator } from '../IdGenerator';
 import type { ImageStore } from '../ImageService/types';
+import { logErrorFields } from '../logError';
 import type { RecipeService } from '../RecipeService';
 import { slugify, uniqueSlug } from '../slug';
 import { WIKIBOOKS_RECIPE_ID } from '../WikibooksIngest/mapping';
@@ -137,7 +138,7 @@ export class DiscoveryPublishService {
         const title = recipe.title.trim();
         const coverImageKey = await this.coverFor(recipe, libraryId);
         const authorName = showName ? user.username : undefined;
-        const slug = await this.slugFor(title);
+        const slug = await this.slugFor(title, libraryId);
 
         return {
             id: libraryId,
@@ -170,7 +171,7 @@ export class DiscoveryPublishService {
      * use their id (`wikibooks-<pageId>`) as slug, so that shape is never handed
      * out here, even for a page not ingested yet: its recipe would then fail to save.
      */
-    private async slugFor(title: string): Promise<string | undefined> {
+    private async slugFor(title: string, libraryId: string): Promise<string | undefined> {
         const base = slugify(title);
 
         const isTaken = async (candidate: string) =>
@@ -180,8 +181,8 @@ export class DiscoveryPublishService {
             return await uniqueSlug(base, isTaken);
         } catch (error) {
             this.logger?.warn('Could not allocate a unique slug for published recipe; publishing without one', {
-                title,
-                error: (error as Error).message,
+                libraryId,
+                ...logErrorFields(error),
             });
 
             return undefined;
@@ -197,7 +198,7 @@ export class DiscoveryPublishService {
         } catch (error) {
             this.logger?.warn('Published recipe cover could not be copied; publishing without one', {
                 libraryId,
-                error: (error as Error).message,
+                ...logErrorFields(error),
             });
 
             return undefined;

@@ -4,6 +4,7 @@ import * as cheerio from 'cheerio';
 
 import type { IdGenerator } from '../IdGenerator';
 import type { IngredientStructurer } from '../IngredientStructurer/types';
+import { logErrorFields } from '../logError';
 import type { ImageFetcher, PageFetcher, ParsedRecipe, RecipeDraft, RecipeParser, RecipeTextExtractor } from './types';
 
 const MIN_INGREDIENTS = 2;
@@ -482,7 +483,7 @@ export class RecipeImportService {
             });
         } catch (error) {
             // Tier 3 is best-effort: never fail the whole import on an LLM error.
-            this.logger?.warn('Recipe import LLM fallback failed', { error: (error as Error)?.message });
+            this.logger?.warn('Recipe import LLM fallback failed', logErrorFields(error));
         }
     }
 

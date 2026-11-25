@@ -5,6 +5,7 @@ import type { Context } from 'hono';
 import { dependencyContainer } from '../../dependencies';
 import { DependencyToken } from '../../dependencies/types';
 import type { ImageService } from '../../domain/ImageService';
+import { logErrorFields } from '../../domain/logError';
 import type { HonoVars } from '../handlerUtils';
 
 const getImageService = (): ImageService => dependencyContainer.resolve(DependencyToken.ImageService);
@@ -115,7 +116,7 @@ export const getImage = async (c: Context<HonoVars>) => {
 
         const { stream, contentType, cacheControl } = await getImageService().getImage(name, c.get('user')?.id);
 
-        logger.info('API: AI image retrieved', { itemName: name, contentType });
+        logger.info('API: AI image retrieved', { contentType });
 
         c.header('Content-Type', contentType);
         c.header('Cache-Control', cacheControl);
@@ -124,7 +125,7 @@ export const getImage = async (c: Context<HonoVars>) => {
     } catch (error: unknown) {
         const err = error as { status?: number; message?: string };
 
-        logger.error('API: Failed to retrieve image', { itemName: name, error: err.message });
+        logger.error('API: Failed to retrieve image', logErrorFields(error));
 
         return c.json({ error: err.message ?? 'Internal Server Error' }, (err.status ?? 500) as 500);
     }

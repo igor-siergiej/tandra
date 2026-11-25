@@ -4,6 +4,7 @@ import type { Context } from 'hono';
 
 import { dependencyContainer } from '../../dependencies/container';
 import { DependencyToken } from '../../dependencies/types';
+import { logErrorFields } from '../../domain/logError';
 import type { RecipeImportService } from '../../domain/RecipeImportService';
 import type { RecipeService } from '../../domain/RecipeService';
 import { normaliseUpload } from '../../infrastructure/imageProcessor';
@@ -29,7 +30,7 @@ const failWithApiError = (error: unknown, logMessage: string, fields: Record<str
     const e = (error ?? {}) as { message?: string; status?: number };
     const message = e.message || 'Internal Server Error';
     const status = e.status ?? 500;
-    getLogger().error(logMessage, { ...fields, error: message, status });
+    getLogger().error(logMessage, { ...fields, ...logErrorFields(error), status });
     throw new APIError(message, status);
 };
 
@@ -153,7 +154,7 @@ export const createRecipe = async (c: Context<HonoVars>): Promise<Response> => {
         getLogger().info('API: Recipe created', {
             userId: authenticatedUser.id,
             username: authenticatedUser.username,
-            recipeTitle: title,
+            recipeId: recipe.id,
             ingredientCount: ingredients.length,
         });
 
@@ -162,8 +163,17 @@ export const createRecipe = async (c: Context<HonoVars>): Promise<Response> => {
         return failWithApiError(error, 'API: Failed to create recipe', {
             userId: authenticatedUser.id,
             username: authenticatedUser.username,
-            recipeTitle: title,
+            recipeId: id,
         });
+    }
+};
+
+/** Host only: a recipe URL path usually spells out the dish title, which must not reach the logs. */
+const hostOf = (value: string | undefined): string | undefined => {
+    try {
+        return new URL(value ?? '').hostname;
+    } catch {
+        return undefined;
     }
 };
 
@@ -179,7 +189,7 @@ export const importRecipe = async (c: Context<HonoVars>): Promise<Response> => {
 
         getLogger().info('API: Recipe imported from URL', {
             userId: authenticatedUser.id,
-            link: draft.link,
+            host: hostOf(draft.link),
             ingredientCount: draft.ingredients.length,
             instructionCount: draft.instructions.length,
         });
@@ -188,7 +198,7 @@ export const importRecipe = async (c: Context<HonoVars>): Promise<Response> => {
     } catch (error: unknown) {
         return failWithApiError(error, 'API: Failed to import recipe from URL', {
             userId: authenticatedUser.id,
-            url,
+            host: hostOf(url),
         });
     }
 };
@@ -209,7 +219,7 @@ export const importRecipeImage = async (c: Context<HonoVars>): Promise<Response>
 
         getLogger().info('API: Recipe import image proxied', {
             userId: authenticatedUser.id,
-            url,
+            host: hostOf(url),
             contentType,
             bytes: buffer.length,
         });
@@ -221,7 +231,7 @@ export const importRecipeImage = async (c: Context<HonoVars>): Promise<Response>
     } catch (error: unknown) {
         return failWithApiError(error, 'API: Failed to proxy recipe import image', {
             userId: authenticatedUser.id,
-            url,
+            host: hostOf(url),
         });
     }
 };
@@ -238,7 +248,6 @@ export const suggestIngredientSubstitutes = async (c: Context<HonoVars>): Promis
 
         getLogger().info('API: Ingredient substitutes suggested', {
             userId: authenticatedUser.id,
-            ingredientName,
             substituteCount: substitutes.length,
         });
 
@@ -246,7 +255,6 @@ export const suggestIngredientSubstitutes = async (c: Context<HonoVars>): Promis
     } catch (error: unknown) {
         return failWithApiError(error, 'API: Failed to suggest ingredient substitutes', {
             userId: authenticatedUser.id,
-            ingredientName,
         });
     }
 };
@@ -296,7 +304,7 @@ export const updateRecipe = async (c: Context<HonoVars>): Promise<Response> => {
             difficulty
         );
 
-        getLogger().info('API: Recipe updated', { userId: authenticatedUser.id, recipeId, recipeTitle: title });
+        getLogger().info('API: Recipe updated', { userId: authenticatedUser.id, recipeId });
 
         return c.json(recipe, 200);
     } catch (error: unknown) {

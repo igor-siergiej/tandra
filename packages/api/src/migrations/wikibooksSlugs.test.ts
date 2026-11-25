@@ -35,12 +35,14 @@ describe('backfillWikibooksSlugs', () => {
 
     it('never throws, so a failed backfill cannot stop the API starting', async () => {
         const { logger, repository } = setup(async () => {
-            throw Object.assign(new Error('E11000 duplicate key error'), { code: 11000 });
+            throw Object.assign(new Error('E11000 duplicate key error: private-recipe-title'), { code: 11000 });
         });
 
         await expect(backfillWikibooksSlugs(repository, logger)).resolves.toBeUndefined();
         expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('backfill failed'), {
-            error: 'Error: E11000 duplicate key error',
+            errorName: 'Error',
+            errorCode: 11000,
         });
+        expect(JSON.stringify(logger.warn.mock.calls)).not.toContain('private-recipe-title');
     });
 });

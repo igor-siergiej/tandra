@@ -5,6 +5,7 @@ import type { Context } from 'hono';
 import { config } from '../../config';
 import { dependencyContainer } from '../../dependencies';
 import { DependencyToken } from '../../dependencies/types';
+import { logErrorFields } from '../../domain/logError';
 import type { PushSubscriptionRepository } from '../../domain/PushSubscriptionRepository';
 import type { HonoVars } from '../handlerUtils';
 
@@ -42,7 +43,7 @@ export const subscribe = async (c: Context<HonoVars>) => {
 
         return c.json({ success: true }, 201);
     } catch (error: unknown) {
-        logger.error('Failed to save push subscription', { userId: user.id, error: (error as Error).message });
+        logger.error('Failed to save push subscription', { userId: user.id, ...logErrorFields(error) });
 
         return throwApiError(error);
     }
@@ -59,7 +60,7 @@ export const unsubscribe = async (c: Context<HonoVars>) => {
 
         return c.json({ success: true }, 200);
     } catch (error: unknown) {
-        logger.error('Failed to remove push subscription', { userId: user.id, error: (error as Error).message });
+        logger.error('Failed to remove push subscription', { userId: user.id, ...logErrorFields(error) });
 
         return throwApiError(error);
     }

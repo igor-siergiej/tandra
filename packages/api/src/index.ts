@@ -1,11 +1,13 @@
 import 'dotenv/config';
-import { createApp } from '@imapps/api-utils/hono';
+import type { Hono } from 'hono';
 
 import { config } from './config';
 import { allowedOrigins } from './config/cors';
 import { dependencyContainer, registerDepdendencies } from './dependencies';
 import { DependencyToken } from './dependencies/types';
+import { logErrorFields } from './domain/logError';
 import { websocket } from './infrastructure/bunWebSocket';
+import { createApp } from './infrastructure/createApp';
 import {
     httpRequestDurationSeconds,
     httpRequestsTotal,
@@ -18,7 +20,7 @@ import { createRoutes } from './routes';
 
 const port = config.get('port');
 
-const mountBetterAuth = (app: ReturnType<typeof createApp>) => {
+const mountBetterAuth = (app: Hono) => {
     const auth = dependencyContainer.resolve(DependencyToken.Auth);
     // The public origin Better Auth is configured for is the app's own origin (self-hosts included), so
     // multipart uploads from it must pass the form-post origin check too.
@@ -92,7 +94,7 @@ export const onStartup = async () => {
         dependencyContainer
             .resolve(DependencyToken.DiscoveryService)
             .ensureIndex()
-            .catch((error: unknown) => logger.warn('Discovery index not ready at startup', { error: String(error) }));
+            .catch((error: unknown) => logger.warn('Discovery index not ready at startup', logErrorFields(error)));
 
         await bucket.connect?.({
             endpoint: config.get('bucketEndpoint'),
@@ -116,7 +118,7 @@ export const onStartup = async () => {
         logger.info('Daily todo reminder scheduler started');
     } catch (error) {
         const logger = dependencyContainer.resolve(DependencyToken.Logger);
-        logger.error('Encountered an error on start up', error);
+        logger.error('Encountered an error on start up', logErrorFields(error));
         process.exit(1);
     }
 };

@@ -6,6 +6,7 @@ import { dependencyContainer } from '../../dependencies';
 import { DependencyToken } from '../../dependencies/types';
 import type { AuthorizationService } from '../../domain/AuthorizationService';
 import type { ListService } from '../../domain/ListService';
+import { logErrorFields } from '../../domain/logError';
 import type { HonoVars } from '../handlerUtils';
 
 interface HttpError {
@@ -22,13 +23,14 @@ const getAuthorizationService = (): AuthorizationService =>
 const verifyListAccess = async (
     title: string,
     authenticatedUser: { id: string; username: string }
-): Promise<boolean> => {
+): Promise<{ hasAccess: boolean; listId?: string }> => {
     try {
         const list = await getListService().getList(title);
+        const hasAccess = list.users?.some((u: { id: string; username: string }) => u.id === authenticatedUser.id);
 
-        return list.users?.some((u: { id: string; username: string }) => u.id === authenticatedUser.id) || false;
+        return { hasAccess: hasAccess || false, listId: list.id };
     } catch {
-        return false;
+        return { hasAccess: false };
     }
 };
 
@@ -65,24 +67,25 @@ const resolveItemOperation = (body: {
     return null;
 };
 
+// The route param may be a legacy list title, so handlers log the resolved `listId` this returns, never the param.
 const ensureListAccess = async (
     c: Context<HonoVars>,
     title: string,
     authenticatedUser: { id: string; username: string },
     logger: ReturnType<typeof getLogger>
-): Promise<Response | null> => {
-    const hasAccess = await verifyListAccess(title, authenticatedUser);
+): Promise<{ denied: Response | null; listId?: string }> => {
+    const { hasAccess, listId } = await verifyListAccess(title, authenticatedUser);
 
     if (!hasAccess) {
         logger.warn('Unauthorized list access attempt', {
             authenticatedUserId: authenticatedUser.id,
-            listTitle: title,
+            listId,
         });
 
-        return c.json({ error: 'Forbidden' }, 403);
+        return { denied: c.json({ error: 'Forbidden' }, 403) };
     }
 
-    return null;
+    return { denied: null, listId };
 };
 
 const failWith = (
@@ -92,7 +95,7 @@ const failWith = (
     meta: Record<string, unknown>
 ): never => {
     const err = error as { status?: number; message?: string };
-    logger.error(message, { ...meta, error: err.message });
+    logger.error(message, { ...meta, ...logErrorFields(error) });
     throw new APIError(err.message ?? 'Internal Server Error', err.status ?? 500);
 };
 
@@ -101,16 +104,16 @@ export const getList = async (c: Context<HonoVars>) => {
     const logger = getLogger();
     const authenticatedUser = c.get('user');
 
+    const { denied, listId } = await ensureListAccess(c, title, authenticatedUser, logger);
+
+    if (denied) return denied;
+
     try {
-        const denied = await ensureListAccess(c, title, authenticatedUser, logger);
-
-        if (denied) return denied;
-
         const list = await getListService().getList(title);
         const effectiveOwnerId = getAuthorizationService().getEffectiveOwnerId(list);
 
         logger.info('API: List retrieved', {
-            listTitle: title,
+            listId,
             itemCount: list.items.length,
             listType: list.listType,
         });
@@ -127,7 +130,7 @@ export const getList = async (c: Context<HonoVars>) => {
             200
         );
     } catch (error: unknown) {
-        return failWith(error, logger, 'API: Failed to retrieve list items', { listTitle: title });
+        return failWith(error, logger, 'API: Failed to retrieve list items', { listId });
     }
 };
 
@@ -174,7 +177,6 @@ export const addList = async (c: Context<HonoVars>) => {
             userId: authenticatedUser.id,
             username: authenticatedUser.username,
             listId: list.id,
-            listTitle: title,
             listType: list.listType,
         });
 
@@ -183,7 +185,7 @@ export const addList = async (c: Context<HonoVars>) => {
         return failWith(error, logger, 'API: Failed to create list', {
             userId: authenticatedUser.id,
             username: authenticatedUser.username,
-            listTitle: title,
+            listId: id,
         });
     }
 };
@@ -202,16 +204,15 @@ export const addItem = async (c: Context<HonoVars>) => {
     const logger = getLogger();
     const authenticatedUser = c.get('user');
 
+    const { denied, listId } = await ensureListAccess(c, title, authenticatedUser, logger);
+
+    if (denied) return denied;
+
     try {
-        const denied = await ensureListAccess(c, title, authenticatedUser, logger);
-
-        if (denied) return denied;
-
         const item = await getListService().addItem(title, itemName, dateAdded, quantity, unit, authenticatedUser, id);
 
         logger.info('API: Item added to list', {
-            listTitle: title,
-            itemName,
+            listId,
             itemId: item.id,
             quantity,
             unit,
@@ -219,7 +220,7 @@ export const addItem = async (c: Context<HonoVars>) => {
 
         return c.json(item, 200);
     } catch (error: unknown) {
-        return failWith(error, logger, 'API: Failed to add item to list', { listTitle: title, itemName });
+        return failWith(error, logger, 'API: Failed to add item to list', { listId });
     }
 };
 
@@ -237,18 +238,18 @@ export const updateItem = async (c: Context<HonoVars>) => {
     const logger = getLogger();
     const authenticatedUser = c.get('user');
 
+    const { denied, listId } = await ensureListAccess(c, title, authenticatedUser, logger);
+
+    if (denied) return denied;
+
     try {
-        const denied = await ensureListAccess(c, title, authenticatedUser, logger);
-
-        if (denied) return denied;
-
         const operation = resolveItemOperation(requestBody);
 
         if (!operation) {
             logger.warn('API: Invalid item update request', {
-                listTitle: title,
+                listId,
                 itemId,
-                providedFields: requestBody,
+                providedFields: Object.keys(requestBody),
             });
 
             return c.json(
@@ -259,14 +260,16 @@ export const updateItem = async (c: Context<HonoVars>) => {
 
         const result = await operation.execute(getListService(), title, itemId);
         logger.info(`API: Item ${operation.type} updated`, {
-            listTitle: title,
+            listId,
             itemId,
-            ...requestBody,
+            isSelected: requestBody.isSelected,
+            quantity: requestBody.quantity,
+            unit: requestBody.unit,
         });
 
         return c.json(result, 200);
     } catch (error: unknown) {
-        return failWith(error, logger, 'API: Failed to update item', { listTitle: title, itemId });
+        return failWith(error, logger, 'API: Failed to update item', { listId, itemId });
     }
 };
 
@@ -276,22 +279,22 @@ export const deleteItem = async (c: Context<HonoVars>) => {
     const logger = getLogger();
     const authenticatedUser = c.get('user');
 
+    const { denied, listId } = await ensureListAccess(c, title, authenticatedUser, logger);
+
+    if (denied) return denied;
+
     try {
-        const denied = await ensureListAccess(c, title, authenticatedUser, logger);
-
-        if (denied) return denied;
-
         const list = await getListService().deleteItem(title, itemId);
 
         logger.info('API: Item deleted from list', {
-            listTitle: title,
+            listId,
             itemId,
             remainingItemCount: list.items.length,
         });
 
         return c.json(list, 200);
     } catch (error: unknown) {
-        return failWith(error, logger, 'API: Failed to delete item', { listTitle: title, itemId });
+        return failWith(error, logger, 'API: Failed to delete item', { listId, itemId });
     }
 };
 
@@ -300,17 +303,17 @@ export const deleteList = async (c: Context<HonoVars>) => {
     const logger = getLogger();
     const authenticatedUser = c.get('user');
 
+    const { denied, listId } = await ensureListAccess(c, title, authenticatedUser, logger);
+
+    if (denied) return denied;
+
     try {
-        const denied = await ensureListAccess(c, title, authenticatedUser, logger);
-
-        if (denied) return denied;
-
         const list = await getListService().getList(title);
 
         if (!getAuthorizationService().isListOwner(list, authenticatedUser.id)) {
             logger.warn('Non-owner attempted to delete list', {
                 authenticatedUserId: authenticatedUser.id,
-                listTitle: title,
+                listId,
             });
 
             return c.json({ error: 'Only the list owner can delete this list' }, 403);
@@ -318,11 +321,11 @@ export const deleteList = async (c: Context<HonoVars>) => {
 
         const result = await getListService().deleteList(title);
 
-        logger.info('API: List deleted', { listTitle: title });
+        logger.info('API: List deleted', { listId });
 
         return c.json(result, 200);
     } catch (error: unknown) {
-        return failWith(error, logger, 'API: Failed to delete list', { listTitle: title });
+        return failWith(error, logger, 'API: Failed to delete list', { listId });
     }
 };
 
@@ -332,18 +335,18 @@ export const updateList = async (c: Context<HonoVars>) => {
     const logger = getLogger();
     const authenticatedUser = c.get('user');
 
+    const { denied, listId } = await ensureListAccess(c, title, authenticatedUser, logger);
+
+    if (denied) return denied;
+
     try {
-        const denied = await ensureListAccess(c, title, authenticatedUser, logger);
-
-        if (denied) return denied;
-
         const result = await getListService().updateListTitle(title, newTitle);
 
-        logger.info('API: List title updated', { oldTitle: title, newTitle });
+        logger.info('API: List title updated', { listId });
 
         return c.json(result, 200);
     } catch (error: unknown) {
-        return failWith(error, logger, 'API: Failed to update list title', { oldTitle: title, newTitle });
+        return failWith(error, logger, 'API: Failed to update list title', { listId });
     }
 };
 
@@ -352,21 +355,21 @@ export const clearList = async (c: Context<HonoVars>) => {
     const logger = getLogger();
     const authenticatedUser = c.get('user');
 
+    const { denied, listId } = await ensureListAccess(c, title, authenticatedUser, logger);
+
+    if (denied) return denied;
+
     try {
-        const denied = await ensureListAccess(c, title, authenticatedUser, logger);
-
-        if (denied) return denied;
-
         const list = await getListService().clearList(title);
 
         logger.info('API: List cleared', {
-            listTitle: title,
+            listId,
             clearedItemCount: list.items.length,
         });
 
         return c.json(list, 200);
     } catch (error: unknown) {
-        return failWith(error, logger, 'API: Failed to clear list', { listTitle: title });
+        return failWith(error, logger, 'API: Failed to clear list', { listId });
     }
 };
 
@@ -375,21 +378,21 @@ export const deleteSelected = async (c: Context<HonoVars>) => {
     const logger = getLogger();
     const authenticatedUser = c.get('user');
 
+    const { denied, listId } = await ensureListAccess(c, title, authenticatedUser, logger);
+
+    if (denied) return denied;
+
     try {
-        const denied = await ensureListAccess(c, title, authenticatedUser, logger);
-
-        if (denied) return denied;
-
         const list = await getListService().clearSelectedItems(title);
 
         logger.info('API: Selected items cleared from list', {
-            listTitle: title,
+            listId,
             remainingItemCount: list.items.length,
         });
 
         return c.json(list, 200);
     } catch (error: unknown) {
-        return failWith(error, logger, 'API: Failed to clear selected items', { listTitle: title });
+        return failWith(error, logger, 'API: Failed to clear selected items', { listId });
     }
 };
 
@@ -399,7 +402,7 @@ export const addUserToList = async (c: Context<HonoVars>) => {
     const authenticatedUser = c.get('user');
     const logger = getLogger();
 
-    const denied = await ensureListAccess(c, title, authenticatedUser, logger);
+    const { denied, listId } = await ensureListAccess(c, title, authenticatedUser, logger);
 
     if (denied) return denied;
 
@@ -409,7 +412,7 @@ export const addUserToList = async (c: Context<HonoVars>) => {
         logger.info('API: User added to list', {
             userId: authenticatedUser.id,
             username: authenticatedUser.username,
-            listTitle: title,
+            listId,
             addedUser: friendId,
         });
 
@@ -422,9 +425,9 @@ export const addUserToList = async (c: Context<HonoVars>) => {
         logger.error('API: Failed to add user to list', {
             userId: authenticatedUser.id,
             username: authenticatedUser.username,
-            listTitle: title,
+            listId,
             addedUser: friendId,
-            error: errorMessage,
+            ...logErrorFields(error),
             status,
         });
 
@@ -438,7 +441,7 @@ export const removeUserFromList = async (c: Context<HonoVars>) => {
     const authenticatedUser = c.get('user');
     const logger = getLogger();
 
-    const denied = await ensureListAccess(c, title, authenticatedUser, logger);
+    const { denied, listId } = await ensureListAccess(c, title, authenticatedUser, logger);
 
     if (denied) return denied;
 
@@ -448,7 +451,7 @@ export const removeUserFromList = async (c: Context<HonoVars>) => {
         logger.info('API: User removed from list', {
             userId: authenticatedUser.id,
             username: authenticatedUser.username,
-            listTitle: title,
+            listId,
             removedUserId: userId,
         });
 
@@ -461,9 +464,9 @@ export const removeUserFromList = async (c: Context<HonoVars>) => {
         logger.error('API: Failed to remove user from list', {
             userId: authenticatedUser.id,
             username: authenticatedUser.username,
-            listTitle: title,
+            listId,
             removedUserId: userId,
-            error: errorMessage,
+            ...logErrorFields(error),
             status,
         });
 
@@ -481,7 +484,7 @@ export const addItems = async (c: Context<HonoVars>) => {
     const logger = getLogger();
     const authenticatedUser = c.get('user');
 
-    const denied = await ensureListAccess(c, title, authenticatedUser, logger);
+    const { denied, listId } = await ensureListAccess(c, title, authenticatedUser, logger);
 
     if (denied) return denied;
 
@@ -489,7 +492,7 @@ export const addItems = async (c: Context<HonoVars>) => {
         const result = await getListService().addItems(title, items, authenticatedUser.id, authenticatedUser);
 
         logger.info('API: Items bulk added to list', {
-            listTitle: title,
+            listId,
             userId: authenticatedUser.id,
             username: authenticatedUser.username,
             addedCount: result.added,
@@ -499,7 +502,7 @@ export const addItems = async (c: Context<HonoVars>) => {
         return c.json(result, 200);
     } catch (error: unknown) {
         return failWith(error, logger, 'API: Failed to add items to list', {
-            listTitle: title,
+            listId,
             userId: authenticatedUser.id,
             username: authenticatedUser.username,
         });

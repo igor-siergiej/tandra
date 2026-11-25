@@ -2,6 +2,7 @@ import type { Context } from 'hono';
 
 import { dependencyContainer } from '../../dependencies';
 import { DependencyToken } from '../../dependencies/types';
+import { logErrorFields } from '../../domain/logError';
 import { clientIpFrom } from '../../infrastructure/clientIp';
 import { IpRateLimiter } from '../../infrastructure/rateLimit';
 
@@ -13,6 +14,62 @@ interface FrontendLog {
     userAgent?: string;
     url?: string;
 }
+
+// The privacy notice promises front-end logs hold no list-item, recipe or transcript text, so the client's free-form
+// `context` is reduced to these keys (ids, the error and the route); everything else is dropped.
+const ALLOWED_CONTEXT_KEYS = [
+    'userId',
+    'listId',
+    'itemId',
+    'recipeId',
+    'route',
+    'error',
+    'errorName',
+    'errorMessage',
+] as const;
+
+// Browser/dependency messages may echo request bodies. Preserve only content-independent diagnostics.
+const SAFE_ERROR_MESSAGES: Record<string, true> = {
+    'Network request failed': true,
+    'Failed to fetch': true,
+    'Load failed': true,
+    'Unknown error': true,
+    'NetworkError when attempting to fetch resource.': true,
+};
+
+const logUrl = (value: string | undefined): string => {
+    if (!value) return 'unknown';
+
+    try {
+        const url = new URL(value, 'https://frontend.invalid');
+        const path = url.pathname.replace(/\/list\/[^/]+/, '/list/:listId');
+
+        return value.startsWith('/') ? path : `${url.origin}${path}`;
+    } catch {
+        return 'unknown';
+    }
+};
+
+const allowedContext = (context: FrontendLog['context']): Record<string, string | number | boolean> => {
+    const kept: Record<string, string | number | boolean> = {};
+
+    for (const key of ALLOWED_CONTEXT_KEYS) {
+        const value = context?.[key];
+
+        if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') continue;
+
+        if (key === 'error' || key === 'errorMessage') {
+            kept[key] =
+                typeof value === 'string' && Object.hasOwn(SAFE_ERROR_MESSAGES, value)
+                    ? value
+                    : 'Redacted error message';
+        } else {
+            kept[key] = key === 'route' && typeof value === 'string' ? logUrl(value) : value;
+        }
+    }
+
+    return kept;
+};
 
 const getLogger = () => dependencyContainer.resolve(DependencyToken.Logger);
 
@@ -43,31 +100,31 @@ export const receiveLogs = async (c: Context) => {
     const log = await c.req.json<FrontendLog>();
 
     if (!log.level || !log.message) {
-        logger.warn('Invalid frontend log received', { clientIp, receivedData: log });
+        logger.warn('Invalid frontend log received', { clientIp, hasMessage: Boolean(log.message) });
 
         return c.json({ error: 'level and message are required' }, 400);
     }
 
     if (!['debug', 'info', 'warn', 'error'].includes(log.level)) {
-        logger.warn('Invalid log level received', { clientIp, level: log.level });
+        logger.warn('Invalid log level received', { clientIp });
 
         return c.json({ error: 'Invalid log level' }, 400);
     }
 
     try {
         const logContext = {
+            ...allowedContext(log.context),
             source: 'frontend',
             clientIp,
             userAgent: log.userAgent || 'unknown',
-            url: log.url || 'unknown',
-            ...log.context,
+            url: logUrl(log.url),
         };
 
         (logger as unknown as Record<string, (msg: string, ctx: unknown) => void>)[log.level](log.message, logContext);
 
         return new Response(null, { status: 204 });
     } catch (error) {
-        logger.error('Failed to process frontend log', { clientIp, error, log });
+        logger.error('Failed to process frontend log', { clientIp, ...logErrorFields(error) });
 
         return c.json({ error: 'Failed to process log' }, 500);
     }
