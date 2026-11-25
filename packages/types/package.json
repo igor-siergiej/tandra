@@ -1,6 +1,6 @@
 {
   "name": "@tandra/types",
-  "version": "2.12.0",
+  "version": "2.12.1",
   "main": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",

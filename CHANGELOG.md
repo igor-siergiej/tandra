@@ -1,3 +1,10 @@
+## [2.12.1](https://github.com/igor-siergiej/tandra/compare/v2.12.0...v2.12.1) (2026-11-25)
+
+
+### Bug Fixes
+
+* **api:** keep list titles, item names and recipe text out of log lines ([#325](https://github.com/igor-siergiej/tandra/issues/325)) ([0718bd4](https://github.com/igor-siergiej/tandra/commit/0718bd4397ae4f2f5227e50193a8f5dda63352e1))
+
 # [2.12.0](https://github.com/igor-siergiej/tandra/compare/v2.11.0...v2.12.0) (2026-11-21)
 
 

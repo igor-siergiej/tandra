@@ -1,5 +1,23 @@
 [
   {
+    "version": "2.12.1",
+    "date": "2026-11-25",
+    "notes": [
+      {
+        "type": "fix",
+        "text": "Server logs no longer record the names of your lists, items and recipes."
+      },
+      {
+        "type": "fix",
+        "text": "Diagnostic logs now use ids and route templates instead of private shopping and recipe text, including when requests fail."
+      },
+      {
+        "type": "fix",
+        "text": "Recipe import links are no longer written to our server logs in full, only the site they came from."
+      }
+    ]
+  },
+  {
     "version": "2.12.0",
     "date": "2026-11-21",
     "notes": [
